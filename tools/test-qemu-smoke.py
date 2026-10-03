@@ -38,7 +38,7 @@ os.close(slave)
 buffer = ""
 stage = "wait_login"
 start_time = time.time()
-timeout = 60
+timeout = 90
 
 commands_to_run = [
     "uname -a",
@@ -46,7 +46,7 @@ commands_to_run = [
     "systemctl is-system-running",
     "portadora list",
     "portadora verify",
-    "poweroff -f",
+    "reboot -f",
 ]
 cmd_index = 0
 last_cmd_time = 0
@@ -77,6 +77,10 @@ try:
                     stage = "logged_in"
                     last_cmd_time = time.time()
 
+        if stage == "wait_relogin" and "blaze login:" in buffer:
+            print("\n[SMOKE] REBOOT OK: login prompt returned.")
+            break
+
         if stage == "logged_in" and (time.time() - last_cmd_time > 2.0):
             if cmd_index < len(commands_to_run):
                 c = commands_to_run[cmd_index]
@@ -85,8 +89,9 @@ try:
                 cmd_index += 1
                 last_cmd_time = time.time()
             else:
-                print("\n[SMOKE] All commands dispatched. Waiting for system poweroff...")
-                stage = "waiting_exit"
+                print("\n[SMOKE] Reboot dispatched. Waiting for second login prompt...")
+                stage = "wait_relogin"
+                buffer = ""
 
         if proc.poll() is not None:
             print(f"\n[SMOKE] QEMU exited with code {proc.returncode}")
