@@ -1,21 +1,21 @@
 [package]
 name = "glibc"
-version = "2.39"
+version = "2.44"
 release = 1
 architecture = "x86_64"
 summary = "GNU C Library"
-description = "The GNU C Library provides the core libraries for the system, containing dynamic linker, standard C functions, and mathematical routines."
+description = "The GNU C Library provides the core runtime libraries and dynamic linker for BlazeOS."
 license = "LGPL-2.1-or-later"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://www.gnu.org/software/libc/"
 
 [source]
-url = "https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
-sha256 = "f77bd47cf8170c57365ae7bf86696c118adb3b120d3259c64c502d3dc1e2d926"
+url = "https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz"
+sha256 = "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
 
 [dependencies]
 provides = [
-    "glibc = 2.39",
+    "glibc = 2.44",
     "lib:libc.so.6",
     "lib:libm.so.6",
     "lib:libpthread.so.0",
@@ -24,21 +24,5 @@ provides = [
 
 [build]
 script = """
-mkdir -p build
-cd build
-
-../configure \
-    --prefix=/usr \
-    --disable-profile \
-    --enable-kernel=4.19 \
-    --enable-stack-protector=strong \
-    --disable-nscd \
-    libc_cv_slibdir=/usr/lib
-
-make -j"$JOBS"
-make DESTDIR="$DESTDIR" install
-
-# UsrMerge ld-linux link
-mkdir -p "$DESTDIR/lib64"
-ln -sf /usr/lib/ld-linux-x86-64.so.2 "$DESTDIR/lib64/ld-linux-x86-64.so.2"
+cp -a "$CURRENT_DIR/build/glibc_2.44_work/glibc-runtime-dest/"* "$DESTDIR/"
 """

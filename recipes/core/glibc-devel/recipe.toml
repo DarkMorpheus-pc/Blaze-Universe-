@@ -1,0 +1,21 @@
+[package]
+name = "glibc-devel"
+version = "2.44"
+release = 1
+architecture = "x86_64"
+summary = "GNU C Library Headers, CRT Objects, and Development Stubs"
+description = "Development headers, static archives, and linker scripts for glibc."
+license = "LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.gnu.org/software/libc/"
+
+[dependencies]
+requires = ["glibc = 2.44"]
+provides = [
+    "glibc-devel = 2.44"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/glibc_2.44_work/glibc-devel-dest/"* "$DESTDIR/"
+"""

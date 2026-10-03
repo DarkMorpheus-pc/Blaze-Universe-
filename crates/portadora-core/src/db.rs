@@ -433,8 +433,9 @@ impl Database {
             }
 
             // Mode check (compare last 4 octal digits)
+            let is_runtime_mount = matches!(rel_path.as_str(), "run" | "proc" | "sys" | "dev");
             let actual_mode = format!("{:04o}", meta.permissions().mode() & 0o7777);
-            if actual_mode != expected_mode && file_type != "symlink" {
+            if actual_mode != expected_mode && file_type != "symlink" && !is_runtime_mount {
                 issues.push(VerificationIssue {
                     package_name: pkg_name.clone(),
                     path: rel_path.clone(),

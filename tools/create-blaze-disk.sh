@@ -20,9 +20,9 @@ ROOTFS_DIR="${BUILD_DIR}/rootfs"
 echo "=== Creating BlazeOS GPT Boot Disk Image ==="
 echo "Target Disk: ${DISK_IMG}"
 
-# 1. Create a 2GB raw disk image
+# 1. Create a 16GB raw disk image
 rm -f "${DISK_IMG}"
-truncate -s 2G "${DISK_IMG}"
+truncate -s 16G "${DISK_IMG}"
 
 # 2. Partition with sfdisk (GPT)
 # Partition 1: ESP (128M), Partition 2: Root (Rest)
@@ -31,7 +31,7 @@ label: gpt
 label-id: 88888888-8888-8888-8888-888888888888
 
 start=2048, size=262144, type=c12a7328-f81f-11d2-ba4b-00a0c93ec93b, name="BLAZE-EFI", uuid=11111111-1111-1111-1111-111111111111
-start=264192, type=4f68bce3-e8cd-4db1-96e7-fbcaf984b709, name="blaze-root", uuid=44444444-4444-4444-4444-444444444444
+start=264192, size=33288192, type=4f68bce3-e8cd-4db1-96e7-fbcaf984b709, name="blaze-root", uuid=44444444-4444-4444-4444-444444444444
 EOF
 
 # Calculate partition byte offsets
@@ -54,7 +54,7 @@ mcopy -i "${ESP_IMG}" /usr/share/limine/BOOTX64.EFI ::EFI/BOOT/BOOTX64.EFI
 # Write limine.conf
 cat << 'EOF' > "${BUILD_DIR}/limine.conf"
 timeout: 3
-default_entry: 1
+default_entry: 2
 
 /BlazeOS Native (systemd direct)
     protocol: linux
@@ -82,8 +82,8 @@ fi
 # 4. Format Root (ext4) and populate
 ROOT_IMG="${BUILD_DIR}/root.img"
 rm -f "${ROOT_IMG}"
-# Size = 3928064 sectors * 512 bytes (leaves last 34 sectors for backup GPT)
-ROOT_SIZE=$((3928064 * 512))
+# Size = 33288192 sectors * 512 bytes (exactly matches GPT partition size of 15.87 GiB)
+ROOT_SIZE=$((33288192 * 512))
 truncate -s "${ROOT_SIZE}" "${ROOT_IMG}"
 
 # Format ext4 with label blaze-root
@@ -92,10 +92,10 @@ unshare -r mkfs.ext4 -F -L "blaze-root" -d "${ROOTFS_DIR}" "${ROOT_IMG}"
 
 # 5. Burn partitions into raw disk image
 echo "Writing ESP partition into disk image..."
-dd if="${ESP_IMG}" of="${DISK_IMG}" bs=512 seek=2048 conv=notrunc status=none
+dd if="${ESP_IMG}" of="${DISK_IMG}" bs=1M seek=1 conv=notrunc status=none
 
 echo "Writing Root partition into disk image..."
-dd if="${ROOT_IMG}" of="${DISK_IMG}" bs=512 seek=264192 conv=notrunc status=none
+dd if="${ROOT_IMG}" of="${DISK_IMG}" bs=1M seek=129 conv=notrunc status=none
 
 rm -f "${ESP_IMG}" "${ROOT_IMG}"
 

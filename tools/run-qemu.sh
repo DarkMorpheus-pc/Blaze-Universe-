@@ -26,7 +26,7 @@ exec qemu-system-x86_64 \
     ${KVM_OPT} \
     -bios "${OVMF_CODE}" \
     -drive file="${DISK_IMG}",format=raw,if=virtio \
-    -m 2G \
-    -smp 2 \
+    -m 8G \
+    -smp 8 \
     -nographic \
     -serial mon:stdio

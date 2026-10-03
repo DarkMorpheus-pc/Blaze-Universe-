@@ -1,0 +1,17 @@
+[package]
+name = "linux-api-headers"
+version = "7.2.8"
+release = 1
+architecture = "x86_64"
+summary = "Linux API kernel headers for userspace development"
+license = "GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://kernel.org"
+
+[dependencies]
+provides = ["linux-api-headers = 7.2.8"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/kernel_7.2_work/headers-dest/"* "$DESTDIR/"
+"""

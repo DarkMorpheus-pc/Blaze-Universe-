@@ -19,5 +19,7 @@ provides = [
 [build]
 script = """
 cp -a "$CURRENT_DIR/build/m2_work/pam-dest/"* "$DESTDIR/"
-chmod 4755 "$DESTDIR/usr/bin/unix_chkpwd"
+if [ -f "$DESTDIR/usr/bin/unix_chkpwd" ]; then
+    chmod 4755 "$DESTDIR/usr/bin/unix_chkpwd"
+fi
 """
