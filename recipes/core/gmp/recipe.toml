@@ -1,0 +1,17 @@
+[package]
+name = "gmp"
+version = "6.3.0"
+release = 1
+architecture = "x86_64"
+summary = "GNU Multiple Precision Arithmetic Library"
+license = "LGPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://gmplib.org/"
+
+[dependencies]
+provides = ["gmp = 6.3.0", "lib:libgmp.so.10"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/gmp-dest/"* "$DESTDIR/"
+"""

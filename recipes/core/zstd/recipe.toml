@@ -1,0 +1,17 @@
+[package]
+name = "zstd"
+version = "1.5.6"
+release = 1
+architecture = "x86_64"
+summary = "Zstandard - Fast real-time compression algorithm"
+license = "BSD-3-Clause OR GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://facebook.github.io/zstd/"
+
+[dependencies]
+provides = ["zstd = 1.5.6", "lib:libzstd.so.1", "cmd:zstd"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/zstd-dest/"* "$DESTDIR/"
+"""

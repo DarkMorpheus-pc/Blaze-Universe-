@@ -1,0 +1,23 @@
+[package]
+name = "kmod"
+version = "32"
+release = 1
+architecture = "x86_64"
+summary = "Linux kernel module management tools and library"
+license = "LGPL-2.1-or-later AND GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://git.kernel.org/pub/scm/utils/kernel/kmod/kmod.git"
+
+[dependencies]
+provides = [
+    "kmod = 32",
+    "lib:libkmod.so.2",
+    "cmd:kmod",
+    "cmd:modprobe",
+    "cmd:lsmod"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/kmod-dest/"* "$DESTDIR/"
+"""

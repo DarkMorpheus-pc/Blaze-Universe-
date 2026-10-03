@@ -1,0 +1,17 @@
+[package]
+name = "xz"
+version = "5.6.2"
+release = 1
+architecture = "x86_64"
+summary = "Library and command line tools for XZ and LZMA compressed files"
+license = "GPL-2.0-or-later AND LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://tukaani.org/xz/"
+
+[dependencies]
+provides = ["xz = 5.6.2", "lib:liblzma.so.5", "cmd:xz"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/xz-dest/"* "$DESTDIR/"
+"""

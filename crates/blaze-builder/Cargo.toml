@@ -1,0 +1,23 @@
+[package]
+name = "blaze-builder"
+version = "0.1.0"
+edition = "2021"
+authors = ["BlazeOS Core Team <core@blazeos.org>"]
+description = "Deterministic package builder and recipe compiler for BlazeOS Native"
+
+[dependencies]
+portadora-core = { path = "../portadora-core" }
+clap = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
+anyhow = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+reqwest = { workspace = true }
+flate2 = { workspace = true }
+xz2 = { workspace = true }
+bzip2 = { workspace = true }
+tar = { workspace = true }
+zstd = { workspace = true }
+tempfile = { workspace = true }
+walkdir = { workspace = true }

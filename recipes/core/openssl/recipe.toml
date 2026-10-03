@@ -1,0 +1,17 @@
+[package]
+name = "openssl"
+version = "3.3.1"
+release = 1
+architecture = "x86_64"
+summary = "Cryptography and SSL/TLS Toolkit"
+license = "Apache-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.openssl.org/"
+
+[dependencies]
+provides = ["openssl = 3.3.1", "lib:libssl.so.3", "lib:libcrypto.so.3", "cmd:openssl"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/openssl-dest/"* "$DESTDIR/"
+"""

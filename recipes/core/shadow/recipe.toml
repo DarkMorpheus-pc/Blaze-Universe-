@@ -1,0 +1,23 @@
+[package]
+name = "shadow"
+version = "4.15.1"
+release = 1
+architecture = "x86_64"
+summary = "Password and account management tool suite"
+license = "BSD-3-Clause"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/shadow-maint/shadow"
+
+[dependencies]
+provides = [
+    "shadow = 4.15.1",
+    "cmd:login",
+    "cmd:passwd",
+    "cmd:useradd",
+    "cmd:su"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/shadow-dest/"* "$DESTDIR/"
+"""

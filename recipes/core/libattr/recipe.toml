@@ -1,0 +1,17 @@
+[package]
+name = "libattr"
+version = "2.5.2"
+release = 1
+architecture = "x86_64"
+summary = "Extended attributes library"
+license = "LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://savannah.nongnu.org/projects/attr"
+
+[dependencies]
+provides = ["libattr = 2.5.2", "lib:libattr.so.1"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/libattr-dest/"* "$DESTDIR/"
+"""

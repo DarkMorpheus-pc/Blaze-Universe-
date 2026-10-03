@@ -1,0 +1,40 @@
+[package]
+name = "systemd"
+version = "255"
+release = 1
+architecture = "x86_64"
+summary = "System and Service Manager for BlazeOS Native"
+license = "LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://systemd.io/"
+
+[dependencies]
+provides = [
+    "systemd = 255",
+    "init",
+    "lib:libsystemd.so.0",
+    "lib:libudev.so.1",
+    "cmd:systemctl",
+    "cmd:journalctl",
+    "cmd:udevadm"
+]
+
+[sysusers]
+files = ["usr/lib/sysusers.d/basic.conf", "usr/lib/sysusers.d/systemd.conf"]
+
+[tmpfiles]
+files = ["usr/lib/tmpfiles.d/systemd.conf", "usr/lib/tmpfiles.d/tmp.conf"]
+
+[services]
+preset = [
+    "systemd-journald.service",
+    "systemd-udevd.service",
+    "systemd-logind.service",
+    "getty@tty1.service",
+    "getty@ttyS0.service"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/systemd-dest/"* "$DESTDIR/"
+"""

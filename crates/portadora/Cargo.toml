@@ -1,0 +1,12 @@
+[package]
+name = "portadora"
+version = "0.1.0"
+edition = "2021"
+authors = ["BlazeOS Core Team <core@blazeos.org>"]
+description = "Native package manager CLI for BlazeOS"
+
+[dependencies]
+portadora-core = { path = "../portadora-core" }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }

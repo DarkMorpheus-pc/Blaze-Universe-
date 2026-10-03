@@ -1,0 +1,17 @@
+[package]
+name = "libcap"
+version = "2.70"
+release = 1
+architecture = "x86_64"
+summary = "POSIX 1003.1e capabilities library"
+license = "GPL-2.0-only OR BSD-3-Clause"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://sites.google.com/site/fullycapable/"
+
+[dependencies]
+provides = ["libcap = 2.70", "lib:libcap.so.2", "cmd:capsh"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/libcap-dest/"* "$DESTDIR/"
+"""

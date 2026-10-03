@@ -1,0 +1,28 @@
+[package]
+name = "util-linux"
+version = "2.40.1"
+release = 1
+architecture = "x86_64"
+summary = "Miscellaneous system utilities for Linux"
+license = "GPL-2.0-only AND LGPL-2.1-or-later AND BSD-4-Clause-UC"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/util-linux/util-linux"
+
+[dependencies]
+provides = [
+    "util-linux = 2.40.1",
+    "lib:libmount.so.1",
+    "lib:libblkid.so.1",
+    "lib:libuuid.so.1",
+    "lib:libsmartcols.so.1",
+    "lib:libfdisk.so.1",
+    "cmd:agetty",
+    "cmd:mount",
+    "cmd:umount",
+    "cmd:blkid"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/util-linux-dest/"* "$DESTDIR/"
+"""

@@ -1,0 +1,18 @@
+[package]
+name = "linux-blaze"
+version = "6.8.12"
+release = 1
+architecture = "x86_64"
+summary = "Vanilla Linux kernel and early boot initramfs for BlazeOS Native"
+license = "GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://kernel.org"
+
+[dependencies]
+provides = ["kernel", "linux = 6.8.12"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/boot"
+cp -a "$CURRENT_DIR/build/kernel_work/kernel-dest/"* "$DESTDIR/"
+"""

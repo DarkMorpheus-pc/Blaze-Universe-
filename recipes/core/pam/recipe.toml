@@ -1,0 +1,23 @@
+[package]
+name = "pam"
+version = "1.6.1"
+release = 1
+architecture = "x86_64"
+summary = "Pluggable Authentication Modules for Linux"
+license = "BSD-3-Clause OR GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/linux-pam/linux-pam"
+
+[dependencies]
+provides = [
+    "pam = 1.6.1",
+    "lib:libpam.so.0",
+    "lib:libpam_misc.so.0",
+    "lib:libpamc.so.0"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/pam-dest/"* "$DESTDIR/"
+chmod 4755 "$DESTDIR/usr/bin/unix_chkpwd"
+"""

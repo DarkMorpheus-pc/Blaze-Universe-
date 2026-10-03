@@ -1,0 +1,36 @@
+[package]
+name = "bash"
+version = "5.2.21"
+release = 1
+architecture = "x86_64"
+summary = "The GNU Bourne-Again SHell"
+description = "Bash is an sh-compatible command language interpreter that executes commands read from standard input or a file."
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.gnu.org/software/bash/"
+
+[source]
+url = "https://ftp.gnu.org/gnu/bash/bash-5.2.21.tar.gz"
+sha256 = "c08272596be1131109ff6ab3c2d49e6d0144f77241be29ef4f85e49bc6a47a16"
+
+[dependencies]
+requires = ["glibc >= 2.38"]
+provides = [
+    "cmd:bash",
+    "cmd:sh",
+    "sh = 5.2.21"
+]
+
+[build]
+script = """
+./configure \
+    --prefix=/usr \
+    --without-bash-malloc \
+    --enable-readline
+
+make -j"$JOBS"
+make DESTDIR="$DESTDIR" install
+
+# Strict UsrMerge link
+ln -sf bash "$DESTDIR/usr/bin/sh"
+"""

@@ -1,0 +1,17 @@
+[package]
+name = "mpfr"
+version = "4.2.1"
+release = 1
+architecture = "x86_64"
+summary = "Multiple-precision floating-point computations library"
+license = "LGPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.mpfr.org/"
+
+[dependencies]
+provides = ["mpfr = 4.2.1", "lib:libmpfr.so.6"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/mpfr-dest/"* "$DESTDIR/"
+"""

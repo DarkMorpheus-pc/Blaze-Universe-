@@ -1,0 +1,23 @@
+[package]
+name = "dbus"
+version = "1.14.10"
+release = 1
+architecture = "x86_64"
+summary = "Freedesktop.org message bus system"
+license = "AFL-2.1 OR GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.freedesktop.org/wiki/Software/dbus/"
+
+[dependencies]
+provides = ["dbus = 1.14.10", "lib:libdbus-1.so.3", "cmd:dbus-daemon"]
+
+[sysusers]
+files = ["usr/lib/sysusers.d/dbus.conf"]
+
+[services]
+preset = ["dbus.service"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m2_work/dbus-dest/"* "$DESTDIR/"
+"""

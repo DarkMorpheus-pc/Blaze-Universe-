@@ -1,0 +1,39 @@
+[package]
+name = "coreutils"
+version = "9.4"
+release = 1
+architecture = "x86_64"
+summary = "The GNU Core Utilities"
+description = "Coreutils contains all the basic command-line tools such as ls, cp, mv, rm, cat, chmod, chown."
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.gnu.org/software/coreutils/"
+
+[source]
+url = "https://ftp.gnu.org/gnu/coreutils/coreutils-9.4.tar.xz"
+sha256 = "ea613a4cf44612326e917201bbbcdfbd301de21ffc3b59b6e5c07e040b275e52"
+
+[dependencies]
+requires = ["glibc >= 2.38"]
+provides = [
+    "cmd:ls",
+    "cmd:cp",
+    "cmd:mv",
+    "cmd:rm",
+    "cmd:cat",
+    "cmd:mkdir",
+    "cmd:chmod",
+    "cmd:chown",
+    "cmd:uname"
+]
+
+[build]
+script = """
+./configure \
+    --prefix=/usr \
+    --enable-install-program=hostname \
+    --enable-no-install-program=kill,uptime
+
+make -j"$JOBS"
+make DESTDIR="$DESTDIR" install
+"""

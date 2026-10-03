@@ -1,0 +1,30 @@
+[package]
+name = "portadora"
+version = "0.1.0"
+release = 1
+architecture = "x86_64"
+summary = "Native package manager for BlazeOS"
+description = "High-performance, transactional package manager built in Rust for the Blaze Universe."
+license = "MIT OR Apache-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.38"]
+provides = [
+    "cmd:portadora",
+    "portadora = 0.1.0"
+]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+mkdir -p "$DESTDIR/var/lib/portadora"
+
+# Install release or debug binary of portadora
+if [ -f "$CURRENT_DIR/target/release/portadora" ]; then
+    install -m 0755 "$CURRENT_DIR/target/release/portadora" "$DESTDIR/usr/bin/portadora"
+else
+    install -m 0755 "$CURRENT_DIR/target/debug/portadora" "$DESTDIR/usr/bin/portadora"
+fi
+"""

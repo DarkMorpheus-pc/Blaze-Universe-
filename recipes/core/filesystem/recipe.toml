@@ -1,0 +1,139 @@
+[package]
+name = "filesystem"
+version = "0.1.0"
+release = 1
+architecture = "x86_64"
+summary = "Base filesystem layout, UsrMerge symlinks and system release files"
+description = "The foundational layout package for BlazeOS Native, enforcing strict UsrMerge and FHS standards."
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+provides = [
+    "filesystem = 0.1.0",
+    "fhs",
+    "usrmerge"
+]
+
+[build]
+script = """
+# 1. Base directories
+mkdir -p "$DESTDIR/usr"/{bin,lib,share,include,lib/systemd}
+mkdir -p "$DESTDIR"/{etc,var/lib/portadora,var/log,run,dev,root,home,mnt,opt}
+mkdir -p -m 0555 "$DESTDIR/proc" "$DESTDIR/sys"
+mkdir -p -m 1777 "$DESTDIR/tmp"
+
+# 2. Strict UsrMerge symlinks
+ln -sf usr/bin "$DESTDIR/bin"
+ln -sf usr/bin "$DESTDIR/sbin"
+ln -sf usr/lib "$DESTDIR/lib"
+ln -sf usr/lib "$DESTDIR/lib64"
+ln -sf bin "$DESTDIR/usr/sbin"
+ln -sf ../run "$DESTDIR/var/run"
+ln -sf ../run/lock "$DESTDIR/var/lock"
+
+# 3. os-release
+cat << 'EOF' > "$DESTDIR/etc/os-release"
+NAME="BlazeOS"
+PRETTY_NAME="BlazeOS Native (Blaze Universe)"
+ID=blaze
+VERSION_ID="0.1"
+BUILD_ID=rolling
+ANSI_COLOR="1;31"
+HOME_URL="https://blazeos.org"
+SUPPORT_URL="https://blazeos.org/support"
+BUG_REPORT_URL="https://github.com/blazeos/blaze"
+EOF
+
+# 4. Standard shells and users
+cat << 'EOF' > "$DESTDIR/etc/shells"
+/bin/sh
+/bin/bash
+/usr/bin/sh
+/usr/bin/bash
+EOF
+
+cat << 'EOF' > "$DESTDIR/etc/passwd"
+root:x:0:0:root:/root:/usr/bin/bash
+bin:x:1:1:bin:/dev/null:/usr/bin/nologin
+daemon:x:2:2:daemon:/dev/null:/usr/bin/nologin
+dbus:x:81:81:System Message Bus:/:/usr/bin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/usr/bin/nologin
+EOF
+
+cat << 'EOF' > "$DESTDIR/etc/group"
+root:x:0:
+bin:x:1:
+daemon:x:2:
+sys:x:3:
+adm:x:4:
+tty:x:5:
+disk:x:6:
+lp:x:7:
+kmem:x:9:
+wheel:x:10:root
+uucp:x:14:
+audio:x:24:
+video:x:26:
+storage:x:27:
+dbus:x:81:
+input:x:994:
+kvm:x:992:
+render:x:989:
+systemd-journal:x:190:
+systemd-network:x:192:
+systemd-resolve:x:193:
+systemd-timesync:x:194:
+empower:x:999:
+utmp:x:998:
+clock:x:997:
+optical:x:996:
+sgx:x:995:
+nobody:x:65534:
+users:x:984:
+EOF
+
+# 5. Shadow passwords (empty password for root allows instant console login)
+cat << 'EOF' > "$DESTDIR/etc/shadow"
+root::19700:0:99999:7:::
+bin:*:19700:0:99999:7:::
+daemon:*:19700:0:99999:7:::
+dbus:*:19700:0:99999:7:::
+nobody:*:19700:0:99999:7:::
+EOF
+chmod 0600 "$DESTDIR/etc/shadow"
+
+# 6. Name Service Switch (NSS) config
+cat << 'EOF' > "$DESTDIR/etc/nsswitch.conf"
+passwd: files
+group: files
+shadow: files
+hosts: files dns myhostname
+networks: files
+protocols: files
+services: files
+ethers: files
+rpc: files
+EOF
+
+# 7. Dynamic linker config
+cat << 'EOF' > "$DESTDIR/etc/ld.so.conf"
+/usr/lib
+/usr/local/lib
+include /etc/ld.so.conf.d/*.conf
+EOF
+mkdir -p "$DESTDIR/etc/ld.so.conf.d"
+
+# 8. Hostname and minimal fstab
+echo "blaze" > "$DESTDIR/etc/hostname"
+
+cat << 'EOF' > "$DESTDIR/etc/fstab"
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+LABEL=blaze-root /               ext4    rw,relatime     0       1
+LABEL=BLAZE-EFI  /boot/efi       vfat    defaults,nofail 0       2
+EOF
+
+chmod 0644 "$DESTDIR/etc/os-release" "$DESTDIR/etc/shells" "$DESTDIR/etc/passwd" "$DESTDIR/etc/group" "$DESTDIR/etc/nsswitch.conf" "$DESTDIR/etc/ld.so.conf" "$DESTDIR/etc/hostname" "$DESTDIR/etc/fstab"
+chmod 0600 "$DESTDIR/etc/shadow"
+"""
