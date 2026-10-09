@@ -1,7 +1,7 @@
 [package]
 name = "linux-blaze"
 version = "7.2.8"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Vanilla Linux kernel 7.2.8 for BlazeOS Native"
 license = "GPL-2.0-only"

@@ -1,7 +1,7 @@
 [package]
 name = "filesystem"
 version = "0.1.0"
-release = 1
+release = 3
 architecture = "x86_64"
 summary = "Base filesystem layout, UsrMerge symlinks and system release files"
 description = "The foundational layout package for BlazeOS Native, enforcing strict UsrMerge and FHS standards."
@@ -32,6 +32,7 @@ ln -sf usr/lib "$DESTDIR/lib64"
 ln -sf bin "$DESTDIR/usr/sbin"
 ln -sf ../run "$DESTDIR/var/run"
 ln -sf ../run/lock "$DESTDIR/var/lock"
+ln -sf false "$DESTDIR/usr/bin/nologin"
 
 # 3. os-release
 cat << 'EOF' > "$DESTDIR/etc/os-release"
@@ -59,6 +60,9 @@ root:x:0:0:root:/root:/usr/bin/bash
 bin:x:1:1:bin:/dev/null:/usr/bin/nologin
 daemon:x:2:2:daemon:/dev/null:/usr/bin/nologin
 dbus:x:81:81:System Message Bus:/:/usr/bin/nologin
+systemd-network:x:192:192:systemd Network Management:/:/usr/bin/nologin
+systemd-resolve:x:193:193:systemd Resolver:/:/usr/bin/nologin
+sshd:x:981:981:Privilege-separated SSH:/var/empty:/usr/bin/nologin
 nobody:x:65534:65534:Kernel Overflow User:/:/usr/bin/nologin
 EOF
 
@@ -85,6 +89,7 @@ systemd-journal:x:190:
 systemd-network:x:192:
 systemd-resolve:x:193:
 systemd-timesync:x:194:
+sshd:x:981:
 empower:x:999:
 utmp:x:998:
 clock:x:997:
@@ -100,6 +105,9 @@ root::19700:0:99999:7:::
 bin:*:19700:0:99999:7:::
 daemon:*:19700:0:99999:7:::
 dbus:*:19700:0:99999:7:::
+systemd-network:!::0:99999:7:::
+systemd-resolve:!::0:99999:7:::
+sshd:!::0:99999:7:::
 nobody:*:19700:0:99999:7:::
 EOF
 chmod 0600 "$DESTDIR/etc/shadow"
