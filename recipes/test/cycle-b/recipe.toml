@@ -1,0 +1,20 @@
+[package]
+name = "cycle-b"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Test cyclic package B"
+description = "Test dependency resolution cycle"
+license = "MIT"
+maintainer = "Test <test@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["cycle-a"]
+provides = ["cycle-b = 1.0.0"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/share/doc/cycle-b"
+echo "cycle-b" > "$DESTDIR/usr/share/doc/cycle-b/README"
+"""

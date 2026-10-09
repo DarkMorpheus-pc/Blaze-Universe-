@@ -1,0 +1,20 @@
+[package]
+name = "corrupt-pkg"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Test package for checksum corruption"
+description = "Test tampered package rejection"
+license = "MIT"
+maintainer = "Test <test@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = []
+provides = ["corrupt-pkg = 1.0.0"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/share/doc/corrupt-pkg"
+echo "corrupt" > "$DESTDIR/usr/share/doc/corrupt-pkg/README"
+"""

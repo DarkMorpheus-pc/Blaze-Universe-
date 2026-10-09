@@ -1,0 +1,24 @@
+[package]
+name = "nano"
+version = "8.1"
+release = 1
+architecture = "x86_64"
+summary = "Pico editor clone with enhancements"
+description = "Small and friendly text editor for terminal environments."
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.nano-editor.org/"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = [
+    "nano = 8.1",
+    "cmd:nano"
+]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin" "$DESTDIR/usr/share/nano"
+cp -a /usr/bin/nano "$DESTDIR/usr/bin/"
+[ -d /usr/share/nano ] && cp -a /usr/share/nano/* "$DESTDIR/usr/share/nano/" 2>/dev/null || true
+"""

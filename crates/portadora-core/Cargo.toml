@@ -19,3 +19,6 @@ thiserror = { workspace = true }
 goblin = { workspace = true }
 walkdir = { workspace = true }
 tempfile = { workspace = true }
+reqwest = { workspace = true }
+ed25519-dalek = { workspace = true }
+chrono = { workspace = true }

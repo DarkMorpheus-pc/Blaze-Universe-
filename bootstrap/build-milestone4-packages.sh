@@ -168,9 +168,27 @@ table inet filter {
         # Drop invalid connections
         ct state invalid drop
 
-        # Accept ICMP and ICMPv6
-        ip protocol icmp accept
-        ip6 nexthdr icmpv6 accept
+        # IPv4 ICMP
+        ip protocol icmp icmp type { destination-unreachable, time-exceeded, parameter-problem } accept
+        ip protocol icmp icmp type echo-request limit rate 10/second accept
+        ip protocol icmp icmp type echo-reply accept
+
+        # IPv6 ICMP — RFC 4890 Compliant Workstation Filtering
+        # 1. Error messages (Essential for PMTUD and routing)
+        icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem } accept
+
+        # 2. Informational (Echo / Ping with rate limiting)
+        icmpv6 type echo-request limit rate 10/second accept
+        icmpv6 type echo-reply accept
+
+        # 3. Router Advertisement & Neighbor Discovery (Strict Hop Limit = 255 required by RFC 4890 §4.3.1)
+        icmpv6 type { nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } ip6 hoplimit 255 accept
+
+        # 4. Multicast Listener Discovery (MLD - Hop Limit = 1 required)
+        icmpv6 type { mld-listener-query, mld-listener-report, mld-listener-done, mld2-listener-report } ip6 hoplimit 1 accept
+
+        # Inbound SSH
+        tcp dport 22 accept
     }
 
     chain forward {
@@ -209,7 +227,7 @@ cat << 'EOF' > "${WORK_DIR}/recipe-nftables.toml"
 [package]
 name = "nftables"
 version = "1.1.7"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Netfilter project packet filtering utility (Blaze Sentinel Foundation)"
 license = "GPL-2.0-only"

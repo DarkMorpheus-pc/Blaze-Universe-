@@ -36,6 +36,18 @@ pub struct VerificationIssue {
     pub details: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct HistoryEntry {
+    pub id: i64,
+    pub tx_id: String,
+    pub action: String,
+    pub package_name: String,
+    pub version: String,
+    pub release: u32,
+    pub timestamp: i64,
+    pub status: String,
+}
+
 impl Database {
     pub fn open_or_create<P: AsRef<Path>>(db_path: P) -> Result<Self> {
         let db_path = db_path.as_ref().to_path_buf();
@@ -86,8 +98,20 @@ impl Database {
                  requirement TEXT NOT NULL
              );
 
+             CREATE TABLE IF NOT EXISTS transaction_history (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 tx_id TEXT NOT NULL,
+                 action TEXT NOT NULL,
+                 package_name TEXT NOT NULL,
+                 version TEXT NOT NULL,
+                 release INTEGER NOT NULL,
+                 timestamp INTEGER NOT NULL,
+                 status TEXT NOT NULL
+             );
+
              CREATE INDEX IF NOT EXISTS idx_files_path ON package_files(path);
              CREATE INDEX IF NOT EXISTS idx_provides_cap ON package_provides(capability);
+             CREATE INDEX IF NOT EXISTS idx_history_tx ON transaction_history(tx_id);
             ",
         )?;
 
@@ -522,5 +546,63 @@ impl Database {
         }
 
         Ok(issues)
+    }
+
+    pub fn record_history(
+        &self,
+        tx_id: &str,
+        action: &str,
+        package_name: &str,
+        version: &str,
+        release: u32,
+        status: &str,
+    ) -> Result<()> {
+        let now = chrono::Utc::now().timestamp();
+        self.conn.execute(
+            "INSERT INTO transaction_history (tx_id, action, package_name, version, release, timestamp, status)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![tx_id, action, package_name, version, release, now, status],
+        )?;
+        Ok(())
+    }
+
+    pub fn list_history(&self) -> Result<Vec<HistoryEntry>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, tx_id, action, package_name, version, release, timestamp, status
+             FROM transaction_history ORDER BY id ASC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(HistoryEntry {
+                id: row.get(0)?,
+                tx_id: row.get(1)?,
+                action: row.get(2)?,
+                package_name: row.get(3)?,
+                version: row.get(4)?,
+                release: row.get(5)?,
+                timestamp: row.get(6)?,
+                status: row.get(7)?,
+            })
+        })?;
+        let mut entries = Vec::new();
+        for r in rows {
+            entries.push(r?);
+        }
+        Ok(entries)
+    }
+
+    pub fn get_installed_provides_map(&self) -> Result<std::collections::HashMap<String, String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT p.capability, pkg.name FROM package_provides p
+             JOIN packages pkg ON p.package_id = pkg.id",
+        )?;
+        let mut map = std::collections::HashMap::new();
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        for r in rows {
+            let (cap, pkg) = r?;
+            map.insert(cap, pkg);
+        }
+        Ok(map)
     }
 }

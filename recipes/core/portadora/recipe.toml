@@ -1,6 +1,6 @@
 [package]
 name = "portadora"
-version = "0.1.0"
+version = "0.2.0"
 release = 1
 architecture = "x86_64"
 summary = "Native package manager for BlazeOS"
@@ -13,7 +13,7 @@ url = "https://blazeos.org"
 requires = ["glibc >= 2.38"]
 provides = [
     "cmd:portadora",
-    "portadora = 0.1.0"
+    "portadora = 0.2.0"
 ]
 
 [build]
@@ -21,7 +21,6 @@ script = """
 mkdir -p "$DESTDIR/usr/bin"
 mkdir -p "$DESTDIR/var/lib/portadora"
 
-# Install release or debug binary of portadora
 if [ -f "$CURRENT_DIR/target/release/portadora" ]; then
     install -m 0755 "$CURRENT_DIR/target/release/portadora" "$DESTDIR/usr/bin/portadora"
 else

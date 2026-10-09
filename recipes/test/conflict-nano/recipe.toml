@@ -1,0 +1,21 @@
+[package]
+name = "conflict-nano"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Test conflicting package"
+description = "Test conflict detection against installed nano"
+license = "MIT"
+maintainer = "Test <test@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = []
+provides = ["conflict-nano = 1.0.0"]
+conflicts = ["nano"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/share/doc/conflict-nano"
+echo "conflict" > "$DESTDIR/usr/share/doc/conflict-nano/README"
+"""
