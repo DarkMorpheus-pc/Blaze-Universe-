@@ -1,0 +1,389 @@
+=================================================================
+       BLAZE NATIVE TOOLCHAIN SELF-HOSTING COMPARISON REPORT     
+=================================================================
+Date: Fri Oct  9 16:17:04 UTC 2026
+Host Kernel: Linux blaze 7.2.8 #1 SMP PREEMPT_DYNAMIC Sat Oct  3 19:07:26 +03 2026 x86_64 GNU/Linux
+Gen 1 Compiler: gcc (GCC) 16.2.0
+
+--- SHA-256 Checksums of Toolchain Packages ---
+Gen 1 Packages:
+638f9725712ce15ada7ca25f08a32d85eb72b670b956f100ad3f9571fb977ebf  /build/gen1-pkgs/binutils-2.47-1.x86_64.blz
+248bcab85219707b2c4abbe49d746ec58015a97da7676a1520433c2f2891e734  /build/gen1-pkgs/gcc-16.2.0-1.x86_64.blz
+742072824364f0ca29316b6619dbbf2dab5080c3f1e93b7134f01d75d180207a  /build/gen1-pkgs/glibc-2.44-1.x86_64.blz
+85727d8feff05bae209ab45ba605e688acc473c2852cc52cf97137469ec21646  /build/gen1-pkgs/glibc-devel-2.44-1.x86_64.blz
+
+Gen 2 Packages:
+ddef51befa916c2147f63d07f107585a46926c2d3b166dd25387798b36ee4a73  /build/gen2-pkgs/binutils-2.47-1.x86_64.blz
+20202ab2c4e02c3a9a5ec4e10d604a525b32d5c22e858b860c441b8360b38dd4  /build/gen2-pkgs/gcc-16.2.0-1.x86_64.blz
+6b765b7338562ba028f43e9c7999edfe59b57c9172c1bf7a27a8fa441040644f  /build/gen2-pkgs/glibc-2.44-1.x86_64.blz
+5f01d524b473d64659ff135124d19425fd85559ce1536c3913b7a6fa7bc54939  /build/gen2-pkgs/glibc-devel-2.44-1.x86_64.blz
+
+--- Binary Comparison of Core Toolchain Binaries ---
+Binary: binutils-2.47/dest/usr/bin/ld.bfd
+  Gen 1 SHA256: 023f6ad5fc4ee7dcfed66d2a7d7ae720b81a7341512b625c3fa863b593484d5f
+  Gen 2 SHA256: d7ce95dcb2537389b6d7469cb0048b0f5e0b00f2d9bcd2fe737bd3ae5c0aff75
+  Status: Binary diff present (analyzing ELF sections...)
+--- /tmp/s1.txt	2026-10-09 16:17:07.450283813 +0000
++++ /tmp/s2.txt	2026-10-09 16:17:07.451366716 +0000
+@@ -1,4 +1,4 @@
+-There are 39 section headers, starting at offset 0x2f45d0:
++There are 39 section headers, starting at offset 0x2f4578:
+ 
+ Section Headers:
+   [Nr] Name              Type             Address           Offset
+@@ -58,28 +58,28 @@
+   [26] .bss              NOBITS           000000000014a900  00149900
+        00000000000017f0  0000000000000000  WA       0     0     32
+   [27] .comment          PROGBITS         0000000000000000  00149900
+-       000000000000002d  0000000000000001  MS       0     0     1
+-  [28] .debug_aranges    PROGBITS         0000000000000000  00149930
++       0000000000000012  0000000000000001  MS       0     0     1
++  [28] .debug_aranges    PROGBITS         0000000000000000  00149920
+        0000000000000790  0000000000000000           0     0     16
+-  [29] .debug_info       PROGBITS         0000000000000000  0014a0c0
++  [29] .debug_info       PROGBITS         0000000000000000  0014a0b0
+        00000000001173ab  0000000000000000           0     0     1
+-  [30] .debug_abbrev     PROGBITS         0000000000000000  0026146b
++  [30] .debug_abbrev     PROGBITS         0000000000000000  0026145b
+        000000000000adbd  0000000000000000           0     0     1
+-  [31] .debug_line       PROGBITS         0000000000000000  0026c228
++  [31] .debug_line       PROGBITS         0000000000000000  0026c218
+        000000000002d3b3  0000000000000000           0     0     1
+-  [32] .debug_str        PROGBITS         0000000000000000  002995db
+-       0000000000022349  0000000000000001  MS       0     0     1
+-  [33] .debug_line_str   PROGBITS         0000000000000000  002bb924
+-       0000000000000dda  0000000000000001  MS       0     0     1
+-  [34] .debug_loclists   PROGBITS         0000000000000000  002bc6fe
++  [32] .debug_str        PROGBITS         0000000000000000  002995cb
++       000000000002231f  0000000000000001  MS       0     0     1
++  [33] .debug_line_str   PROGBITS         0000000000000000  002bb8ea
++       0000000000000db9  0000000000000001  MS       0     0     1
++  [34] .debug_loclists   PROGBITS         0000000000000000  002bc6a3
+        0000000000028306  0000000000000000           0     0     1
+-  [35] .debug_rnglists   PROGBITS         0000000000000000  002e4a04
++  [35] .debug_rnglists   PROGBITS         0000000000000000  002e49a9
+        00000000000041fc  0000000000000000           0     0     1
+-  [36] .symtab           SYMTAB           0000000000000000  002e8c00
++  [36] .symtab           SYMTAB           0000000000000000  002e8ba8
+        0000000000006bb8  0000000000000018          37   465     8
+-  [37] .strtab           STRTAB           0000000000000000  002ef7b8
++  [37] .strtab           STRTAB           0000000000000000  002ef760
+        0000000000004c93  0000000000000000           0     0     1
+-  [38] .shstrtab         STRTAB           0000000000000000  002f444b
++  [38] .shstrtab         STRTAB           0000000000000000  002f43f3
+        0000000000000184  0000000000000000           0     0     1
+ Key to Flags:
+   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+Binary: binutils-2.47/dest/usr/bin/as
+  Gen 1 SHA256: 14c0f91d4b37a862305aac2024a4ce03cb3cac566794f1ddd5250713393e622b
+  Gen 2 SHA256: d7cafd778cc10ca4e780f076a607a4859fc5be918a4bd55de976a9ebdd6fa2cc
+  Status: Binary diff present (analyzing ELF sections...)
+--- /tmp/s1.txt	2026-10-09 16:17:07.469096113 +0000
++++ /tmp/s2.txt	2026-10-09 16:17:07.469283813 +0000
+@@ -1,4 +1,4 @@
+-There are 39 section headers, starting at offset 0x2fe338:
++There are 39 section headers, starting at offset 0x2fe2e0:
+ 
+ Section Headers:
+   [Nr] Name              Type             Address           Offset
+@@ -58,28 +58,28 @@
+   [26] .bss              NOBITS           00000000000d4780  000d3780
+        0000000000009b90  0000000000000000  WA       0     0     32
+   [27] .comment          PROGBITS         0000000000000000  000d3780
+-       000000000000002d  0000000000000001  MS       0     0     1
+-  [28] .debug_aranges    PROGBITS         0000000000000000  000d37b0
++       0000000000000012  0000000000000001  MS       0     0     1
++  [28] .debug_aranges    PROGBITS         0000000000000000  000d37a0
+        0000000000000a30  0000000000000000           0     0     16
+-  [29] .debug_info       PROGBITS         0000000000000000  000d41e0
++  [29] .debug_info       PROGBITS         0000000000000000  000d41d0
+        0000000000146b24  0000000000000000           0     0     1
+-  [30] .debug_abbrev     PROGBITS         0000000000000000  0021ad04
++  [30] .debug_abbrev     PROGBITS         0000000000000000  0021acf4
+        000000000000d8f2  0000000000000000           0     0     1
+-  [31] .debug_line       PROGBITS         0000000000000000  002285f6
++  [31] .debug_line       PROGBITS         0000000000000000  002285e6
+        000000000004e6df  0000000000000000           0     0     1
+-  [32] .debug_str        PROGBITS         0000000000000000  00276cd5
+-       00000000000253d2  0000000000000001  MS       0     0     1
+-  [33] .debug_line_str   PROGBITS         0000000000000000  0029c0a7
+-       000000000000122d  0000000000000001  MS       0     0     1
+-  [34] .debug_loclists   PROGBITS         0000000000000000  0029d2d4
++  [32] .debug_str        PROGBITS         0000000000000000  00276cc5
++       00000000000253a8  0000000000000001  MS       0     0     1
++  [33] .debug_line_str   PROGBITS         0000000000000000  0029c06d
++       000000000000120c  0000000000000001  MS       0     0     1
++  [34] .debug_loclists   PROGBITS         0000000000000000  0029d279
+        0000000000048167  0000000000000000           0     0     1
+-  [35] .debug_rnglists   PROGBITS         0000000000000000  002e543b
++  [35] .debug_rnglists   PROGBITS         0000000000000000  002e53e0
+        0000000000008be2  0000000000000000           0     0     1
+-  [36] .symtab           SYMTAB           0000000000000000  002ee020
++  [36] .symtab           SYMTAB           0000000000000000  002edfc8
+        000000000000a038  0000000000000018          37   835     8
+-  [37] .strtab           STRTAB           0000000000000000  002f8058
++  [37] .strtab           STRTAB           0000000000000000  002f8000
+        0000000000006157  0000000000000000           0     0     1
+-  [38] .shstrtab         STRTAB           0000000000000000  002fe1af
++  [38] .shstrtab         STRTAB           0000000000000000  002fe157
+        0000000000000184  0000000000000000           0     0     1
+ Key to Flags:
+   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+Binary: gcc-16.2.0/dest/usr/bin/gcc
+  Gen 1 SHA256: 6d2a8807a0ec8be9224e7a7a338ea14b28d8d17e18ecefda1e32b58dbaac0e1a
+  Gen 2 SHA256: c50d309208d2a113f5f3efba63e9ae0da5c2579a7c547fb3390bdf8b4d1bfc76
+  Status: Binary diff present (analyzing ELF sections...)
+--- /tmp/s1.txt	2026-10-09 16:17:07.558028015 +0000
++++ /tmp/s2.txt	2026-10-09 16:17:07.558283813 +0000
+@@ -1,4 +1,4 @@
+-There are 43 section headers, starting at offset 0x13e8918:
++There are 41 section headers, starting at offset 0x13e7bb0:
+ 
+ Section Headers:
+   [Nr] Name              Type             Address           Offset
+@@ -20,7 +20,7 @@
+   [ 7] .rela.dyn         RELA             0000000000401ec0  00001ec0
+        0000000000000138  0000000000000018   A       3     0     8
+   [ 8] .rela.plt         RELA             0000000000401ff8  00001ff8
+-       0000000000000ea0  0000000000000018  AI       3    27     8
++       0000000000000ea0  0000000000000018  AI       3    26     8
+   [ 9] .init             PROGBITS         0000000000403000  00003000
+        0000000000000017  0000000000000000  AX       0     0     4
+   [10] .plt              PROGBITS         0000000000403020  00003020
+@@ -28,67 +28,63 @@
+   [11] .plt.got          PROGBITS         00000000004039f0  000039f0
+        0000000000000020  0000000000000008  AX       0     0     8
+   [12] .text             PROGBITS         0000000000403a40  00003a40
+-       000000000012d03e  0000000000000000  AX       0     0     64
+-  [13] .fini             PROGBITS         0000000000530a80  00130a80
++       000000000012cffe  0000000000000000  AX       0     0     64
++  [13] .fini             PROGBITS         0000000000530a40  00130a40
+        0000000000000009  0000000000000000  AX       0     0     4
+   [14] .rodata           PROGBITS         0000000000531000  00131000
+-       0000000000100488  0000000000000000   A       0     0     32
+-  [15] .stapsdt.base     PROGBITS         0000000000631488  00231488
+-       0000000000000001  0000000000000000   A       0     0     1
+-  [16] .eh_frame_hdr     PROGBITS         000000000063148c  0023148c
++       0000000000100468  0000000000000000   A       0     0     32
++  [15] .eh_frame_hdr     PROGBITS         0000000000631468  00231468
+        00000000000071d4  0000000000000000   A       0     0     4
+-  [17] .eh_frame         PROGBITS         0000000000638660  00238660
++  [16] .eh_frame         PROGBITS         0000000000638640  00238640
+        00000000000260c0  0000000000000000   A       0     0     8
+-  [18] .gcc_except_table PROGBITS         000000000065e720  0025e720
++  [17] .gcc_except_table PROGBITS         000000000065e700  0025e700
+        00000000000004c5  0000000000000000   A       0     0     4
+-  [19] .note.gnu.pr[...] NOTE             000000000065ebe8  0025ebe8
++  [18] .note.gnu.pr[...] NOTE             000000000065ebc8  0025ebc8
+        0000000000000040  0000000000000000   A       0     0     8
+-  [20] .note.ABI-tag     NOTE             000000000065ec28  0025ec28
++  [19] .note.ABI-tag     NOTE             000000000065ec08  0025ec08
+        0000000000000020  0000000000000000   A       0     0     4
+-  [21] .tbss             NOBITS           000000000065fd40  0025ed40
++  [20] .tbss             NOBITS           000000000065fd40  0025ed40
+        0000000000000010  0000000000000000 WAT       0     0     8
+-  [22] .init_array       INIT_ARRAY       000000000065fd40  0025ed40
++  [21] .init_array       INIT_ARRAY       000000000065fd40  0025ed40
+        0000000000000050  0000000000000008  WA       0     0     8
+-  [23] .fini_array       FINI_ARRAY       000000000065fd90  0025ed90
++  [22] .fini_array       FINI_ARRAY       000000000065fd90  0025ed90
+        0000000000000010  0000000000000008  WA       0     0     8
+-  [24] .data.rel.ro      PROGBITS         000000000065fda0  0025eda0
++  [23] .data.rel.ro      PROGBITS         000000000065fda0  0025eda0
+        0000000000003008  0000000000000000  WA       0     0     32
+-  [25] .dynamic          DYNAMIC          0000000000662da8  00261da8
++  [24] .dynamic          DYNAMIC          0000000000662da8  00261da8
+        00000000000001f0  0000000000000010  WA       4     0     8
+-  [26] .got              PROGBITS         0000000000662f98  00261f98
++  [25] .got              PROGBITS         0000000000662f98  00261f98
+        0000000000000040  0000000000000008  WA       0     0     8
+-  [27] .got.plt          PROGBITS         0000000000662fe8  00261fe8
++  [26] .got.plt          PROGBITS         0000000000662fe8  00261fe8
+        00000000000004f8  0000000000000008  WA       0     0     8
+-  [28] .data             PROGBITS         00000000006634e0  002624e0
++  [27] .data             PROGBITS         00000000006634e0  002624e0
+        0000000000000b30  0000000000000000  WA       0     0     32
+-  [29] .bss              NOBITS           0000000000664020  00263010
++  [28] .bss              NOBITS           0000000000664020  00263010
+        0000000000004628  0000000000000000  WA       0     0     32
+-  [30] .comment          PROGBITS         0000000000000000  00263010
+-       000000000000002d  0000000000000001  MS       0     0     1
+-  [31] .note.stapsdt     NOTE             0000000000000000  00263040
+-       0000000000000134  0000000000000000           0     0     4
+-  [32] .debug_aranges    PROGBITS         0000000000000000  00263180
++  [29] .comment          PROGBITS         0000000000000000  00263010
++       0000000000000012  0000000000000001  MS       0     0     1
++  [30] .debug_aranges    PROGBITS         0000000000000000  00263030
+        00000000000072a0  0000000000000000           0     0     16
+-  [33] .debug_info       PROGBITS         0000000000000000  0026a420
+-       00000000009260ea  0000000000000000           0     0     1
+-  [34] .debug_abbrev     PROGBITS         0000000000000000  00b9050a
+-       000000000005896b  0000000000000000           0     0     1
+-  [35] .debug_line       PROGBITS         0000000000000000  00be8e75
+-       000000000017cbbe  0000000000000000           0     0     1
+-  [36] .debug_str        PROGBITS         0000000000000000  00d65a33
+-       00000000002c6ad8  0000000000000001  MS       0     0     1
+-  [37] .debug_line_str   PROGBITS         0000000000000000  0102c50b
+-       000000000000486c  0000000000000001  MS       0     0     1
+-  [38] .debug_loclists   PROGBITS         0000000000000000  01030d77
+-       00000000002eb890  0000000000000000           0     0     1
+-  [39] .debug_rnglists   PROGBITS         0000000000000000  0131c607
+-       000000000007a152  0000000000000000           0     0     1
+-  [40] .symtab           SYMTAB           0000000000000000  01396760
+-       000000000001d928  0000000000000018          41   1833     8
+-  [41] .strtab           STRTAB           0000000000000000  013b4088
+-       00000000000346d2  0000000000000000           0     0     1
+-  [42] .shstrtab         STRTAB           0000000000000000  013e875a
+-       00000000000001b8  0000000000000000           0     0     1
++  [31] .debug_info       PROGBITS         0000000000000000  0026a2d0
++       0000000000925e42  0000000000000000           0     0     1
++  [32] .debug_abbrev     PROGBITS         0000000000000000  00b90112
++       000000000005892e  0000000000000000           0     0     1
++  [33] .debug_line       PROGBITS         0000000000000000  00be8a40
++       000000000017cb11  0000000000000000           0     0     1
++  [34] .debug_str        PROGBITS         0000000000000000  00d65551
++       00000000002c6a9c  0000000000000001  MS       0     0     1
++  [35] .debug_line_str   PROGBITS         0000000000000000  0102bfed
++       000000000000409c  0000000000000001  MS       0     0     1
++  [36] .debug_loclists   PROGBITS         0000000000000000  01030089
++       00000000002eb86e  0000000000000000           0     0     1
++  [37] .debug_rnglists   PROGBITS         0000000000000000  0131b8f7
++       000000000007a142  0000000000000000           0     0     1
++  [38] .symtab           SYMTAB           0000000000000000  01395a40
++       000000000001d910  0000000000000018          39   1833     8
++  [39] .strtab           STRTAB           0000000000000000  013b3350
++       00000000000346c3  0000000000000000           0     0     1
++  [40] .shstrtab         STRTAB           0000000000000000  013e7a13
++       000000000000019c  0000000000000000           0     0     1
+ Key to Flags:
+   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+   L (link order), O (extra OS processing required), G (group), T (TLS),
+Binary: gcc-16.2.0/dest/usr/bin/g++
+  Gen 1 SHA256: 52337d6db229c5882452f1565a682223b4d4bd164089b54ca59b5313d9d58c3a
+  Gen 2 SHA256: e85491739fd210e7f3fa5c7b4f9a153f56124f2037ce9cd7884b40ce6b0ef9e4
+  Status: Binary diff present (analyzing ELF sections...)
+--- /tmp/s1.txt	2026-10-09 16:17:07.648283813 +0000
++++ /tmp/s2.txt	2026-10-09 16:17:07.649360969 +0000
+@@ -1,4 +1,4 @@
+-There are 43 section headers, starting at offset 0x13eb6b8:
++There are 41 section headers, starting at offset 0x13ea950:
+ 
+ Section Headers:
+   [Nr] Name              Type             Address           Offset
+@@ -20,7 +20,7 @@
+   [ 7] .rela.dyn         RELA             0000000000401ec0  00001ec0
+        0000000000000138  0000000000000018   A       3     0     8
+   [ 8] .rela.plt         RELA             0000000000401ff8  00001ff8
+-       0000000000000ea0  0000000000000018  AI       3    27     8
++       0000000000000ea0  0000000000000018  AI       3    26     8
+   [ 9] .init             PROGBITS         0000000000403000  00003000
+        0000000000000017  0000000000000000  AX       0     0     4
+   [10] .plt              PROGBITS         0000000000403020  00003020
+@@ -28,67 +28,63 @@
+   [11] .plt.got          PROGBITS         00000000004039f0  000039f0
+        0000000000000020  0000000000000008  AX       0     0     8
+   [12] .text             PROGBITS         0000000000403a40  00003a40
+-       000000000012debe  0000000000000000  AX       0     0     64
+-  [13] .fini             PROGBITS         0000000000531900  00131900
++       000000000012de7e  0000000000000000  AX       0     0     64
++  [13] .fini             PROGBITS         00000000005318c0  001318c0
+        0000000000000009  0000000000000000  AX       0     0     4
+   [14] .rodata           PROGBITS         0000000000532000  00132000
+-       0000000000100548  0000000000000000   A       0     0     32
+-  [15] .stapsdt.base     PROGBITS         0000000000632548  00232548
+-       0000000000000001  0000000000000000   A       0     0     1
+-  [16] .eh_frame_hdr     PROGBITS         000000000063254c  0023254c
++       0000000000100528  0000000000000000   A       0     0     32
++  [15] .eh_frame_hdr     PROGBITS         0000000000632528  00232528
+        00000000000071dc  0000000000000000   A       0     0     4
+-  [17] .eh_frame         PROGBITS         0000000000639728  00239728
++  [16] .eh_frame         PROGBITS         0000000000639708  00239708
+        00000000000260c0  0000000000000000   A       0     0     8
+-  [18] .gcc_except_table PROGBITS         000000000065f7e8  0025f7e8
++  [17] .gcc_except_table PROGBITS         000000000065f7c8  0025f7c8
+        00000000000004c5  0000000000000000   A       0     0     4
+-  [19] .note.gnu.pr[...] NOTE             000000000065fcb0  0025fcb0
++  [18] .note.gnu.pr[...] NOTE             000000000065fc90  0025fc90
+        0000000000000040  0000000000000000   A       0     0     8
+-  [20] .note.ABI-tag     NOTE             000000000065fcf0  0025fcf0
++  [19] .note.ABI-tag     NOTE             000000000065fcd0  0025fcd0
+        0000000000000020  0000000000000000   A       0     0     4
+-  [21] .tbss             NOBITS           0000000000660d40  0025fd40
++  [20] .tbss             NOBITS           0000000000660d40  0025fd40
+        0000000000000010  0000000000000000 WAT       0     0     8
+-  [22] .init_array       INIT_ARRAY       0000000000660d40  0025fd40
++  [21] .init_array       INIT_ARRAY       0000000000660d40  0025fd40
+        0000000000000050  0000000000000008  WA       0     0     8
+-  [23] .fini_array       FINI_ARRAY       0000000000660d90  0025fd90
++  [22] .fini_array       FINI_ARRAY       0000000000660d90  0025fd90
+        0000000000000010  0000000000000008  WA       0     0     8
+-  [24] .data.rel.ro      PROGBITS         0000000000660da0  0025fda0
++  [23] .data.rel.ro      PROGBITS         0000000000660da0  0025fda0
+        0000000000003008  0000000000000000  WA       0     0     32
+-  [25] .dynamic          DYNAMIC          0000000000663da8  00262da8
++  [24] .dynamic          DYNAMIC          0000000000663da8  00262da8
+        00000000000001f0  0000000000000010  WA       4     0     8
+-  [26] .got              PROGBITS         0000000000663f98  00262f98
++  [25] .got              PROGBITS         0000000000663f98  00262f98
+        0000000000000040  0000000000000008  WA       0     0     8
+-  [27] .got.plt          PROGBITS         0000000000663fe8  00262fe8
++  [26] .got.plt          PROGBITS         0000000000663fe8  00262fe8
+        00000000000004f8  0000000000000008  WA       0     0     8
+-  [28] .data             PROGBITS         00000000006644e0  002634e0
++  [27] .data             PROGBITS         00000000006644e0  002634e0
+        0000000000000b30  0000000000000000  WA       0     0     32
+-  [29] .bss              NOBITS           0000000000665020  00264010
++  [28] .bss              NOBITS           0000000000665020  00264010
+        0000000000004628  0000000000000000  WA       0     0     32
+-  [30] .comment          PROGBITS         0000000000000000  00264010
+-       000000000000002d  0000000000000001  MS       0     0     1
+-  [31] .note.stapsdt     NOTE             0000000000000000  00264040
+-       0000000000000134  0000000000000000           0     0     4
+-  [32] .debug_aranges    PROGBITS         0000000000000000  00264180
++  [29] .comment          PROGBITS         0000000000000000  00264010
++       0000000000000012  0000000000000001  MS       0     0     1
++  [30] .debug_aranges    PROGBITS         0000000000000000  00264030
+        00000000000072b0  0000000000000000           0     0     16
+-  [33] .debug_info       PROGBITS         0000000000000000  0026b430
+-       0000000000926a00  0000000000000000           0     0     1
+-  [34] .debug_abbrev     PROGBITS         0000000000000000  00b91e30
+-       00000000000589a5  0000000000000000           0     0     1
+-  [35] .debug_line       PROGBITS         0000000000000000  00bea7d5
+-       000000000017d479  0000000000000000           0     0     1
+-  [36] .debug_str        PROGBITS         0000000000000000  00d67c4e
+-       00000000002c6b63  0000000000000001  MS       0     0     1
+-  [37] .debug_line_str   PROGBITS         0000000000000000  0102e7b1
+-       000000000000486e  0000000000000001  MS       0     0     1
+-  [38] .debug_loclists   PROGBITS         0000000000000000  0103301f
+-       00000000002ec21e  0000000000000000           0     0     1
+-  [39] .debug_rnglists   PROGBITS         0000000000000000  0131f23d
+-       000000000007a26d  0000000000000000           0     0     1
+-  [40] .symtab           SYMTAB           0000000000000000  013994b0
+-       000000000001d940  0000000000000018          41   1834     8
+-  [41] .strtab           STRTAB           0000000000000000  013b6df0
+-       0000000000034709  0000000000000000           0     0     1
+-  [42] .shstrtab         STRTAB           0000000000000000  013eb4f9
+-       00000000000001b8  0000000000000000           0     0     1
++  [31] .debug_info       PROGBITS         0000000000000000  0026b2e0
++       0000000000926758  0000000000000000           0     0     1
++  [32] .debug_abbrev     PROGBITS         0000000000000000  00b91a38
++       0000000000058968  0000000000000000           0     0     1
++  [33] .debug_line       PROGBITS         0000000000000000  00bea3a0
++       000000000017d3cc  0000000000000000           0     0     1
++  [34] .debug_str        PROGBITS         0000000000000000  00d6776c
++       00000000002c6b27  0000000000000001  MS       0     0     1
++  [35] .debug_line_str   PROGBITS         0000000000000000  0102e293
++       000000000000409e  0000000000000001  MS       0     0     1
++  [36] .debug_loclists   PROGBITS         0000000000000000  01032331
++       00000000002ec1fc  0000000000000000           0     0     1
++  [37] .debug_rnglists   PROGBITS         0000000000000000  0131e52d
++       000000000007a25d  0000000000000000           0     0     1
++  [38] .symtab           SYMTAB           0000000000000000  01398790
++       000000000001d928  0000000000000018          39   1834     8
++  [39] .strtab           STRTAB           0000000000000000  013b60b8
++       00000000000346fa  0000000000000000           0     0     1
++  [40] .shstrtab         STRTAB           0000000000000000  013ea7b2
++       000000000000019c  0000000000000000           0     0     1
+ Key to Flags:
+   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+   L (link order), O (extra OS processing required), G (group), T (TLS),

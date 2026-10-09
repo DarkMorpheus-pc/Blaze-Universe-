@@ -1,0 +1,8 @@
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-pc-linux-gnu/16.2.0/lto-wrapper
+Target: x86_64-pc-linux-gnu
+Configured with: /build/gen1-work/gcc-16.2.0/gcc-16.2.0/configure --prefix=/usr --libdir=/usr/lib --enable-languages=c,c++ --enable-default-pie --enable-default-ssp --with-system-zlib --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu --disable-multilib --disable-bootstrap --disable-werror
+Thread model: posix
+Supported LTO compression algorithms: zlib
+gcc version 16.2.0 (GCC) 

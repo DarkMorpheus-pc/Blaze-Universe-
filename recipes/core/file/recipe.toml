@@ -1,0 +1,26 @@
+[package]
+name = "file"
+version = "5.45"
+release = 1
+architecture = "x86_64"
+summary = "File type identification utility and libmagic"
+description = "Determines file type using magic numbers and file headers."
+license = "BSD-2-Clause"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.darwinsys.com/file/"
+
+[dependencies]
+requires = ["glibc = 2.44", "zlib = 1.3.1", "zstd = 1.5.6", "bzip2 = 1.0.8", "xz = 5.6.2"]
+provides = [
+    "file = 5.45",
+    "cmd:file",
+    "lib:libmagic.so.1"
+]
+
+[triggers]
+run_ldconfig = true
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/file_work/dest/"* "$DESTDIR/"
+"""

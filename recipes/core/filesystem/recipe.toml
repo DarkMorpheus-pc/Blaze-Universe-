@@ -20,7 +20,7 @@ provides = [
 script = """
 # 1. Base directories
 mkdir -p "$DESTDIR/usr"/{bin,lib,share,include,lib/systemd}
-mkdir -p "$DESTDIR"/{etc,var/lib/portadora,var/log,run,dev,root,home,mnt,opt}
+mkdir -p "$DESTDIR"/{etc,var/lib/portadora,var/log,run,dev,root,home,mnt,opt,build}
 mkdir -p -m 0555 "$DESTDIR/proc" "$DESTDIR/sys"
 mkdir -p -m 1777 "$DESTDIR/tmp"
 
@@ -130,8 +130,9 @@ echo "blaze" > "$DESTDIR/etc/hostname"
 
 cat << 'EOF' > "$DESTDIR/etc/fstab"
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
-LABEL=blaze-root /               ext4    rw,relatime     0       1
-LABEL=BLAZE-EFI  /boot/efi       vfat    defaults,nofail 0       2
+LABEL=blaze-root   /               ext4    rw,relatime     0       1
+LABEL=BLAZE-EFI    /boot/efi       vfat    defaults,nofail 0       2
+LABEL=blaze-build  /build          ext4    defaults,nofail 0       2
 EOF
 
 chmod 0644 "$DESTDIR/etc/os-release" "$DESTDIR/etc/shells" "$DESTDIR/etc/passwd" "$DESTDIR/etc/group" "$DESTDIR/etc/nsswitch.conf" "$DESTDIR/etc/ld.so.conf" "$DESTDIR/etc/hostname" "$DESTDIR/etc/fstab"

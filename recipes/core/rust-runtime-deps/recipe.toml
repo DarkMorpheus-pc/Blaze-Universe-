@@ -1,0 +1,32 @@
+[package]
+name = "rust-runtime-deps"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "LLVM and auxiliary shared libraries for Rust toolchain"
+description = "Runtime dependencies required for rustc and cargo bootstrap compiler."
+license = "Apache-2.0 WITH LLVM-exception AND MIT AND BSD-3-Clause"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://rust-lang.org"
+
+[dependencies]
+requires = ["glibc = 2.44", "gcc = 16.2.0", "openssl = 3.3.1", "zlib = 1.3.1", "zstd = 1.5.6"]
+provides = [
+    "rust-runtime-deps = 1.0.0",
+    "lib:libLLVM.so.22.1",
+    "lib:libedit.so.0",
+    "lib:libffi.so.8",
+    "lib:libxml2.so.16",
+    "lib:libgit2.so.1.9",
+    "lib:libssh2.so.1",
+    "lib:libcurl.so.4",
+    "lib:libsqlite3.so.0"
+]
+
+[triggers]
+run_ldconfig = true
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/rust_bootstrap_work/rust-runtime-deps-dest/"* "$DESTDIR/"
+"""

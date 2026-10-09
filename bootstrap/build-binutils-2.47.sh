@@ -52,7 +52,8 @@ if [ ! -f Makefile ]; then
         --enable-64-bit-bfd \
         --with-system-zlib \
         --enable-default-hash-style=gnu \
-        --disable-nls
+        --disable-nls \
+        --without-debuginfod
 fi
 
 echo "Compiling binutils ${BINUTILS_VER} (Jobs: ${JOBS})..."

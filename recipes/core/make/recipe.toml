@@ -1,0 +1,26 @@
+[package]
+name = "make"
+version = "4.4.1"
+release = 1
+architecture = "x86_64"
+summary = "GNU Make utility to maintain groups of programs"
+description = "GNU Make controls the generation of executables and other non-source files of a program."
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.gnu.org/software/make/"
+
+[source]
+url = "https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz"
+sha256 = "dd16fb1d67bfab79a72f5e8390735c49e3e8e70b4945a15ab1f81ddb78658fb3"
+
+[dependencies]
+requires = ["glibc = 2.44"]
+provides = [
+    "make = 4.4.1",
+    "cmd:make"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/make_4.4.1_work/dest/"* "$DESTDIR/"
+"""

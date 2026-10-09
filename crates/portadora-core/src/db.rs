@@ -469,7 +469,9 @@ impl Database {
                     }
                 }
             } else if file_type == "file" {
-                if let Some(ref expected_hash) = expected_sha256 {
+                let is_volatile_cache = matches!(rel_path.as_str(), "etc/ld.so.cache");
+                if !is_volatile_cache {
+                    if let Some(ref expected_hash) = expected_sha256 {
                     let mut file = match File::open(&abs_path) {
                         Ok(f) => f,
                         Err(e) => {
@@ -514,6 +516,7 @@ impl Database {
                             });
                         }
                     }
+                }
                 }
             }
         }

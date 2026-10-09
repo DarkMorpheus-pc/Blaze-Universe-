@@ -1,0 +1,29 @@
+[package]
+name = "python"
+version = "3.14.7"
+release = 1
+architecture = "x86_64"
+summary = "Python 3 Interpreter and Standard Library"
+description = "Python interpreter and standard library required for glibc build tools."
+license = "PSF-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.python.org/"
+
+[dependencies]
+requires = ["glibc = 2.44"]
+provides = [
+    "python = 3.14.7",
+    "python3 = 3.14.7",
+    "cmd:python",
+    "cmd:python3",
+    "cmd:python3.14",
+    "lib:libpython3.14.so.1.0"
+]
+
+[triggers]
+run_ldconfig = true
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/python_work/dest/"* "$DESTDIR/"
+"""

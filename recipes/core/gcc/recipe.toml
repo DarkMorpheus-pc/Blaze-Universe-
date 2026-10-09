@@ -1,0 +1,33 @@
+[package]
+name = "gcc"
+version = "16.2.0"
+release = 1
+architecture = "x86_64"
+summary = "The GNU Compiler Collection (C, C++, and runtime libraries)"
+description = "GCC provides modern C and C++ compilers, libstdc++, libgcc_s, and internal support tools."
+license = "GPL-3.0-or-later WITH GCC-exception-3.1"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://gcc.gnu.org"
+
+[source]
+url = "https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz"
+sha256 = "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e"
+
+[dependencies]
+requires = ["glibc = 2.44", "binutils = 2.47"]
+provides = [
+    "gcc = 16.2.0",
+    "g++ = 16.2.0",
+    "cmd:gcc",
+    "cmd:g++",
+    "cmd:cc",
+    "cmd:c++",
+    "cmd:cpp",
+    "lib:libgcc_s.so.1",
+    "lib:libstdc++.so.6"
+]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/gcc_16.2_work/dest/"* "$DESTDIR/"
+"""

@@ -581,7 +581,7 @@ cp -a /usr/lib/systemd/systemd-* "${SYSTEMD_DEST}/usr/lib/systemd/" 2>/dev/null 
 # Systemd shared libraries & BPF
 cp -a /usr/lib/libsystemd.so* /usr/lib/libudev.so* "${SYSTEMD_DEST}/usr/lib/"
 cp -a /usr/lib/systemd/*.so* "${SYSTEMD_DEST}/usr/lib/systemd/"
-cp -a /usr/lib/libbpf.so* /usr/lib/libelf.so* "${SYSTEMD_DEST}/usr/lib/" 2>/dev/null || true
+cp -a /usr/lib/libbpf.so* "${SYSTEMD_DEST}/usr/lib/" 2>/dev/null || true
 
 # System generators
 mkdir -p "${SYSTEMD_DEST}/usr/lib/systemd/system-generators"

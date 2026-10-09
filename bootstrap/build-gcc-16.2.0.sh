@@ -17,8 +17,9 @@ JOBS="${JOBS:-$(nproc)}"
 mkdir -p "${WORK_DIR}" "${SOURCES_DIR}" "${PKGS_DIR}"
 
 # 1. Extract GCC source
-if [ ! -d "${WORK_DIR}/gcc-${GCC_VER}" ]; then
+if [ ! -f "${WORK_DIR}/gcc-${GCC_VER}/configure" ]; then
     echo "Extracting ${GCC_TAR}..."
+    rm -rf "${WORK_DIR}/gcc-${GCC_VER}"
     tar -xf "${SOURCES_DIR}/${GCC_TAR}" -C "${WORK_DIR}"
 fi
 
@@ -27,24 +28,28 @@ cd "${WORK_DIR}/gcc-${GCC_VER}"
 
 if [ ! -d "gmp" ]; then
     echo "Unpacking GMP into GCC source..."
+    rm -rf gmp-6.3.0
     tar -xf "${SOURCES_DIR}/gmp-6.3.0.tar.bz2"
     mv gmp-6.3.0 gmp
 fi
 
 if [ ! -d "mpfr" ]; then
     echo "Unpacking MPFR into GCC source..."
+    rm -rf mpfr-4.2.2
     tar -xf "${SOURCES_DIR}/mpfr-4.2.2.tar.bz2"
     mv mpfr-4.2.2 mpfr
 fi
 
 if [ ! -d "mpc" ]; then
     echo "Unpacking MPC into GCC source..."
+    rm -rf mpc-1.3.1
     tar -xf "${SOURCES_DIR}/mpc-1.3.1.tar.gz"
     mv mpc-1.3.1 mpc
 fi
 
 if [ ! -d "isl" ]; then
     echo "Unpacking ISL into GCC source..."
+    rm -rf isl-0.24
     tar -xf "${SOURCES_DIR}/isl-0.24.tar.bz2"
     mv isl-0.24 isl
 fi
@@ -69,6 +74,7 @@ if [ ! -f Makefile ]; then
     echo "Configuring GCC ${GCC_VER}..."
     "${WORK_DIR}/gcc-${GCC_VER}/configure" \
         --prefix=/usr \
+        --libdir=/usr/lib \
         --enable-languages=c,c++ \
         --enable-default-pie \
         --enable-default-ssp \
@@ -91,6 +97,13 @@ rm -rf "${DEST_DIR}"
 mkdir -p "${DEST_DIR}"
 echo "Installing GCC into DESTDIR..."
 make DESTDIR="${DEST_DIR}" install
+
+# If any libraries ended up in usr/lib64, move them to usr/lib for strict UsrMerge
+if [ -d "${DEST_DIR}/usr/lib64" ]; then
+    mkdir -p "${DEST_DIR}/usr/lib"
+    cp -a "${DEST_DIR}/usr/lib64/"* "${DEST_DIR}/usr/lib/"
+    rm -rf "${DEST_DIR}/usr/lib64"
+fi
 
 # Add standard symlinks
 mkdir -p "${DEST_DIR}/usr/lib"

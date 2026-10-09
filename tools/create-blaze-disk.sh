@@ -95,7 +95,7 @@ echo "Writing ESP partition into disk image..."
 dd if="${ESP_IMG}" of="${DISK_IMG}" bs=1M seek=1 conv=notrunc status=none
 
 echo "Writing Root partition into disk image..."
-dd if="${ROOT_IMG}" of="${DISK_IMG}" bs=1M seek=129 conv=notrunc status=none
+dd if="${ROOT_IMG}" of="${DISK_IMG}" bs=1M seek=129 conv=notrunc,sparse status=none
 
 rm -f "${ESP_IMG}" "${ROOT_IMG}"
 
