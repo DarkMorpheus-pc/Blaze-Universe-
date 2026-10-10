@@ -58,6 +58,16 @@ impl Database {
         let conn = Connection::open(&db_path)
             .with_context(|| format!("Failed to open SQLite database at {}", db_path.display()))?;
 
+        let user_version: u32 = conn.query_row("PRAGMA user_version;", [], |row| row.get(0))
+            .unwrap_or(0);
+
+        if user_version > 1 {
+            bail!(
+                "IncompatibleSchemaVersion: Database schema version {} is not supported by this version of Portadora (max supported version is 1). Refusing to proceed.",
+                user_version
+            );
+        }
+
         conn.execute_batch(
             "PRAGMA foreign_keys = ON;
              PRAGMA journal_mode = WAL;
@@ -112,6 +122,8 @@ impl Database {
              CREATE INDEX IF NOT EXISTS idx_files_path ON package_files(path);
              CREATE INDEX IF NOT EXISTS idx_provides_cap ON package_provides(capability);
              CREATE INDEX IF NOT EXISTS idx_history_tx ON transaction_history(tx_id);
+
+             PRAGMA user_version = 1;
             ",
         )?;
 

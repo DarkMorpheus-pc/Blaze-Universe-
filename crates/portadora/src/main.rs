@@ -690,6 +690,7 @@ fn install_remote_packages(
     }
 
     // 8. Finalize transaction & cleanup
+    tx.commit()?;
     tx.cleanup()?;
     Ok(())
 }

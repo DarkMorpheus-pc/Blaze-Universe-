@@ -60,29 +60,46 @@ def init_repo(repo_dir, pkgs_dir):
     os.makedirs(os.path.join(repo_dir, "metadata-expired"), exist_ok=True)
     os.makedirs(os.path.join(repo_dir, "metadata-rollback"), exist_ok=True)
 
-    root_priv, root_pub, root_priv_hex = gen_key()
-    ts_priv, ts_pub, ts_priv_hex = gen_key()
-    snap_priv, snap_pub, snap_priv_hex = gen_key()
-    tgt_priv, tgt_pub, tgt_priv_hex = gen_key()
+    priv_path = os.path.join(repo_dir, "keys", "private_keys.json")
+    if os.path.exists(priv_path):
+        with open(priv_path, "r") as f:
+            priv_data = json.load(f)
+        root_priv = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_data["root"]["priv"]))
+        root_pub = priv_data["root"]["pub"]
+        root_priv_hex = priv_data["root"]["priv"]
+        ts_priv = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_data["timestamp"]["priv"]))
+        ts_pub = priv_data["timestamp"]["pub"]
+        ts_priv_hex = priv_data["timestamp"]["priv"]
+        snap_priv = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_data["snapshot"]["priv"]))
+        snap_pub = priv_data["snapshot"]["pub"]
+        snap_priv_hex = priv_data["snapshot"]["priv"]
+        tgt_priv = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_data["targets"]["priv"]))
+        tgt_pub = priv_data["targets"]["pub"]
+        tgt_priv_hex = priv_data["targets"]["priv"]
+    else:
+        root_priv, root_pub, root_priv_hex = gen_key()
+        ts_priv, ts_pub, ts_priv_hex = gen_key()
+        snap_priv, snap_pub, snap_priv_hex = gen_key()
+        tgt_priv, tgt_pub, tgt_priv_hex = gen_key()
 
-    # Save keys
-    keys_info = {
-        "root": {"pub": root_pub, "keyid": "key-root"},
-        "timestamp": {"pub": ts_pub, "keyid": "key-ts"},
-        "snapshot": {"pub": snap_pub, "keyid": "key-snap"},
-        "targets": {"pub": tgt_pub, "keyid": "key-tgt"},
-    }
-    with open(os.path.join(repo_dir, "keys", "keys.json"), "w") as f:
-        json.dump(keys_info, f, indent=2)
+        # Save keys
+        keys_info = {
+            "root": {"pub": root_pub, "keyid": "key-root"},
+            "timestamp": {"pub": ts_pub, "keyid": "key-ts"},
+            "snapshot": {"pub": snap_pub, "keyid": "key-snap"},
+            "targets": {"pub": tgt_pub, "keyid": "key-tgt"},
+        }
+        with open(os.path.join(repo_dir, "keys", "keys.json"), "w") as f:
+            json.dump(keys_info, f, indent=2)
 
-    priv_keys_info = {
-        "root": {"priv": root_priv_hex, "pub": root_pub, "keyid": "key-root"},
-        "timestamp": {"priv": ts_priv_hex, "pub": ts_pub, "keyid": "key-ts"},
-        "snapshot": {"priv": snap_priv_hex, "pub": snap_pub, "keyid": "key-snap"},
-        "targets": {"priv": tgt_priv_hex, "pub": tgt_pub, "keyid": "key-tgt"},
-    }
-    with open(os.path.join(repo_dir, "keys", "private_keys.json"), "w") as f:
-        json.dump(priv_keys_info, f, indent=2)
+        priv_keys_info = {
+            "root": {"priv": root_priv_hex, "pub": root_pub, "keyid": "key-root"},
+            "timestamp": {"priv": ts_priv_hex, "pub": ts_pub, "keyid": "key-ts"},
+            "snapshot": {"priv": snap_priv_hex, "pub": snap_pub, "keyid": "key-snap"},
+            "targets": {"priv": tgt_priv_hex, "pub": tgt_pub, "keyid": "key-tgt"},
+        }
+        with open(os.path.join(repo_dir, "keys", "private_keys.json"), "w") as f:
+            json.dump(priv_keys_info, f, indent=2)
 
     # Copy selected packages
     targets_dict = {}

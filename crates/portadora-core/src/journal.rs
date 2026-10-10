@@ -179,6 +179,10 @@ impl Transaction {
             }
         }
 
+        Ok(())
+    }
+
+    pub fn commit(&mut self) -> Result<()> {
         self.set_state(TxState::Committed)?;
         Ok(())
     }
@@ -252,6 +256,14 @@ fn copy_or_move(src: &Path, dst: &Path) -> Result<()> {
             fs::create_dir_all(parent)?;
         }
         fs::copy(src, dst)?;
+        if let Ok(meta) = fs::symlink_metadata(src) {
+            let _ = fs::set_permissions(dst, meta.permissions());
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                let _ = std::os::unix::fs::chown(dst, Some(meta.uid()), Some(meta.gid()));
+            }
+        }
     }
     Ok(())
 }

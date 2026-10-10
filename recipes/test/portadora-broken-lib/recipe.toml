@@ -1,0 +1,25 @@
+[package]
+name = "portadora-broken-lib"
+version = "0.3.0"
+release = 1
+architecture = "x86_64"
+summary = "Broken portadora package missing shared library"
+description = "Test package simulating missing dynamic library"
+license = "MIT"
+maintainer = "Test Team"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = []
+provides = ["cmd:portadora"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+cat << 'EOF' > "$DESTDIR/usr/bin/portadora"
+#!/bin/sh
+echo "/usr/bin/portadora: error while loading shared libraries: libmissing_fake.so.1: cannot open shared object file: No such file or directory" >&2
+exit 127
+EOF
+chmod 0755 "$DESTDIR/usr/bin/portadora"
+"""

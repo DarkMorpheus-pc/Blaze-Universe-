@@ -1,0 +1,21 @@
+[package]
+name = "portadora-broken-format"
+version = "0.3.0"
+release = 1
+architecture = "x86_64"
+summary = "Broken portadora package with invalid binary format"
+description = "Test package simulating corrupted binary format"
+license = "MIT"
+maintainer = "Test Team"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = []
+provides = ["cmd:portadora"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+printf '\\x7fELF\\x00\\x00\\x00\\x00CORRUPT_HEADER_TRUNCATED' > "$DESTDIR/usr/bin/portadora"
+chmod 0755 "$DESTDIR/usr/bin/portadora"
+"""
