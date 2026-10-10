@@ -1,0 +1,17 @@
+[package]
+name = "pciutils"
+version = "3.13.0"
+release = 1
+architecture = "x86_64"
+summary = "PCI bus inspection utilities (lspci)"
+license = "GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://mj.ucw.cz/sw/pciutils/"
+
+[dependencies]
+provides = ["pciutils = 3.13.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/hw_utils_work/pciutils-dest/"* "$DESTDIR/"
+"""

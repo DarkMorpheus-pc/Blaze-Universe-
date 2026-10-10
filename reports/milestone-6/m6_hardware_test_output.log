@@ -1,0 +1,4 @@
+=== STARTING MILESTONE 6 QEMU HARDWARE TEST SUITE ===
+[HOST] Launching QEMU with cmd: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -device virtio-gpu-pci,id=video0 -device qemu-xhci,id=usb0 -device pci-bridge,chassis_nr=1,id=pci.1 -device pci-bridge,chassis_nr=2,id=pci.2 -device pci-testdev -nographic -serial mon:stdio
+
+=== ALL MILESTONE 6 HARDWARE ACCEPTANCE TESTS PASSED WITH 0 EXIT CODES! ===

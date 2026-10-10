@@ -1,0 +1,17 @@
+[package]
+name = "linux-firmware-network"
+version = "20260916"
+release = 1
+architecture = "x86_64"
+summary = "Realtek and network card firmware binaries"
+license = "Custom-Redistributable"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git"
+
+[dependencies]
+provides = ["firmware-network = 20260916"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/firmware_work/firmware-network-dest/"* "$DESTDIR/"
+"""

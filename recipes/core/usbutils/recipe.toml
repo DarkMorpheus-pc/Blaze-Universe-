@@ -1,0 +1,17 @@
+[package]
+name = "usbutils"
+version = "018"
+release = 1
+architecture = "x86_64"
+summary = "USB bus inspection utilities (lsusb)"
+license = "GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/gregkh/usbutils"
+
+[dependencies]
+provides = ["usbutils = 018"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/hw_utils_work/usbutils-dest/"* "$DESTDIR/"
+"""

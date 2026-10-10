@@ -1,0 +1,17 @@
+[package]
+name = "linux-firmware-intel"
+version = "20260916"
+release = 1
+architecture = "x86_64"
+summary = "Intel GPU (i915/xe) and Wi-Fi firmware binaries"
+license = "Custom-Intel-Redistributable"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git"
+
+[dependencies]
+provides = ["firmware-intel = 20260916"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/firmware_work/firmware-intel-dest/"* "$DESTDIR/"
+"""

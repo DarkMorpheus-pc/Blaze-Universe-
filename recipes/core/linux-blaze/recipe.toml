@@ -1,17 +1,18 @@
 [package]
 name = "linux-blaze"
-version = "7.2.8"
-release = 2
+version = "7.2.9"
+release = 1
 architecture = "x86_64"
-summary = "Vanilla Linux kernel 7.2.8 for BlazeOS Native"
+summary = "Vanilla Linux kernel 7.2.9 for BlazeOS Native"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://kernel.org"
 
 [dependencies]
-provides = ["kernel", "linux = 7.2.8"]
+provides = ["kernel", "linux = 7.2.9"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/kernel_7.2_work/kernel-dest/"* "$DESTDIR/"
+KERNEL_DEST_DIR="$(cd "$CURRENT_DIR" && while [ ! -d "build/kernel_7.2.9_work/kernel-dest" ] && [ "$PWD" != "/" ]; do cd ..; done && pwd)/build/kernel_7.2.9_work/kernel-dest"
+cp -a "$KERNEL_DEST_DIR/"* "$DESTDIR/"
 """
