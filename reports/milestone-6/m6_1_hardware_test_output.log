@@ -1,0 +1,41 @@
+=== STARTING MILESTONE 6.1 FINAL HARDWARE ACCEPTANCE TEST SUITE ===
+
+=== HWX-01: Linux 7.2.8 Fallback Kernel Boot Test ===
+
+--- Running Test Scenario: HWX-01_Fallback_7.2.8 ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.8 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-fallback.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+
+=== HWX-02 & HWX-03: Primary Kernel 7.2.9 & DRM/KMS Node Test ===
+
+--- Running Test Scenario: HWX-02_03_Primary_7.2.9_DRM ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -device virtio-gpu-pci -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.9 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-7.2.9.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+
+=== HWX-04: Storage Bus Multi-Controller Test (AHCI SATA) ===
+
+--- Running Test Scenario: HWX-04_SATA_AHCI ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=none,id=drv0 -device ich9-ahci,id=ahci -device ide-hd,drive=drv0,bus=ahci.0 -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.9 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-7.2.9.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+
+=== HWX-05: Firmware Integrity & Diagnostics Test ===
+
+--- Running Test Scenario: HWX-05_Firmware_Integrity ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.9 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-7.2.9.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+
+=== HWX-06: BERP Core Real Mount Failure Injection Test ===
+
+--- Running Test Scenario: HWX-06_BERP_Mount_Failure ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.9 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-7.2.9.img -append root=PARTUUID=00000000-0000-0000-0000-000000000000 rw console=ttyS0 console=tty0 berp
+
+=== HWX-07: Corrupted Primary Kernel Fallback Test ===
+
+--- Running Test Scenario: HWX-07_Corrupted_Primary_Fallback ---
+[HOST] Launching QEMU: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -nographic -serial mon:stdio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.8 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-fallback.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+
+=== SUMMARY OF MILESTONE 6.1 HARDWARE ACCEPTANCE TESTS ===
+  [PASS] HWX-01_Fallback_7.2.8
+  [PASS] HWX-02_03_Primary_7.2.9_DRM
+  [PASS] HWX-04_SATA_AHCI
+  [PASS] HWX-05_Firmware_Integrity
+  [PASS] HWX-06_BERP_Mount_Failure
+  [PASS] HWX-07_Corrupted_Primary_Fallback
+
+=== ALL MILESTONE 6.1 HARDWARE ACCEPTANCE TESTS PASSED WITH 0 EXIT CODES! ===
