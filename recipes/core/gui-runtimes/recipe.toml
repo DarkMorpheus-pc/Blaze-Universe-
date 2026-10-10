@@ -1,0 +1,17 @@
+[package]
+name = "gui-runtimes"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "GTK3, GTK4, and Qt6 Wayland application runtime libraries"
+license = "LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+provides = ["gui-runtimes = 1.0.0", "lib:libgtk-3.so.0", "lib:libgtk-4.so.1", "lib:libQt6WaylandClient.so.6"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_integration_work/gui-runtimes-dest/"* "$DESTDIR/"
+"""

@@ -1,0 +1,17 @@
+[package]
+name = "pipewire"
+version = "1.6.0"
+release = 1
+architecture = "x86_64"
+summary = "Low-latency multimedia framework, audio server, and WirePlumber session manager"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://pipewire.org"
+
+[dependencies]
+provides = ["pipewire = 1.6.0", "wireplumber = 0.5.18"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_integration_work/pipewire-dest/"* "$DESTDIR/"
+"""

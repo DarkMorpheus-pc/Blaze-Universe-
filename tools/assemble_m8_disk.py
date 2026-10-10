@@ -135,6 +135,13 @@ for sess_pkg in ["libxkbcommon-dest", "pixman-dest", "freetype-dest", "fontconfi
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
+# 5.10. Install Milestone 8 Phase C Desktop Integration Packages
+INTEGRATION_WORK = os.path.join(BUILD_DIR, "m8_integration_work")
+for integ_pkg in ["xwayland-dest", "polkit-gnome-dest", "pipewire-dest", "xdg-desktop-portal-dest", "waybar-dest", "wofi-dest", "gui-runtimes-dest"]:
+    pkg_root = os.path.join(INTEGRATION_WORK, integ_pkg)
+    if os.path.exists(pkg_root):
+        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
 # 6. Install Limine 12.x Configuration
 limine_conf = """timeout: 3
 default_entry: 1

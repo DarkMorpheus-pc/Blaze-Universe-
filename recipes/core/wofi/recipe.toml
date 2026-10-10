@@ -1,0 +1,17 @@
+[package]
+name = "wofi"
+version = "1.3"
+release = 1
+architecture = "x86_64"
+summary = "Launcher/menu program for Wayland compositors"
+license = "GPL-3.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://hg.sr.ht/~scoopta/wofi"
+
+[dependencies]
+provides = ["wofi = 1.3"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_integration_work/wofi-dest/"* "$DESTDIR/"
+"""

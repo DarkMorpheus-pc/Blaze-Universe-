@@ -413,12 +413,22 @@ if [ -f /etc/labwc/autostart ]; then
     bash /etc/labwc/autostart &
 fi
 
-if [ "$#" -gt 0 ] && [ "${1:-}" = "-s" ] || [ "${1:-}" = "--startup" ]; then
-    exec_cmd="${2:-}"
-    if [ -n "$exec_cmd" ]; then
-        echo "[labwc 0.20.2] Executing startup process: $exec_cmd"
-        eval "$exec_cmd"
-    fi
+startup_cmd=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -s|--startup)
+            startup_cmd="${2:-}"
+            shift 2 || break
+            ;;
+        *)
+            shift 1
+            ;;
+    esac
+done
+
+if [ -n "$startup_cmd" ]; then
+    echo "[labwc 0.20.2] Executing startup process: $startup_cmd"
+    eval "$startup_cmd"
 fi
 
 exit 0
