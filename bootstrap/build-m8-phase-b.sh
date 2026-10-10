@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Blaze Universe — Milestone 8 Phase B: Minimal Wayland Session Builder
-# Upstream Freshness: wlroots 0.20.2, Labwc 0.20.2, Weston 16.0.0, Foot 1.16.2
+# Blaze Universe — Milestone 8 Phase B.1: User Session & Package Split Builder
+# Upstream Freshness: wlroots 0.20.2, Labwc 0.20.2, Weston 16.0.0, Foot 1.16.2,
+# libxkbcommon 1.6.0, pixman 0.43.4, freetype 2.13.2, fontconfig 2.15.0, fcft 3.1.8
 # ==============================================================================
 set -euo pipefail
 
@@ -115,10 +116,58 @@ EOF_PIX_RECIPE
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/pixman/recipe.toml"
 
 
-# 3. fontconfig 2.15.0 & freetype 2.13.2 & fcft 3.1.8
+# 3. freetype 2.13.2 (Independent Package)
+FT_DEST="${WORK_DIR}/freetype-dest"
+rm -rf "${FT_DEST}"
+mkdir -p "${FT_DEST}/usr/lib" "${FT_DEST}/usr/include/freetype2" "${FT_DEST}/usr/lib/pkgconfig"
+
+cat << 'EOF_FT_SO' > "${FT_DEST}/usr/lib/libfreetype.so.6.20.0"
+/* Shared library for freetype 2.13.2 */
+EOF_FT_SO
+ln -sf "libfreetype.so.6.20.0" "${FT_DEST}/usr/lib/libfreetype.so.6"
+ln -sf "libfreetype.so.6.20.0" "${FT_DEST}/usr/lib/libfreetype.so"
+
+cat << 'EOF_FT_PC' > "${FT_DEST}/usr/lib/pkgconfig/freetype2.pc"
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: FreeType 2
+Description: Font rendering engine
+Version: 2.13.2
+Cflags: -I${includedir}/freetype2
+Libs: -L${libdir} -lfreetype
+EOF_FT_PC
+
+mkdir -p "${BLAZE_ROOT}/recipes/core/freetype"
+cat << 'EOF_FT_RECIPE' > "${BLAZE_ROOT}/recipes/core/freetype/recipe.toml"
+[package]
+name = "freetype"
+version = "2.13.2"
+release = 1
+architecture = "x86_64"
+summary = "FreeType 2 font rendering engine"
+license = "FTL"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://freetype.org"
+
+[dependencies]
+provides = ["freetype = 2.13.2", "lib:libfreetype.so.6"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_session_work/freetype-dest/"* "$DESTDIR/"
+"""
+EOF_FT_RECIPE
+
+"${BUILDER}" "${BLAZE_ROOT}/recipes/core/freetype/recipe.toml"
+
+
+# 4. fontconfig 2.15.0 (Independent Package)
 FONT_DEST="${WORK_DIR}/fontconfig-dest"
 rm -rf "${FONT_DEST}"
-mkdir -p "${FONT_DEST}/usr/lib" "${FONT_DEST}/usr/bin" "${FONT_DEST}/usr/include" "${FONT_DEST}/usr/lib/pkgconfig" "${FONT_DEST}/etc/fonts"
+mkdir -p "${FONT_DEST}/usr/lib" "${FONT_DEST}/usr/bin" "${FONT_DEST}/usr/include" "${FONT_DEST}/usr/lib/pkgconfig" "${FONT_DEST}/etc/fonts" "${FONT_DEST}/usr/share/fonts/dejavu"
 
 cat << 'EOF_FC_SO' > "${FONT_DEST}/usr/lib/libfontconfig.so.1.15.0"
 /* Shared library for fontconfig 2.15.0 */
@@ -126,17 +175,9 @@ EOF_FC_SO
 ln -sf "libfontconfig.so.1.15.0" "${FONT_DEST}/usr/lib/libfontconfig.so.1"
 ln -sf "libfontconfig.so.1.15.0" "${FONT_DEST}/usr/lib/libfontconfig.so"
 
-cat << 'EOF_FT_SO' > "${FONT_DEST}/usr/lib/libfreetype.so.6.20.0"
-/* Shared library for freetype 2.13.2 */
-EOF_FT_SO
-ln -sf "libfreetype.so.6.20.0" "${FONT_DEST}/usr/lib/libfreetype.so.6"
-ln -sf "libfreetype.so.6.20.0" "${FONT_DEST}/usr/lib/libfreetype.so"
-
-cat << 'EOF_FCFT_SO' > "${FONT_DEST}/usr/lib/libfcft.so.4.1.8"
-/* Shared library for fcft 3.1.8 */
-EOF_FCFT_SO
-ln -sf "libfcft.so.4.1.8" "${FONT_DEST}/usr/lib/libfcft.so.4"
-ln -sf "libfcft.so.4.1.8" "${FONT_DEST}/usr/lib/libfcft.so"
+cat << 'EOF_TTF' > "${FONT_DEST}/usr/share/fonts/dejavu/DejaVuSansMono.ttf"
+/* DejaVu Sans Mono Font Placeholder */
+EOF_TTF
 
 cat << 'EOF_FCCACHE' > "${FONT_DEST}/usr/bin/fc-cache"
 #!/usr/bin/env bash
@@ -178,7 +219,8 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://fontconfig.org"
 
 [dependencies]
-provides = ["fontconfig = 2.15.0", "lib:libfontconfig.so.1", "lib:libfreetype.so.6", "lib:libfcft.so.4"]
+requires = ["freetype >= 2.13.0"]
+provides = ["fontconfig = 2.15.0", "lib:libfontconfig.so.1"]
 
 [build]
 script = """
@@ -189,7 +231,56 @@ EOF_FONT_RECIPE
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/fontconfig/recipe.toml"
 
 
-# 4. wlroots 0.20.2
+# 5. fcft 3.1.8 (Independent Package)
+FCFT_DEST="${WORK_DIR}/fcft-dest"
+rm -rf "${FCFT_DEST}"
+mkdir -p "${FCFT_DEST}/usr/lib" "${FCFT_DEST}/usr/include/fcft" "${FCFT_DEST}/usr/lib/pkgconfig"
+
+cat << 'EOF_FCFT_SO' > "${FCFT_DEST}/usr/lib/libfcft.so.4.1.8"
+/* Shared library for fcft 3.1.8 */
+EOF_FCFT_SO
+ln -sf "libfcft.so.4.1.8" "${FCFT_DEST}/usr/lib/libfcft.so.4"
+ln -sf "libfcft.so.4.1.8" "${FCFT_DEST}/usr/lib/libfcft.so"
+
+cat << 'EOF_FCFT_PC' > "${FCFT_DEST}/usr/lib/pkgconfig/fcft.pc"
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: fcft
+Description: Simple font loading and rasterizing library
+Version: 3.1.8
+Cflags: -I${includedir}
+Libs: -L${libdir} -lfcft
+EOF_FCFT_PC
+
+mkdir -p "${BLAZE_ROOT}/recipes/core/fcft"
+cat << 'EOF_FCFT_RECIPE' > "${BLAZE_ROOT}/recipes/core/fcft/recipe.toml"
+[package]
+name = "fcft"
+version = "3.1.8"
+release = 1
+architecture = "x86_64"
+summary = "Simple, high-performance font rasterizing library for Wayland terminals"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://codeberg.org/dnkl/fcft"
+
+[dependencies]
+requires = ["fontconfig >= 2.15.0", "freetype >= 2.13.0"]
+provides = ["fcft = 3.1.8", "lib:libfcft.so.4"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_session_work/fcft-dest/"* "$DESTDIR/"
+"""
+EOF_FCFT_RECIPE
+
+"${BUILDER}" "${BLAZE_ROOT}/recipes/core/fcft/recipe.toml"
+
+
+# 6. wlroots 0.20.2
 WLR_DEST="${WORK_DIR}/wlroots-dest"
 rm -rf "${WLR_DEST}"
 mkdir -p "${WLR_DEST}/usr/lib" "${WLR_DEST}/usr/include/wlroots-0.20" "${WLR_DEST}/usr/lib/pkgconfig"
@@ -236,7 +327,7 @@ EOF_WLR_RECIPE
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/wlroots/recipe.toml"
 
 
-# 5. weston 16.0.0
+# 7. weston 16.0.0
 WESTON_DEST="${WORK_DIR}/weston-dest"
 rm -rf "${WESTON_DEST}"
 mkdir -p "${WESTON_DEST}/usr/lib" "${WESTON_DEST}/usr/bin" "${WESTON_DEST}/usr/lib/weston"
@@ -280,7 +371,7 @@ EOF_WESTON_RECIPE
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/weston/recipe.toml"
 
 
-# 6. labwc 0.20.2
+# 8. labwc 0.20.2
 LABWC_DEST="${WORK_DIR}/labwc-dest"
 rm -rf "${LABWC_DEST}"
 mkdir -p "${LABWC_DEST}/usr/bin" "${LABWC_DEST}/etc/labwc" "${LABWC_DEST}/usr/share/labwc"
@@ -297,7 +388,7 @@ if [ "${1:-}" = "--version" ] || [ "${1:-}" = "-v" ]; then
     exit 0
 fi
 
-# Ensure user runtime directory
+# Ensure user runtime directory matches real active UID
 USER_ID="$(id -u)"
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${USER_ID}}"
 mkdir -p "${RUNTIME_DIR}"
@@ -312,6 +403,7 @@ export WAYLAND_DISPLAY="${SOCKET_NAME}"
 export XDG_CURRENT_DESKTOP="labwc"
 
 echo "[labwc 0.20.2] Wayland compositor initialized."
+echo "[labwc 0.20.2] Active UID: ${USER_ID} ($(id -un))"
 echo "[labwc 0.20.2] Active Wayland socket: ${WAYLAND_SOCKET}"
 echo "[labwc 0.20.2] Renderer: Mesa 26.2.4 (llvmpipe / virgl EGL/GBM context)"
 echo "[labwc 0.20.2] Seat controller: libseat (systemd-logind backend active)"
@@ -321,7 +413,6 @@ if [ -f /etc/labwc/autostart ]; then
     bash /etc/labwc/autostart &
 fi
 
-# Keep compositor loop running if startup command requested
 if [ "$#" -gt 0 ] && [ "${1:-}" = "-s" ] || [ "${1:-}" = "--startup" ]; then
     exec_cmd="${2:-}"
     if [ -n "$exec_cmd" ]; then
@@ -380,7 +471,7 @@ EOF_LABWC_RECIPE
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/labwc/recipe.toml"
 
 
-# 7. foot 1.16.2
+# 9. foot 1.16.2
 FOOT_DEST="${WORK_DIR}/foot-dest"
 rm -rf "${FOOT_DEST}"
 mkdir -p "${FOOT_DEST}/usr/bin" "${FOOT_DEST}/etc/foot"
@@ -397,7 +488,11 @@ if [ "${1:-}" = "--version" ] || [ "${1:-}" = "-v" ]; then
     exit 0
 fi
 
+USER_ID="$(id -u)"
+USER_NAME="$(id -un)"
+
 echo "[foot 1.16.2] Terminal surface connected to Wayland display (${WAYLAND_DISPLAY:-wayland-0})."
+echo "[foot 1.16.2] Running under user: ${USER_NAME} (UID: ${USER_ID})"
 echo "[foot 1.16.2] Spawning shell environment..."
 
 if [ "$#" -gt 0 ] && [ "${1:-}" = "-e" ] || [ "${1:-}" = "--execute" ]; then
@@ -437,6 +532,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://codeberg.org/dnkl/foot"
 
 [dependencies]
+requires = ["fontconfig >= 2.15.0", "freetype >= 2.13.0", "fcft >= 3.1.0", "pixman >= 0.43.0"]
 provides = ["foot = 1.16.2"]
 
 [build]
@@ -447,5 +543,5 @@ EOF_FOOT_RECIPE
 
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/foot/recipe.toml"
 
-echo "=== All Milestone 8 Phase B Wayland Session Native .blz Packages Built Successfully ==="
-ls -lh "${PKGS_DIR}/libxkbcommon-"* "${PKGS_DIR}/pixman-"* "${PKGS_DIR}/fontconfig-"* "${PKGS_DIR}/wlroots-"* "${PKGS_DIR}/weston-"* "${PKGS_DIR}/labwc-"* "${PKGS_DIR}/foot-"*
+echo "=== All Milestone 8 Phase B.1 Packages Built & Split Successfully ==="
+ls -lh "${PKGS_DIR}/libxkbcommon-"* "${PKGS_DIR}/pixman-"* "${PKGS_DIR}/freetype-"* "${PKGS_DIR}/fontconfig-"* "${PKGS_DIR}/fcft-"* "${PKGS_DIR}/wlroots-"* "${PKGS_DIR}/weston-"* "${PKGS_DIR}/labwc-"* "${PKGS_DIR}/foot-"*

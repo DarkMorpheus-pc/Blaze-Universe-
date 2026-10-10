@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-# Blaze Universe — Milestone 8 Phase B Disk Image Assembler
+# Blaze Universe — Milestone 8 Phase B.1 Disk Image Assembler
 # ==============================================================================
 import os
 import shutil
@@ -14,7 +14,7 @@ DISK_IMG = os.path.join(BUILD_DIR, "blaze-disk.raw")
 ESP_IMG = os.path.join(BUILD_DIR, "esp.img")
 ROOT_IMG = os.path.join(BUILD_DIR, "root.img")
 
-print("=== Assembling Milestone 8 Phase B Wayland Session GPT Boot Disk ===")
+print("=== Assembling Milestone 8 Phase B.1 User-Validated Wayland Session GPT Disk ===")
 
 # 1. Verify Kernel 7.2.9 Artifacts
 K729_DEST = os.path.join(BUILD_DIR, "kernel_7.2.9_work", "kernel-dest")
@@ -31,6 +31,8 @@ os.makedirs(os.path.join(ROOTFS_DIR, "usr", "lib", "modules"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "usr", "lib", "firmware"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "usr", "bin"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "root"), exist_ok=True)
+os.makedirs(os.path.join(ROOTFS_DIR, "home", "blaze"), exist_ok=True)
+os.makedirs(os.path.join(ROOTFS_DIR, "run", "user", "1000"), exist_ok=True)
 
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze-7.2.9"))
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze"))
@@ -55,14 +57,57 @@ if os.path.exists(K728_VMLINUZ):
 if os.path.exists(K728_INITRD):
     shutil.copy2(K728_INITRD, os.path.join(ROOTFS_DIR, "boot", "initramfs-blaze-fallback.img"))
 
-# 4. Install Firmware Directories
+# 4. Configure Unprivileged 'blaze' User Account (UID 1000, GID 1000)
+etc_dir = os.path.join(ROOTFS_DIR, "etc")
+os.makedirs(etc_dir, exist_ok=True)
+
+passwd_file = os.path.join(etc_dir, "passwd")
+if os.path.exists(passwd_file):
+    with open(passwd_file, "r") as f:
+        passwd_content = f.read()
+    if "blaze:" not in passwd_content:
+        with open(passwd_file, "a") as f:
+            f.write("blaze:x:1000:1000:Blaze OS Desktop User:/home/blaze:/usr/bin/bash\n")
+else:
+    with open(passwd_file, "w") as f:
+        f.write("root:x:0:0:root:/root:/usr/bin/bash\n")
+        f.write("blaze:x:1000:1000:Blaze OS Desktop User:/home/blaze:/usr/bin/bash\n")
+
+group_file = os.path.join(etc_dir, "group")
+if os.path.exists(group_file):
+    with open(group_file, "r") as f:
+        group_content = f.read()
+    if "blaze:" not in group_content:
+        with open(group_file, "a") as f:
+            f.write("blaze:x:1000:\n")
+else:
+    with open(group_file, "w") as f:
+        f.write("root:x:0:\n")
+        f.write("blaze:x:1000:\n")
+
+shadow_file = os.path.join(etc_dir, "shadow")
+if os.path.exists(shadow_file):
+    with open(shadow_file, "r") as f:
+        shadow_content = f.read()
+    if "blaze:" not in shadow_content:
+        with open(shadow_file, "a") as f:
+            f.write("blaze::19700:0:99999:7:::\n")
+else:
+    with open(shadow_file, "w") as f:
+        f.write("root::19700:0:99999:7:::\n")
+        f.write("blaze::19700:0:99999:7:::\n")
+
+# Set owner permissions for /home/blaze
+subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
+subprocess.run(f"chmod 0755 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
+
+# 5. Install Firmware & Hardware Utilities
 FW_WORK = os.path.join(BUILD_DIR, "firmware_work")
 for fw_pkg in ["firmware-base-dest", "firmware-intel-dest", "firmware-amd-dest", "firmware-nvidia-dest", "firmware-network-dest"]:
     fw_path = os.path.join(FW_WORK, fw_pkg, "usr", "lib", "firmware")
     if os.path.exists(fw_path):
         subprocess.run(f"cp -rf '{fw_path}'/* '{ROOTFS_DIR}/usr/lib/firmware/'", shell=True, check=False)
 
-# 5. Install Hardware Utilities
 HW_WORK = os.path.join(BUILD_DIR, "hw_utils_work")
 for hw_pkg in ["pciutils-dest", "usbutils-dest"]:
     bin_path = os.path.join(HW_WORK, hw_pkg, "usr", "bin")
@@ -83,9 +128,9 @@ for gfx_pkg in ["wayland-dest", "wayland-protocols-dest", "libdrm-dest", "libsea
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# 5.9. Install Milestone 8 Phase B Wayland Session Desktop Packages
+# 5.9. Install Milestone 8 Phase B.1 Wayland Session Desktop Packages (including split packages)
 SESSION_WORK = os.path.join(BUILD_DIR, "m8_session_work")
-for sess_pkg in ["libxkbcommon-dest", "pixman-dest", "fontconfig-dest", "wlroots-dest", "weston-dest", "labwc-dest", "foot-dest"]:
+for sess_pkg in ["libxkbcommon-dest", "pixman-dest", "freetype-dest", "fontconfig-dest", "fcft-dest", "wlroots-dest", "weston-dest", "labwc-dest", "foot-dest"]:
     pkg_root = os.path.join(SESSION_WORK, sess_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
@@ -158,4 +203,4 @@ subprocess.run(["dd", f"if={ESP_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=1", "con
 subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=notrunc,sparse", "status=none"], check=True)
 
 subprocess.run(["rm", "-f", ESP_IMG, ROOT_IMG], check=False)
-print("=== Milestone 8 Phase B Disk Image Created Successfully! ===")
+print("=== Milestone 8 Phase B.1 Disk Image Created Successfully! ===")

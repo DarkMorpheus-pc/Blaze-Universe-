@@ -9,7 +9,8 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://fontconfig.org"
 
 [dependencies]
-provides = ["fontconfig = 2.15.0", "lib:libfontconfig.so.1", "lib:libfreetype.so.6", "lib:libfcft.so.4"]
+requires = ["freetype >= 2.13.0"]
+provides = ["fontconfig = 2.15.0", "lib:libfontconfig.so.1"]
 
 [build]
 script = """
