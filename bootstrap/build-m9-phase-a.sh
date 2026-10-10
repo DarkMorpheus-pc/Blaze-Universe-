@@ -17,11 +17,10 @@ LDI_DEST="${WORK_DIR}/libdisplay-info-dest"
 rm -rf "${LDI_DEST}"
 mkdir -p "${LDI_DEST}/usr/lib" "${LDI_DEST}/usr/include/libdisplay-info" "${LDI_DEST}/usr/lib/pkgconfig"
 
-cat << 'EOF_LDI_SO' > "${LDI_DEST}/usr/lib/libdisplay-info.so.0.2.0"
-/* Shared library for libdisplay-info 0.2.0 */
-EOF_LDI_SO
-ln -sf "libdisplay-info.so.0.2.0" "${LDI_DEST}/usr/lib/libdisplay-info.so.0"
-ln -sf "libdisplay-info.so.0.2.0" "${LDI_DEST}/usr/lib/libdisplay-info.so"
+cp -a /usr/lib64/libdisplay-info.so.0.3.0 "${LDI_DEST}/usr/lib/libdisplay-info.so.0.3.0" 2>/dev/null || cp -a /usr/lib/libdisplay-info.so.0.3.0 "${LDI_DEST}/usr/lib/libdisplay-info.so.0.3.0"
+ln -sf "libdisplay-info.so.0.3.0" "${LDI_DEST}/usr/lib/libdisplay-info.so.3"
+ln -sf "libdisplay-info.so.0.3.0" "${LDI_DEST}/usr/lib/libdisplay-info.so.0"
+ln -sf "libdisplay-info.so.0.3.0" "${LDI_DEST}/usr/lib/libdisplay-info.so"
 
 cat << 'EOF_LDI_PC' > "${LDI_DEST}/usr/lib/pkgconfig/libdisplay-info.pc"
 prefix=/usr
@@ -41,7 +40,7 @@ cat << 'EOF_LDI_RECIPE' > "${BLAZE_ROOT}/recipes/core/libdisplay-info/recipe.tom
 [package]
 name = "libdisplay-info"
 version = "0.2.0"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "EDID and Display Information parsing library for Wayland compositors"
 license = "MIT"

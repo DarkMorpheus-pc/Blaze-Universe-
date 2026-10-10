@@ -9,6 +9,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://codeberg.org/dnkl/foot"
 
 [dependencies]
+requires = ["fontconfig >= 2.15.0", "freetype >= 2.13.0", "fcft >= 3.1.0", "pixman >= 0.43.0"]
 provides = ["foot = 1.16.2"]
 
 [build]

@@ -1,7 +1,7 @@
 [package]
 name = "libseat"
 version = "0.8.0"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Universal Seat Management Library and seatd Daemon"
 license = "MIT"

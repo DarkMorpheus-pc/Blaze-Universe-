@@ -1,2 +1,3 @@
 === STARTING MILESTONE 8 PHASE C.1 REAL DESKTOP ACCEPTANCE SUITE ===
 [HOST] Launching QEMU for M8 Phase C.1 testing: qemu-system-x86_64 -bios /usr/share/edk2/x64/OVMF.4m.fd -m 2048 -smp 4 -cpu host -enable-kvm -vga virtio -drive file=/home/darkmorpheus/Projeler/blaze_base/build/blaze-disk.raw,format=raw,if=virtio,id=drv0 -device intel-hda -device hda-duplex -kernel /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/vmlinuz-blaze-7.2.9 -initrd /home/darkmorpheus/Projeler/blaze_base/build/rootfs/boot/initramfs-blaze-7.2.9.img -append root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0 -nographic -serial mon:stdio -monitor unix:/tmp/qemu-m8-monitor.sock,server,nowait
+[HOST ERROR] Milestone 8 Phase C.1 acceptance test timed out after 180s!

@@ -1,6 +1,6 @@
 [package]
 name = "audit"
-version = "4.0.1"
+version = "4.2.1"
 release = 1
 architecture = "x86_64"
 summary = "User space utilities for storing and processing auditing records"
@@ -9,7 +9,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/linux-audit/audit-userspace"
 
 [dependencies]
-provides = ["audit = 4.0.1"]
+provides = ["audit = 4.2.1"]
 
 [build]
 script = """

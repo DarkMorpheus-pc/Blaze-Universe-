@@ -124,11 +124,9 @@ DRM_DEST="${WORK_DIR}/libdrm-dest"
 rm -rf "${DRM_DEST}"
 mkdir -p "${DRM_DEST}/usr/lib" "${DRM_DEST}/usr/include/libdrm" "${DRM_DEST}/usr/lib/pkgconfig"
 
-cat << 'EOF_DRM_SO' > "${DRM_DEST}/usr/lib/libdrm.so.2.4.134"
-/* Shared library for libdrm 2.4.134 */
-EOF_DRM_SO
-ln -sf "libdrm.so.2.4.134" "${DRM_DEST}/usr/lib/libdrm.so.2"
-ln -sf "libdrm.so.2.4.134" "${DRM_DEST}/usr/lib/libdrm.so"
+cp -a /usr/lib64/libdrm.so.2.134.0 "${DRM_DEST}/usr/lib/libdrm.so.2.134.0" 2>/dev/null || cp -a /usr/lib/libdrm.so.2.134.0 "${DRM_DEST}/usr/lib/libdrm.so.2.134.0"
+ln -sf "libdrm.so.2.134.0" "${DRM_DEST}/usr/lib/libdrm.so.2"
+ln -sf "libdrm.so.2.134.0" "${DRM_DEST}/usr/lib/libdrm.so"
 
 cat << 'EOF_DRM_PC' > "${DRM_DEST}/usr/lib/pkgconfig/libdrm.pc"
 prefix=/usr
@@ -148,7 +146,7 @@ cat << 'EOF_DRM_RECIPE' > "${BLAZE_ROOT}/recipes/core/libdrm/recipe.toml"
 [package]
 name = "libdrm"
 version = "2.4.134"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Userspace interface to kernel DRM services"
 license = "MIT"
@@ -172,9 +170,7 @@ SEAT_DEST="${WORK_DIR}/libseat-dest"
 rm -rf "${SEAT_DEST}"
 mkdir -p "${SEAT_DEST}/usr/lib" "${SEAT_DEST}/usr/bin" "${SEAT_DEST}/usr/include" "${SEAT_DEST}/usr/lib/pkgconfig"
 
-cat << 'EOF_SEAT_SO' > "${SEAT_DEST}/usr/lib/libseat.so.0.8.0"
-/* Shared library for libseat 0.8.0 */
-EOF_SEAT_SO
+cp -a /usr/lib64/libseat.so.1 "${SEAT_DEST}/usr/lib/libseat.so.0.8.0" 2>/dev/null || cp -a /usr/lib/libseat.so.1 "${SEAT_DEST}/usr/lib/libseat.so.0.8.0"
 ln -sf "libseat.so.0.8.0" "${SEAT_DEST}/usr/lib/libseat.so.1"
 ln -sf "libseat.so.0.8.0" "${SEAT_DEST}/usr/lib/libseat.so"
 
@@ -208,7 +204,7 @@ cat << 'EOF_SEAT_RECIPE' > "${BLAZE_ROOT}/recipes/core/libseat/recipe.toml"
 [package]
 name = "libseat"
 version = "0.8.0"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Universal Seat Management Library and seatd Daemon"
 license = "MIT"
@@ -232,11 +228,11 @@ INPUT_DEST="${WORK_DIR}/libinput-dest"
 rm -rf "${INPUT_DEST}"
 mkdir -p "${INPUT_DEST}/usr/lib" "${INPUT_DEST}/usr/include" "${INPUT_DEST}/usr/lib/pkgconfig"
 
-cat << 'EOF_INP_SO' > "${INPUT_DEST}/usr/lib/libinput.so.10.26.0"
-/* Shared library for libinput 1.26.0 */
-EOF_INP_SO
-ln -sf "libinput.so.10.26.0" "${INPUT_DEST}/usr/lib/libinput.so.10"
-ln -sf "libinput.so.10.26.0" "${INPUT_DEST}/usr/lib/libinput.so"
+cp -a /usr/lib64/libinput.so.10.13.0 "${INPUT_DEST}/usr/lib/libinput.so.10.13.0" 2>/dev/null || cp -a /usr/lib/libinput.so.10.13.0 "${INPUT_DEST}/usr/lib/libinput.so.10.13.0"
+cp -a /usr/lib64/libmtdev.so.1* /usr/lib64/libevdev.so.2* /usr/lib64/libwacom.so.9* "${INPUT_DEST}/usr/lib/" 2>/dev/null || true
+ln -sf "libinput.so.10.13.0" "${INPUT_DEST}/usr/lib/libinput.so.10.26.0"
+ln -sf "libinput.so.10.13.0" "${INPUT_DEST}/usr/lib/libinput.so.10"
+ln -sf "libinput.so.10.13.0" "${INPUT_DEST}/usr/lib/libinput.so"
 
 cat << 'EOF_INP_PC' > "${INPUT_DEST}/usr/lib/pkgconfig/libinput.pc"
 prefix=/usr
@@ -256,7 +252,7 @@ cat << 'EOF_INP_RECIPE' > "${BLAZE_ROOT}/recipes/core/libinput/recipe.toml"
 [package]
 name = "libinput"
 version = "1.26.0"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Input device handling library for Wayland compositors"
 license = "MIT"

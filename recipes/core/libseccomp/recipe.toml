@@ -1,6 +1,6 @@
 [package]
 name = "libseccomp"
-version = "2.5.5"
+version = "2.6.1"
 release = 1
 architecture = "x86_64"
 summary = "High-level interface to the Linux Kernel's seccomp filter"
@@ -9,7 +9,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/seccomp/libseccomp"
 
 [dependencies]
-provides = ["libseccomp = 2.5.5"]
+provides = ["libseccomp = 2.6.1"]
 
 [build]
 script = """

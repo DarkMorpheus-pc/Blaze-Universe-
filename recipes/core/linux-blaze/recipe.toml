@@ -1,9 +1,9 @@
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 1
+release = 2
 architecture = "x86_64"
-summary = "Vanilla Linux kernel 7.2.9 for BlazeOS Native"
+summary = "Vanilla Linux kernel 7.2.9 with AppArmor, Landlock, Seccomp & fs-verity"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://kernel.org"

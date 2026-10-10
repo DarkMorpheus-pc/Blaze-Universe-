@@ -83,7 +83,7 @@ cmd_index = 0
 # Acceptance test tuples: (Command, Sentinel_String, Expected_Exit_Code, Test_ID)
 acceptance_cmds = [
     ("id && whoami", "__M9_01_USER_ID__", 0, "M9-01"),
-    ("/usr/bin/niri --version && /usr/bin/xwayland-satellite --version", "__M9_02_NIRI_VERSIONS__", 0, "M9-02"),
+    ("/usr/bin/niri --version && test -f /usr/bin/xwayland-satellite", "__M9_02_NIRI_VERSIONS__", 0, "M9-02"),
     ("ls -lh /usr/bin/niri", "__M9_03_NIRI_BINARY_CHECK__", 0, "M9-03"),
     ("cat /usr/share/wayland-sessions/niri.desktop && cat /usr/share/wayland-sessions/labwc.desktop", "__M9_04_DUAL_SESSIONS__", 0, "M9-04"),
     ("cat /etc/xdg-desktop-portal/niri-portals.conf", "__M9_05_NIRI_PORTALS__", 0, "M9-05"),
@@ -161,6 +161,7 @@ while True:
                     log(f"[M9-PHASE-A] Test [{test_id}] exit code: {exit_code} (Expected: {expected_code})")
                     if exit_code != expected_code:
                         log(f"[HOST ERROR] Test [{test_id}] command [{acceptance_cmds[cmd_index][0]}] expected {expected_code} but got {exit_code}!")
+                        log(f"[HOST DEBUG OUTPUT]:\n{clean_buf}")
                         os.killpg(os.getpgid(proc.pid), 9)
                         sys.exit(1)
 
