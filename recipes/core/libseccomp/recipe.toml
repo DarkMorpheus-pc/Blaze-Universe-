@@ -3,15 +3,15 @@ name = "libseccomp"
 version = "2.5.5"
 release = 1
 architecture = "x86_64"
-summary = "Enhanced seccomp library and kernel abstraction layer"
+summary = "High-level interface to the Linux Kernel's seccomp filter"
 license = "LGPL-2.1-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/seccomp/libseccomp"
 
 [dependencies]
-provides = ["libseccomp = 2.5.5", "lib:libseccomp.so.2"]
+provides = ["libseccomp = 2.5.5"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m2_work/libseccomp-dest/"* "$DESTDIR/"
+cp -a "$CURRENT_DIR/build/sentinel_work/libseccomp-dest/"* "$DESTDIR/"
 """

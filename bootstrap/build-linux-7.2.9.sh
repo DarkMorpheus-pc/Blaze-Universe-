@@ -76,6 +76,18 @@ make x86_64_defconfig
 ./scripts/config --enable CONFIG_NF_TABLES
 ./scripts/config --enable CONFIG_NF_TABLES_IPV4
 ./scripts/config --enable CONFIG_NF_TABLES_IPV6
+./scripts/config --enable CONFIG_SECURITY
+./scripts/config --enable CONFIG_SECURITYFS
+./scripts/config --enable CONFIG_SECURITY_NETWORK
+./scripts/config --enable CONFIG_SECURITY_APPARMOR
+./scripts/config --enable CONFIG_SECURITY_LANDLOCK
+./scripts/config --enable CONFIG_SECURITY_YAMA
+./scripts/config --enable CONFIG_AUDIT
+./scripts/config --enable CONFIG_AUDITSYSCALL
+./scripts/config --enable CONFIG_FS_VERITY
+./scripts/config --disable CONFIG_SECURITY_SELINUX
+./scripts/config --set-str CONFIG_LSM "landlock,lockdown,yama,bpf,apparmor"
+./scripts/config --enable CONFIG_DEFAULT_SECURITY_APPARMOR
 ./scripts/config --set-str CONFIG_DEFAULT_HOSTNAME "blaze"
 
 # Modular driver stack for QEMU & hardware probing

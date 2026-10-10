@@ -69,6 +69,13 @@ for hw_pkg in ["pciutils-dest", "usbutils-dest"]:
     if os.path.exists(bin_path):
         subprocess.run(f"cp -rf '{bin_path}'/* '{ROOTFS_DIR}/usr/bin/'", shell=True, check=False)
 
+# 5.5. Install Blaze Sentinel Security Packages
+SENTINEL_WORK = os.path.join(BUILD_DIR, "sentinel_work")
+for sec_pkg in ["libseccomp-dest", "audit-dest", "apparmor-dest", "blaze-sentinel-dest"]:
+    pkg_root = os.path.join(SENTINEL_WORK, sec_pkg)
+    if os.path.exists(pkg_root):
+        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
 # 6. Install Guest Test Script
 shutil.copy2(os.path.join(BLAZE_ROOT, "tools", "run_m6_tests.sh"), os.path.join(ROOTFS_DIR, "root", "run_m6_tests.sh"))
 os.chmod(os.path.join(ROOTFS_DIR, "root", "run_m6_tests.sh"), 0o755)

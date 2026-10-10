@@ -1,0 +1,17 @@
+[package]
+name = "blaze-sentinel"
+version = "0.1.0"
+release = 1
+architecture = "x86_64"
+summary = "BlazeOS Native Sentinel Security Subsystem CLI & Service"
+license = "GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org/sentinel"
+
+[dependencies]
+provides = ["blaze-sentinel = 0.1.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/sentinel_work/blaze-sentinel-dest/"* "$DESTDIR/"
+"""

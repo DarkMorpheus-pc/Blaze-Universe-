@@ -1,0 +1,17 @@
+[package]
+name = "apparmor"
+version = "3.1.7"
+release = 1
+architecture = "x86_64"
+summary = "User space parser and utilities for AppArmor MAC engine"
+license = "GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://gitlab.com/apparmor/apparmor"
+
+[dependencies]
+provides = ["apparmor = 3.1.7"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/sentinel_work/apparmor-dest/"* "$DESTDIR/"
+"""

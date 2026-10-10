@@ -1,0 +1,17 @@
+[package]
+name = "audit"
+version = "4.0.1"
+release = 1
+architecture = "x86_64"
+summary = "User space utilities for storing and processing auditing records"
+license = "GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/linux-audit/audit-userspace"
+
+[dependencies]
+provides = ["audit = 4.0.1"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/sentinel_work/audit-dest/"* "$DESTDIR/"
+"""
