@@ -1,0 +1,17 @@
+[package]
+name = "libxkbcommon"
+version = "1.6.0"
+release = 1
+architecture = "x86_64"
+summary = "Keymap compiler and keyboard layout library"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://xkbcommon.org"
+
+[dependencies]
+provides = ["libxkbcommon = 1.6.0", "lib:libxkbcommon.so.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_session_work/libxkbcommon-dest/"* "$DESTDIR/"
+"""

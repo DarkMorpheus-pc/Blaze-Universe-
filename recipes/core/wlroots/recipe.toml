@@ -1,0 +1,17 @@
+[package]
+name = "wlroots"
+version = "0.20.2"
+release = 1
+architecture = "x86_64"
+summary = "Modular Wayland compositor library"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://gitlab.freedesktop.org/wlroots/wlroots"
+
+[dependencies]
+provides = ["wlroots = 0.20.2", "lib:libwlroots-0.20.so"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_session_work/wlroots-dest/"* "$DESTDIR/"
+"""

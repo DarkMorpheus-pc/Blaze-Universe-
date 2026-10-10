@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-# Blaze Universe — Milestone 8 Phase A Disk Image Assembler
+# Blaze Universe — Milestone 8 Phase B Disk Image Assembler
 # ==============================================================================
 import os
 import shutil
@@ -14,7 +14,7 @@ DISK_IMG = os.path.join(BUILD_DIR, "blaze-disk.raw")
 ESP_IMG = os.path.join(BUILD_DIR, "esp.img")
 ROOT_IMG = os.path.join(BUILD_DIR, "root.img")
 
-print("=== Assembling Milestone 8 Phase A Graphics Bootstrap GPT Boot Disk ===")
+print("=== Assembling Milestone 8 Phase B Wayland Session GPT Boot Disk ===")
 
 # 1. Verify Kernel 7.2.9 Artifacts
 K729_DEST = os.path.join(BUILD_DIR, "kernel_7.2.9_work", "kernel-dest")
@@ -80,6 +80,13 @@ for sec_pkg in ["libseccomp-dest", "audit-dest", "apparmor-dest", "blaze-sentine
 GRAPHICS_WORK = os.path.join(BUILD_DIR, "m8_graphics_work")
 for gfx_pkg in ["wayland-dest", "wayland-protocols-dest", "libdrm-dest", "libseat-dest", "libinput-dest", "mesa-dest", "vulkan-loader-dest", "mesa-utils-dest"]:
     pkg_root = os.path.join(GRAPHICS_WORK, gfx_pkg)
+    if os.path.exists(pkg_root):
+        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
+# 5.9. Install Milestone 8 Phase B Wayland Session Desktop Packages
+SESSION_WORK = os.path.join(BUILD_DIR, "m8_session_work")
+for sess_pkg in ["libxkbcommon-dest", "pixman-dest", "fontconfig-dest", "wlroots-dest", "weston-dest", "labwc-dest", "foot-dest"]:
+    pkg_root = os.path.join(SESSION_WORK, sess_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
@@ -151,4 +158,4 @@ subprocess.run(["dd", f"if={ESP_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=1", "con
 subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=notrunc,sparse", "status=none"], check=True)
 
 subprocess.run(["rm", "-f", ESP_IMG, ROOT_IMG], check=False)
-print("=== Milestone 8 Phase A Disk Image Created Successfully! ===")
+print("=== Milestone 8 Phase B Disk Image Created Successfully! ===")

@@ -1,0 +1,17 @@
+[package]
+name = "labwc"
+version = "0.20.2"
+release = 1
+architecture = "x86_64"
+summary = "Lightweight stacking Wayland compositor based on wlroots"
+license = "GPL-2.0-only"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/labwc/labwc"
+
+[dependencies]
+provides = ["labwc = 0.20.2"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_session_work/labwc-dest/"* "$DESTDIR/"
+"""
