@@ -1,0 +1,18 @@
+[package]
+name = "niri-session-assets"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Niri Wayland session desktop entries, portal configurations, and systemd units"
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["niri >= 26.4.0"]
+provides = ["niri-session-assets = 1.0.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m9_niri_work/niri-session-assets-dest/"* "$DESTDIR/"
+"""

@@ -1,0 +1,17 @@
+[package]
+name = "xwayland-satellite"
+version = "0.7.0"
+release = 1
+architecture = "x86_64"
+summary = "Outside-the-compositor XWayland manager for Smithay/Niri compositors"
+license = "MPL-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/Supreeeme/xwayland-satellite"
+
+[dependencies]
+provides = ["xwayland-satellite = 0.7.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m9_niri_work/xwayland-satellite-dest/"* "$DESTDIR/"
+"""

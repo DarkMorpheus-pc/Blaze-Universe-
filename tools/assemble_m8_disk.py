@@ -142,6 +142,13 @@ for integ_pkg in ["xwayland-dest", "polkit-gnome-dest", "pipewire-dest", "xdg-de
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
+# 5.11. Install Milestone 9 Phase A Native Niri Packages
+NIRI_WORK = os.path.join(BUILD_DIR, "m9_niri_work")
+for niri_pkg in ["libdisplay-info-dest", "xwayland-satellite-dest", "niri-dest", "niri-session-assets-dest"]:
+    pkg_root = os.path.join(NIRI_WORK, niri_pkg)
+    if os.path.exists(pkg_root):
+        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
 # 6. Install Limine 12.x Configuration
 limine_conf = """timeout: 3
 default_entry: 1

@@ -1,0 +1,18 @@
+[package]
+name = "niri"
+version = "26.4.0"
+release = 1
+architecture = "x86_64"
+summary = "Scrollable-tiling Wayland compositor based on Smithay"
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/niri-wm/niri"
+
+[dependencies]
+requires = ["libdisplay-info >= 0.2.0", "xwayland-satellite >= 0.7.0"]
+provides = ["niri = 26.4.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m9_niri_work/niri-dest/"* "$DESTDIR/"
+"""
