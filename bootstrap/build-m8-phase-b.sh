@@ -462,7 +462,7 @@ cat << 'EOF_LABWC_RECIPE' > "${BLAZE_ROOT}/recipes/core/labwc/recipe.toml"
 [package]
 name = "labwc"
 version = "0.20.2"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Lightweight stacking Wayland compositor based on wlroots"
 license = "GPL-2.0-only"
