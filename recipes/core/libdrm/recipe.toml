@@ -1,0 +1,17 @@
+[package]
+name = "libdrm"
+version = "2.4.134"
+release = 1
+architecture = "x86_64"
+summary = "Userspace interface to kernel DRM services"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://dri.freedesktop.org"
+
+[dependencies]
+provides = ["libdrm = 2.4.134", "lib:libdrm.so.2"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_graphics_work/libdrm-dest/"* "$DESTDIR/"
+"""

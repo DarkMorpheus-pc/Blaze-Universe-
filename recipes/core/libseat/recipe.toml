@@ -1,0 +1,17 @@
+[package]
+name = "libseat"
+version = "0.8.0"
+release = 1
+architecture = "x86_64"
+summary = "Universal Seat Management Library and seatd Daemon"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://git.sr.ht/~kennylevinsen/seatd"
+
+[dependencies]
+provides = ["libseat = 0.8.0", "lib:libseat.so.1"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_graphics_work/libseat-dest/"* "$DESTDIR/"
+"""

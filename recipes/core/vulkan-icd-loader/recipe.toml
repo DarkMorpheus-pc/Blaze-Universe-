@@ -1,0 +1,17 @@
+[package]
+name = "vulkan-icd-loader"
+version = "1.4.300"
+release = 1
+architecture = "x86_64"
+summary = "Vulkan Installable Client Driver (ICD) Loader & Manifests"
+license = "Apache-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.vulkan.org"
+
+[dependencies]
+provides = ["vulkan-icd-loader = 1.4.300", "lib:libvulkan.so.1"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_graphics_work/vulkan-loader-dest/"* "$DESTDIR/"
+"""

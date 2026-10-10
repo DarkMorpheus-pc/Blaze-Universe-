@@ -1,0 +1,17 @@
+[package]
+name = "libinput"
+version = "1.26.0"
+release = 1
+architecture = "x86_64"
+summary = "Input device handling library for Wayland compositors"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.freedesktop.org/wiki/Software/libinput"
+
+[dependencies]
+provides = ["libinput = 1.26.0", "lib:libinput.so.10"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_graphics_work/libinput-dest/"* "$DESTDIR/"
+"""

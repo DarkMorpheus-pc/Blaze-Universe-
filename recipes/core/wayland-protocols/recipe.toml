@@ -1,0 +1,17 @@
+[package]
+name = "wayland-protocols"
+version = "1.49"
+release = 1
+architecture = "x86_64"
+summary = "Extended Wayland Desktop Specifications & Protocol XMLs"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://wayland.freedesktop.org"
+
+[dependencies]
+provides = ["wayland-protocols = 1.49"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m8_graphics_work/wayland-protocols-dest/"* "$DESTDIR/"
+"""
