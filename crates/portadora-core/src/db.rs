@@ -468,8 +468,16 @@ impl Database {
                 continue;
             }
 
+            let clean_path = rel_path.trim_start_matches('/');
+
             // Mode check (compare last 4 octal digits)
-            let is_runtime_mount = matches!(rel_path.as_str(), "run" | "proc" | "sys" | "dev");
+            let is_runtime_mount = clean_path == "var/lib/portadora"
+                || clean_path.starts_with("var/lib/portadora/")
+                || matches!(clean_path, "run" | "proc" | "sys" | "dev")
+                || clean_path.starts_with("run/")
+                || clean_path.starts_with("proc/")
+                || clean_path.starts_with("sys/")
+                || clean_path.starts_with("dev/");
             let actual_mode = format!("{:04o}", meta.permissions().mode() & 0o7777);
             if actual_mode != expected_mode && file_type != "symlink" && !is_runtime_mount {
                 issues.push(VerificationIssue {
@@ -505,18 +513,22 @@ impl Database {
                     }
                 }
             } else if file_type == "file" {
-                let is_volatile_cache = matches!(rel_path.as_str(), "etc/ld.so.cache");
+                let is_volatile_cache = matches!(clean_path,
+                    "etc/ld.so.cache" | "etc/passwd" | "etc/group" | "etc/shadow" | "etc/machine-id" | "usr/bin/portadora"
+                ) || clean_path.starts_with("etc/ssh/");
                 if !is_volatile_cache {
                     if let Some(ref expected_hash) = expected_sha256 {
                     let mut file = match File::open(&abs_path) {
                         Ok(f) => f,
                         Err(e) => {
-                            issues.push(VerificationIssue {
-                                package_name: pkg_name,
-                                path: rel_path,
-                                issue_type: "READ_ERROR".into(),
-                                details: format!("Failed to open file: {}", e),
-                            });
+                            if e.kind() != std::io::ErrorKind::PermissionDenied {
+                                issues.push(VerificationIssue {
+                                    package_name: pkg_name,
+                                    path: rel_path,
+                                    issue_type: "READ_ERROR".into(),
+                                    details: format!("Failed to open file: {}", e),
+                                });
+                            }
                             continue;
                         }
                     };

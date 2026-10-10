@@ -33,6 +33,8 @@ os.makedirs(os.path.join(ROOTFS_DIR, "usr", "bin"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "root"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "home", "blaze"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "run", "user", "1000"), exist_ok=True)
+os.makedirs(os.path.join(ROOTFS_DIR, "var", "lib", "portadora"), exist_ok=True)
+subprocess.run(f"chmod -R 0777 '{ROOTFS_DIR}/var/lib/portadora'", shell=True, check=False)
 
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze-7.2.9"))
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze"))
@@ -114,12 +116,18 @@ for hw_pkg in ["pciutils-dest", "usbutils-dest"]:
     if os.path.exists(bin_path):
         subprocess.run(f"cp -rf '{bin_path}'/* '{ROOTFS_DIR}/usr/bin/'", shell=True, check=False)
 
-# 5.5. Install Blaze Sentinel Security Packages
+# 5.5. Install Blaze Sentinel Security Packages (libseccomp is native in rootfs)
 SENTINEL_WORK = os.path.join(BUILD_DIR, "sentinel_work")
-for sec_pkg in ["libseccomp-dest", "audit-dest", "apparmor-dest", "blaze-sentinel-dest"]:
+for sec_pkg in ["audit-dest", "apparmor-dest", "blaze-sentinel-dest"]:
     pkg_root = os.path.join(SENTINEL_WORK, sec_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
+# Install updated native portadora binary
+portadora_rel = os.path.join(BLAZE_ROOT, "target", "release", "portadora")
+if os.path.exists(portadora_rel):
+    subprocess.run(f"cp -f '{portadora_rel}' '{ROOTFS_DIR}/usr/bin/portadora'", shell=True, check=False)
+    subprocess.run(f"chmod 0755 '{ROOTFS_DIR}/usr/bin/portadora'", shell=True, check=False)
 
 # 5.8. Install Milestone 8 Phase A Graphics Baseline Packages
 GRAPHICS_WORK = os.path.join(BUILD_DIR, "m8_graphics_work")
@@ -146,6 +154,13 @@ for integ_pkg in ["xwayland-dest", "polkit-gnome-dest", "pipewire-dest", "xdg-de
 NIRI_WORK = os.path.join(BUILD_DIR, "m9_niri_work")
 for niri_pkg in ["libdisplay-info-dest", "xwayland-satellite-dest", "niri-dest", "niri-session-assets-dest"]:
     pkg_root = os.path.join(NIRI_WORK, niri_pkg)
+    if os.path.exists(pkg_root):
+        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
+# 5.12. Install Milestone 9 Phase B.1 Solar Shell Core Packages
+SOLAR_WORK = os.path.join(BUILD_DIR, "m9_b1_solar_work")
+for solar_pkg in ["solar-shell-dest"]:
+    pkg_root = os.path.join(SOLAR_WORK, solar_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 

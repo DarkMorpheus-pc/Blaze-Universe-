@@ -12,7 +12,7 @@ BUILDER="${BLAZE_ROOT}/target/debug/blaze-builder"
 
 mkdir -p "${WORK_DIR}" "${PKGS_DIR}"
 
-# 1. libdisplay-info 0.2.0
+# 1. libdisplay-info 0.3.0
 LDI_DEST="${WORK_DIR}/libdisplay-info-dest"
 rm -rf "${LDI_DEST}"
 mkdir -p "${LDI_DEST}/usr/lib" "${LDI_DEST}/usr/include/libdisplay-info" "${LDI_DEST}/usr/lib/pkgconfig"
@@ -30,7 +30,7 @@ includedir=${prefix}/include
 
 Name: libdisplay-info
 Description: EDID and Display Information parsing library
-Version: 0.2.0
+Version: 0.3.0
 Cflags: -I${includedir}
 Libs: -L${libdir} -ldisplay-info
 EOF_LDI_PC
@@ -39,8 +39,8 @@ mkdir -p "${BLAZE_ROOT}/recipes/core/libdisplay-info"
 cat << 'EOF_LDI_RECIPE' > "${BLAZE_ROOT}/recipes/core/libdisplay-info/recipe.toml"
 [package]
 name = "libdisplay-info"
-version = "0.2.0"
-release = 2
+version = "0.3.0"
+release = 1
 architecture = "x86_64"
 summary = "EDID and Display Information parsing library for Wayland compositors"
 license = "MIT"
@@ -48,7 +48,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://gitlab.freedesktop.org/emersion/libdisplay-info"
 
 [dependencies]
-provides = ["libdisplay-info = 0.2.0", "lib:libdisplay-info.so.0"]
+provides = ["libdisplay-info = 0.3.0", "lib:libdisplay-info.so.3"]
 
 [build]
 script = """

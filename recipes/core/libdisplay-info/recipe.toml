@@ -1,7 +1,7 @@
 [package]
 name = "libdisplay-info"
-version = "0.2.0"
-release = 2
+version = "0.3.0"
+release = 1
 architecture = "x86_64"
 summary = "EDID and Display Information parsing library for Wayland compositors"
 license = "MIT"
@@ -9,7 +9,7 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://gitlab.freedesktop.org/emersion/libdisplay-info"
 
 [dependencies]
-provides = ["libdisplay-info = 0.2.0", "lib:libdisplay-info.so.0"]
+provides = ["libdisplay-info = 0.3.0", "lib:libdisplay-info.so.3"]
 
 [build]
 script = """

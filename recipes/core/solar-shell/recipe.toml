@@ -1,0 +1,18 @@
+[package]
+name = "solar-shell"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "SolarUI Native Rust Supervisor and Niri EventStream State Controller"
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["niri >= 26.4.0"]
+provides = ["solar-shell = 1.0.0", "solar-core = 1.0.0"]
+
+[build]
+script = """
+cp -a "$CURRENT_DIR/build/m9_b1_solar_work/solar-shell-dest/"* "$DESTDIR/"
+"""

@@ -17,9 +17,9 @@ SEC_DEST="${WORK_DIR}/libseccomp-dest"
 rm -rf "${SEC_DEST}"
 mkdir -p "${SEC_DEST}/usr/lib" "${SEC_DEST}/usr/include"
 
-cat << 'EOF' > "${SEC_DEST}/usr/lib/libseccomp.so"
-/* Placeholder for libseccomp 2.6.1 shared object */
-EOF
+cp -a /usr/lib64/libseccomp.so.2.6.0 "${SEC_DEST}/usr/lib/libseccomp.so.2.6.0" 2>/dev/null || cp -a /usr/lib/libseccomp.so.2.6.0 "${SEC_DEST}/usr/lib/libseccomp.so.2.6.0"
+ln -sf "libseccomp.so.2.6.0" "${SEC_DEST}/usr/lib/libseccomp.so.2"
+ln -sf "libseccomp.so.2.6.0" "${SEC_DEST}/usr/lib/libseccomp.so"
 
 "${BUILDER}" "${BLAZE_ROOT}/recipes/core/libseccomp/recipe.toml"
 
