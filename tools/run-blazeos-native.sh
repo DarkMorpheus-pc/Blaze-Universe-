@@ -69,6 +69,8 @@ exec qemu-system-x86_64 \
     -m 2048 \
     -smp 4 \
     -vga virtio \
+    -device virtio-tablet-pci \
+    -device virtio-keyboard-pci \
     -display gtk,gl=on \
     -drive "file=${OVERLAY_DISK},format=qcow2,if=virtio,id=drv0" \
     -device intel-hda \

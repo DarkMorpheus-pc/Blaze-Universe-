@@ -103,17 +103,72 @@ else:
         f.write("root:x:0:\n")
         f.write("blaze:x:1000:\n")
 
+# Ensure blaze is in administrative and hardware groups
+with open(group_file, "r") as f:
+    g_lines = f.readlines()
+new_g_lines = []
+for line in g_lines:
+    parts = line.strip().split(":")
+    if len(parts) >= 3 and parts[0] in ["wheel", "video", "input", "audio", "render", "users"]:
+        members = [m for m in parts[3].split(",") if m] if len(parts) > 3 else []
+        if "blaze" not in members:
+            members.append("blaze")
+        joined = ",".join(members)
+        line = f"{parts[0]}:{parts[1]}:{parts[2]}:{joined}\n"
+    new_g_lines.append(line)
+with open(group_file, "w") as f:
+    f.writelines(new_g_lines)
+
 shadow_file = os.path.join(etc_dir, "shadow")
+root_hash = "$6$XKu/1YObDUZKrmaJ$OScx9ToQ4z4GLvMgZbQMXjPK7ruJShfjUtQTumHhF5i9ioDQpQln2LygOAlVIXd16B03tifhtW20BYsrK3g3j0"
+blaze_hash = "$6$ygn.rUshuD7ApMOM$ih3i5EnkuN23lgd5PqJr28ioIUSqrOjaTSm0tph3JdcBN3Q6at5j0SmQ.8lNvdIuCkB06e.ahOuPq57TEwwrw1"
+
 if os.path.exists(shadow_file):
     with open(shadow_file, "r") as f:
-        shadow_content = f.read()
-    if "blaze:" not in shadow_content:
-        with open(shadow_file, "a") as f:
-            f.write("blaze::19700:0:99999:7:::\n")
+        s_lines = f.readlines()
+    new_s_lines = []
+    for line in s_lines:
+        parts = line.strip().split(":")
+        if len(parts) >= 2:
+            if parts[0] == "root":
+                parts[1] = root_hash
+                line = ":".join(parts) + "\n"
+            elif parts[0] == "blaze":
+                parts[1] = blaze_hash
+                line = ":".join(parts) + "\n"
+        new_s_lines.append(line)
+    with open(shadow_file, "w") as f:
+        f.writelines(new_s_lines)
 else:
     with open(shadow_file, "w") as f:
-        f.write("root::19700:0:99999:7:::\n")
-        f.write("blaze::19700:0:99999:7:::\n")
+        f.write(f"root:{root_hash}:19700:0:99999:7:::\n")
+        f.write(f"blaze:{blaze_hash}:19700:0:99999:7:::\n")
+
+subprocess.run(f"chmod 0600 '{shadow_file}'", shell=True, check=False)
+
+pamd_dir = os.path.join(etc_dir, "pam.d")
+os.makedirs(pamd_dir, exist_ok=True)
+su_pam = """#%PAM-1.0
+auth       sufficient   pam_rootok.so
+auth       required     pam_unix.so
+account    required     pam_unix.so
+password   required     pam_unix.so sha512 shadow
+session    required     pam_unix.so
+"""
+with open(os.path.join(pamd_dir, "su"), "w") as f:
+    f.write(su_pam)
+with open(os.path.join(pamd_dir, "su-l"), "w") as f:
+    f.write(su_pam)
+
+# Ensure SUID binaries
+for suid_bin in ["/usr/bin/su", "/bin/su", "/usr/bin/sudo", "/usr/bin/passwd", "/sbin/unix_chkpwd", "/usr/bin/unix_chkpwd", "/usr/sbin/unix_chkpwd"]:
+    full_path = ROOTFS_DIR + suid_bin
+    if os.path.exists(full_path):
+        subprocess.run(f"chmod 4755 '{full_path}'", shell=True, check=False)
+
+sudoers_file = os.path.join(etc_dir, "sudoers")
+if os.path.exists(sudoers_file):
+    subprocess.run(f"chmod 0440 '{sudoers_file}'", shell=True, check=False)
 
 # Set owner permissions for /home/blaze
 subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)

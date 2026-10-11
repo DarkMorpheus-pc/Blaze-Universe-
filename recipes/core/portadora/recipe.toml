@@ -1,7 +1,7 @@
 [package]
 name = "portadora"
 version = "0.2.0"
-release = 4
+release = 5
 architecture = "x86_64"
 summary = "Native package manager for BlazeOS"
 description = "High-performance, transactional package manager built in Rust for the Blaze Universe."

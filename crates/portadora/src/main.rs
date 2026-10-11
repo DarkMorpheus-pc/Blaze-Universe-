@@ -241,6 +241,26 @@ fn execute_update(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsM
     Ok(verifier.targets.unwrap())
 }
 
+fn check_mutation_privileges(db_path: &Path) -> Result<()> {
+    if db_path.exists() {
+        if fs::OpenOptions::new().write(true).open(db_path).is_err() {
+            bail!("Root privileges required for package operations. Please run with sudo or as root.");
+        }
+    } else if let Some(parent) = db_path.parent() {
+        if !parent.exists() {
+            if fs::create_dir_all(parent).is_err() {
+                bail!("Root privileges required for package operations. Please run with sudo or as root.");
+            }
+        } else {
+            let probe = parent.join(".portadora_probe_write");
+            if fs::File::create(&probe).map(|_| { let _ = fs::remove_file(&probe); }).is_err() {
+                bail!("Root privileges required for package operations. Please run with sudo or as root.");
+            }
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
@@ -258,8 +278,10 @@ fn main() -> Result<()> {
             | Commands::Install { .. }
             | Commands::Upgrade { .. }
             | Commands::Remove { .. }
+            | Commands::Recover
     );
     if is_mutating {
+        check_mutation_privileges(&db_path)?;
         if let Ok(recovered) = TransactionRecovery::recover_pending_transactions(&root) {
             if !recovered.is_empty() {
                 eprintln!("[portadora] Auto-recovered {} interrupted transaction(s): {:?}", recovered.len(), recovered);

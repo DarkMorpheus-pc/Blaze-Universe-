@@ -1,7 +1,7 @@
 [package]
 name = "shadow"
 version = "4.15.1"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Password and account management tool suite"
 license = "BSD-3-Clause"
@@ -20,4 +20,6 @@ provides = [
 [build]
 script = """
 cp -a "$CURRENT_DIR/build/m2_work/shadow-dest/"* "$DESTDIR/"
+chmod 4755 "$DESTDIR/usr/bin/passwd"
+chmod 4755 "$DESTDIR/usr/bin/su"
 """

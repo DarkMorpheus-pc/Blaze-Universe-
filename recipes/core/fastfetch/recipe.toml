@@ -1,0 +1,18 @@
+[package]
+name = "fastfetch"
+version = "2.69.0"
+release = 1
+architecture = "x86_64"
+summary = "Like neofetch, but much faster because written in C"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/fastfetch-cli/fastfetch"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["fastfetch = 2.69.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_fastfetch_work/fastfetch-dest/"* "$DESTDIR/"
+"""

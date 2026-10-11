@@ -1,0 +1,18 @@
+[package]
+name = "sudo"
+version = "1.9.16"
+release = 1
+architecture = "x86_64"
+summary = "Give certain users the ability to run commands as root"
+license = "ISC"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.sudo.ws/"
+
+[dependencies]
+requires = ["glibc >= 2.44", "pam >= 1.6", "openssl >= 3.0"]
+provides = ["sudo = 1.9.16"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_sudo_work/sudo-dest/"* "$DESTDIR/"
+"""
