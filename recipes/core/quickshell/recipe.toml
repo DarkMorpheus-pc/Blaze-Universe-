@@ -1,0 +1,18 @@
+[package]
+name = "quickshell"
+version = "0.0.12"
+release = 1
+architecture = "x86_64"
+summary = "Noctalia Quickshell Wayland Layer-Shell engine with Niri IPC"
+license = "LGPL-3.0-or-later OR GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["qt6-declarative >= 6.11.2", "quickshell-multimedia-deps >= 1.0.0"]
+provides = ["quickshell = 0.0.12"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b22_packages_work/quickshell-dest/"* "$DESTDIR/"
+"""

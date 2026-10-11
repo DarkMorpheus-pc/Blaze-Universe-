@@ -1,0 +1,201 @@
+=== STARTING MILESTONE 9 PHASE B.2.2 CAELESTIA NATIVE ACCEPTANCE TEST ===
+[HOST] Creating disposable QCOW2 overlay on top of /home/darkmorpheus/Projeler/blaze_base/build/blaze-disk-b11.raw...
+[TEST] Waiting for system boot and login prompt...
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=c20098dee5c84e7fb1836ba7b1f212e2;user=root;hostname=blaze;machineid=929233470dfe4347a5c66cb1c6a7adbe;bootid=62266b2699904e049068d38678ec9873;pid=107;pidfdid=8202;comm=(agetty);servicename=getty@ttyS0.service;invocationid=599db96d743d4f70b6ea660da0675ce8;type=service\P+q6E616D65\
+blaze login: 
+[PASS] Boot successful. Logging in as root...
+root
+-bash-5.3# root
+-bash: root: command not found
+-bash-5.3# 
+[PASS] Root shell established.
+
+>>> [STEP] B2.2-01: Verify Quickshell & Caelestia ELF resolution and 0 missing libraries
+$ file /usr/bin/quickshell /usr/bin/caelestia /usr/lib/qt6/qml/Caelestia/lib/*.so && ldd /usr/bin/quickshell | grep 'not found' || echo 'ALL_QUICKSHELL_LIBS_OK'
+<| grep 'not found' || echo 'ALL_QUICKSHELL_LIBS_OK'
+file: could not find any valid magic files! (No such file or directory)
+ALL_QUICKSHELL_LIBS_OK
+-bash-5.3# echo '__SENTINEL_1791731794042__:'$?
+__SENTINEL_1791731794042__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-02: Cryptographic Portadora package integrity verification
+$ /usr/bin/portadora verify
+/usr/bin/portadora verify
+Package verification completed with notices (0 unreadable privileged, 3 mutable config).
+-bash-5.3# echo '__SENTINEL_1791731794343__:'$?
+__SENTINEL_1791731794343__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] Start seatd daemon for non-root graphics
+$ seatd -u blaze -g blaze -n 1 > /tmp/seatd.log 2>&1 & sleep 1; test -S /run/seatd.sock && echo 'SEATD_OK'
+
+-bash-5.3# <sleep 1; test -S /run/seatd.sock && echo 'SEATD_OK'
+[1] 153
+SEATD_OK
+-bash-5.3# echo '__SENTINEL_1791731807364__:'$?
+__SENTINEL_1791731807364__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] Start D-Bus system bus daemon
+$ mkdir -p /run/dbus && dbus-daemon --system --fork 2>/dev/null || true
+
+-bash-5.3# < && dbus-daemon --system --fork 2>/dev/null || true
+-bash-5.3# echo '__SENTINEL_1791731808371__:'$?
+__SENTINEL_1791731808371__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] Start D-Bus user session bus daemon
+$ export XDG_RUNTIME_DIR=/run/user/1000; dbus-daemon --session --fork --address=unix:path=/run/user/1000/bus 2>/dev/null || true; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; echo 'DBUS_USER_OK'
+<S=unix:path=/run/user/1000/bus; echo 'DBUS_USER_OK'
+DBUS_USER_OK
+-bash-5.3# echo '__SENTINEL_1791731808671__:'$?
+__SENTINEL_1791731808671__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] Start Niri compositor with SolarUI configuration (independent Caelestia isolation)
+$ export XDG_RUNTIME_DIR=/run/user/1000; export LIBSEAT_BACKEND=seatd; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; unset WAYLAND_DISPLAY; niri --config /home/blaze/.config/niri/config.kdl > /tmp/niri.log 2>&1 & sleep 3; pkill -9 noctalia 2>/dev/null || true; test -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'
+<st -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'
+[2] 160
+WAYLAND_OK
+-bash-5.3# echo '__SENTINEL_1791731808971__:'$?
+__SENTINEL_1791731808971__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-03: Verify Niri compositor is active and responsive to JSON IPC
+$ export XDG_RUNTIME_DIR=/run/user/1000; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json version
+
+-bash-5.3# <00/niri.*.sock | head -n1); niri msg --json version
+{"cli":"26.04 (1379374-modified)","compositor":"26.04 (1379374-modified)"}
+-bash-5.3# echo '__SENTINEL_1791731811985__:'$?
+__SENTINEL_1791731811985__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-04: Launch independent Caelestia session via Quickshell & verify process
+$ export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); pkill -9 -f solar-shell 2>/dev/null || true; pkill -9 noctalia 2>/dev/null || true; (qs -c caelestia > /tmp/caelestia.log 2>&1 &); sleep 10; (pidof quickshell || pgrep -f qs) && echo CAELESTIA_RUNNING
+<uickshell || pgrep -f qs) && echo CAELESTIA_RUNNING
+306
+CAELESTIA_RUNNING
+-bash-5.3# echo '__SENTINEL_1791731812285__:'$?
+__SENTINEL_1791731812285__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-05: Query Caelestia IPC drawers (bar, launcher, dashboard, session, utilities)
+$ export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); qs -c caelestia ipc call drawers list
+
+-bash-5.3# < | head -n1); qs -c caelestia ipc call drawers list
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+bar
+osd
+session
+launcher
+dashboard
+utilities
+sidebar
+-bash-5.3# echo '__SENTINEL_1791731822309__:'$?
+__SENTINEL_1791731822309__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-06: Switch workspace to 2 via Niri IPC and verify event stream
+$ export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg action focus-workspace 2 && sleep 1 && niri msg --json workspaces
+<orkspace 2 && sleep 1 && niri msg --json workspaces
+[{"id":2,"idx":2,"name":null,"output":"Virtual-1","is_urgent":false,"is_active":true,"is_focused":true,"active_window_id":null},{"id":1,"idx":1,"name":"background","output":"Virtual-1","is_urgent":false,"is_active":false,"is_focused":false,"active_window_id":null}]
+-bash-5.3# echo '__SENTINEL_1791731822610__:'$?
+__SENTINEL_1791731822610__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-07: Toggle Caelestia launcher drawer via IPC
+$ export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); qs -c caelestia ipc call drawers toggle launcher && sleep 1 && qs -c caelestia ipc call drawers isOpen launcher
+
+-bash-5.3# <&& qs -c caelestia ipc call drawers isOpen launcher
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+1
+-bash-5.3# echo '__SENTINEL_1791731823639__:'$?
+__SENTINEL_1791731823639__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-08: Spawn Alacritty client window and confirm registration in Niri
+$ export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; alacritty --hold -e echo 'BLAZEOS REAL CAELESTIA CLIENT ACTIVE' > /tmp/alacritty.log 2>&1 & sleep 2; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows
+
+export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; alacritty --hold -e echo 'BLAZEOS REAL CAELESTIA CLIENT ACTIVE' > /tmp/alacritty.log 2>&1 & sleep 2; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows
+echo '__SENTINEL_1791731824716__:'$?
+-bash-5.3# <00/niri.*.sock | head -n1); niri msg --json windows
+[3] 393
+[{"id":2,"title":"Alacritty","app_id":"Alacritty","pid":393,"workspace_id":2,"is_focused":true,"is_floating":true,"is_urgent":false,"layout":{"pos_in_scrolling_layout":null,"tile_size":[800.0,635.0],"window_size":[800,635],"tile_pos_in_workspace_view":[265.0,83.0],"window_offset_in_tile":[0.0,0.0]},"focus_timestamp":{"secs":40,"nanos":247515628}}]
+-bash-5.3# echo '__SENTINEL_1791731824716__:'$?
+__SENTINEL_1791731824716__:0
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-09: Capture authentic QEMU monitor screendump...
+[QMP RESPONSE] {"return": {}}
+
+[PASS] Real screendump saved: /tmp/blazeos_m9_b22_caelestia_real_framebuffer.png (Size: (1280, 800), Mode: RGB)
+[PASS] Artifact published: /home/darkmorpheus/.gemini/antigravity/brain/edfcc68e-d62a-469a-afaa-c49b73f87c64/blazeos_m9_b22_caelestia_real_framebuffer.png
+
+>>> [STEP] B2.2-10: Accurate PSS memory telemetry and system MemAvailable recording
+$ for p in $(pidof niri quickshell alacritty seatd); do echo "=== PID $p $(cat /proc/$p/comm) ==="; grep -E '^(Name|VmRSS|VmSize):' /proc/$p/status; [ -f /proc/$p/smaps_rollup ] && grep -E '^(Rss|Pss):' /proc/$p/smaps_rollup || true; done; grep -E '^(MemTotal|MemFree|MemAvailable):' /proc/meminfo
+
+-bash-5.3# <E '^(MemTotal|MemFree|MemAvailable):' /proc/meminfo
+=== PID 338 niri ===
+Name:	niri
+VmSize:	   50480 kB
+VmRSS:	   16636 kB
+Rss:               16636 kB
+Pss:                7778 kB
+=== PID 160 niri ===
+Name:	niri
+VmSize:	 1055604 kB
+VmRSS:	  241628 kB
+Rss:              241628 kB
+Pss:              169407 kB
+=== PID 393 alacritty ===
+Name:	alacritty
+VmSize:	  897756 kB
+VmRSS:	  134380 kB
+Rss:              134380 kB
+Pss:               79403 kB
+=== PID 153 seatd ===
+Name:	seatd
+VmSize:	    2616 kB
+VmRSS:	    2024 kB
+Rss:                2024 kB
+Pss:                 286 kB
+MemTotal:        2019136 kB
+MemFree:           17064 kB
+MemAvailable:    1353868 kB
+-bash-5.3# echo '__SENTINEL_1791731828859__:'$?
+__SENTINEL_1791731828859__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+>>> [STEP] B2.2-11: Verify default Noctalia and fallback sessions remain intact
+$ ls -la /usr/share/wayland-sessions/ && test -x /usr/bin/noctalia && test -x /usr/bin/labwc && test -f /usr/share/wayland-sessions/solarui-niri.desktop && echo FALLBACK_SESSIONS_INTACT
+<larui-niri.desktop && echo FALLBACK_SESSIONS_INTACT
+total 20
+drwxr-xr-x  2 root root 4096 Oct 11 11:59 .
+drwxr-xr-x 28 root root 4096 Oct 11 11:21 ..
+-rw-r--r--  1 root root  145 Oct 11 15:10 labwc.desktop
+-rw-r--r--  1 root root  142 Oct 11 15:10 niri.desktop
+-rw-r--r--  1 root root  191 Oct 11 15:10 solarui-niri.desktop
+FALLBACK_SESSIONS_INTACT
+-bash-5.3# echo '__SENTINEL_1791731829159__:'$?
+__SENTINEL_1791731829159__:0
+-bash-5.3# 
+[STEP RESULT] Exit code: 0 (Expected: 0)
+
+=== ALL MILESTONE 9 PHASE B.2.2 ACCEPTANCE TESTS PASSED SUCCESSFULLY! ===

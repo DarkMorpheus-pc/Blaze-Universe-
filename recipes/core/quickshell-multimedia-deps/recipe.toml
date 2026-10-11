@@ -1,0 +1,18 @@
+[package]
+name = "quickshell-multimedia-deps"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Audio, multimedia, and math processing runtime libraries for Quickshell & Caelestia"
+license = "LGPL-3.0-or-later OR GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["quickshell-multimedia-deps = 1.0.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b22_packages_work/quickshell-multimedia-deps-dest/"* "$DESTDIR/"
+"""

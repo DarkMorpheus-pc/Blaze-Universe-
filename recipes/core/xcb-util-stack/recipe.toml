@@ -1,0 +1,18 @@
+[package]
+name = "xcb-util-stack"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "XCB and X11 utility libraries for Wayland and X11 integration"
+license = "LGPL-3.0-or-later OR GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["xcb-util-stack = 1.0.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b22_packages_work/xcb-util-stack-dest/"* "$DESTDIR/"
+"""
