@@ -48,9 +48,24 @@ else
     QEMU_ACCEL=("-cpu" "qemu64")
 fi
 
+# Fast Direct Kernel Boot (bypasses slow OVMF UEFI timeouts and boots in <5s)
+# To force full UEFI Limine bootloader, run with: BOOT_MODE=uefi ./tools/run-blazeos-native.sh
+BOOT_ARGS=()
+if [[ "${BOOT_MODE:-direct}" == "uefi" ]]; then
+    echo "  - Önyükleme: UEFI (OVMF) + Limine Bootloader"
+    BOOT_ARGS=("-bios" "$OVMF_CODE")
+else
+    echo "  - Önyükleme: Hızlı Doğrudan Çekirdek Önyüklemesi (5 saniye)"
+    BOOT_ARGS=(
+        "-kernel" "$KERNEL"
+        "-initrd" "$INITRD"
+        "-append" "root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0 quiet loglevel=3"
+    )
+fi
+
 exec qemu-system-x86_64 \
     "${QEMU_ACCEL[@]}" \
-    -bios "$OVMF_CODE" \
+    "${BOOT_ARGS[@]}" \
     -m 2048 \
     -smp 4 \
     -vga virtio \
@@ -58,7 +73,5 @@ exec qemu-system-x86_64 \
     -drive "file=${OVERLAY_DISK},format=qcow2,if=virtio,id=drv0" \
     -device intel-hda \
     -device hda-duplex \
-    -kernel "$KERNEL" \
-    -initrd "$INITRD" \
-    -append "root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=tty0 quiet loglevel=3" \
     -net none
+
