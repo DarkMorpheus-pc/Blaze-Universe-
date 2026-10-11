@@ -1,7 +1,7 @@
 [package]
 name = "glibc"
 version = "2.44"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "GNU C Library"
 description = "The GNU C Library provides the core runtime libraries and dynamic linker for BlazeOS."

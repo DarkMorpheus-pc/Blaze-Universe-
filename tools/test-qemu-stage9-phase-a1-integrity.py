@@ -15,7 +15,7 @@ import time
 
 BLAZE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BASE_DISK = os.path.join(BLAZE_ROOT, "build", "blaze-disk.raw")
-DISPOSABLE_DISK = os.path.join(BLAZE_ROOT, "build", "blaze-disk-disposable.raw")
+DISPOSABLE_DISK = os.path.join(BLAZE_ROOT, "build", "blaze-disk-disposable.qcow2")
 OVMF_CODE = "/usr/share/edk2/x64/OVMF.4m.fd"
 LOG_FILE = os.path.join(BLAZE_ROOT, "reports", "milestone-9", "m9_phase_a1_integrity_test_output.log")
 MONITOR_SOCKET = "/tmp/qemu-m9-integrity-monitor.sock"
@@ -34,8 +34,10 @@ if not os.path.exists(BASE_DISK):
     log(f"[FATAL] Base disk {BASE_DISK} not found!")
     sys.exit(1)
 
-log("[HOST] Creating disposable QEMU disk clone (blaze-disk-disposable.raw)...")
-subprocess.run(f"cp --reflink=auto --sparse=always '{BASE_DISK}' '{DISPOSABLE_DISK}'", shell=True, check=True)
+log("[HOST] Creating instant QEMU COW snapshot clone (blaze-disk-disposable.qcow2)...")
+if os.path.exists(DISPOSABLE_DISK):
+    os.remove(DISPOSABLE_DISK)
+subprocess.run(f"qemu-img create -f qcow2 -b blaze-disk.raw -F raw '{DISPOSABLE_DISK}'", shell=True, check=True)
 
 K729_KERNEL = os.path.join(BLAZE_ROOT, "build", "rootfs", "boot", "vmlinuz-blaze-7.2.9")
 K729_INITRD = os.path.join(BLAZE_ROOT, "build", "rootfs", "boot", "initramfs-blaze-7.2.9.img")
@@ -49,9 +51,8 @@ cmd = [
     "-m", "2048",
     "-smp", "4",
     "-cpu", "host" if os.path.exists("/dev/kvm") else "qemu64",
-    "-enable-kvm" if os.path.exists("/dev/kvm") else "",
     "-vga", "virtio",
-    "-drive", f"file={DISPOSABLE_DISK},format=raw,if=virtio,id=drv0",
+    "-drive", f"file={DISPOSABLE_DISK},format=qcow2,if=virtio,id=drv0",
     "-device", "intel-hda",
     "-device", "hda-duplex",
     "-kernel", K729_KERNEL,
@@ -61,6 +62,8 @@ cmd = [
     "-serial", "mon:stdio",
     "-monitor", f"unix:{MONITOR_SOCKET},server,nowait"
 ]
+if os.path.exists("/dev/kvm"):
+    cmd.insert(5, "-enable-kvm")
 
 log(f"[HOST] Launching QEMU disposable clone for integrity testing...")
 
@@ -85,13 +88,13 @@ cmd_index = 0
 acceptance_cmds = [
     ("id && whoami", "__INT_01_USER_ID__", 0, "INT-01"),
     ("/usr/bin/portadora verify", "__INT_02_PORTADORA_INITIAL_VERIFY__", 0, "INT-02"),
-    ("echo 'CORRUPTED_ELF_CONTENT_FOR_NEGATIVE_TEST' > /usr/lib/libinput.so.10.13.0", "__INT_03_TAMPER_TRACKED_FILE__", 0, "INT-03"),
+    ("echo 'CORRUPTED_ELF_CONTENT_FOR_NEGATIVE_TEST' > /usr/lib/libz.so.1.3.1", "__INT_03_TAMPER_TRACKED_FILE__", 0, "INT-03"),
     ("/usr/bin/portadora verify", "__INT_04_PORTADORA_TAMPER_DETECTED__", 1, "INT-04"),
-    ("cp -a /usr/lib/libinput.so.10.13.0.bak /usr/lib/libinput.so.10.13.0 2>/dev/null || true; /usr/bin/portadora verify", "__INT_05_RESTORE_AND_VERIFY__", 0, "INT-05")
+    ("cp -a /usr/lib/libz.so.1.3.1.bak /usr/lib/libz.so.1.3.1 2>/dev/null || true; /usr/bin/portadora verify", "__INT_05_RESTORE_AND_VERIFY__", 0, "INT-05")
 ]
 
 # Create a backup inside QEMU before tampering
-acceptance_cmds[1] = ("/usr/bin/portadora verify && cp -a /usr/lib/libinput.so.10.13.0 /usr/lib/libinput.so.10.13.0.bak", "__INT_02_PORTADORA_INITIAL_VERIFY__", 0, "INT-02")
+acceptance_cmds[1] = ("/usr/bin/portadora verify && cp -a /usr/lib/libz.so.1.3.1 /usr/lib/libz.so.1.3.1.bak", "__INT_02_PORTADORA_INITIAL_VERIFY__", 0, "INT-02")
 
 while True:
     if time.time() - start_time > 180:

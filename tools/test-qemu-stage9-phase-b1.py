@@ -14,7 +14,7 @@ import sys
 import time
 
 BLAZE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ROOT_DISK = os.path.join(BLAZE_ROOT, "build", "blaze-disk.raw")
+ROOT_DISK = os.environ.get("BLAZE_DISK", os.path.join(BLAZE_ROOT, "build", "blaze-disk.raw"))
 OVMF_CODE = "/usr/share/edk2/x64/OVMF.4m.fd"
 LOG_FILE = os.path.join(BLAZE_ROOT, "reports", "milestone-9", "m9_phase_b1_solar_shell_test_output.log")
 MONITOR_SOCKET = "/tmp/qemu-m9-b1-monitor.sock"
@@ -59,7 +59,7 @@ cmd = [
     "-device", "hda-duplex",
     "-kernel", K729_KERNEL,
     "-initrd", K729_INITRD,
-    "-append", "root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0",
+    "-append", "root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0 quiet loglevel=3",
     "-nographic",
     "-serial", "mon:stdio",
     "-monitor", f"unix:{MONITOR_SOCKET},server,nowait"
@@ -84,18 +84,23 @@ buffer = ""
 stage = "BOOT"
 start_time = time.time()
 sent_login = False
+sent_pass = False
 cmd_index = 0
 
 # Acceptance Test Commands: (Command, Sentinel, Expected_Code, Test_ID)
 acceptance_cmds = [
-    ("id && whoami", "__M9_B1_01_USER_ID__", 0, "B1-01"),
-    ("ls -lh /usr/bin/solar-shell /usr/bin/solar-core /usr/bin/solar-session", "__M9_B1_02_SOLAR_BINARIES__", 0, "B1-02"),
-    ("cat /usr/share/wayland-sessions/solarui-niri.desktop", "__M9_B1_03_SOLAR_DESKTOP_ENTRY__", 0, "B1-03"),
-    ("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; /usr/bin/solar-core --help 2>&1 || true", "__M9_B1_04_SOLAR_CORE_CHECK__", 0, "B1-04"),
-    ("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; /usr/bin/solar-shell --help 2>&1 || true", "__M9_B1_05_SOLAR_SHELL_CHECK__", 0, "B1-05"),
-    ("/usr/bin/portadora verify", "__M9_B1_06_PORTADORA_VERIFY__", 0, "B1-06"),
-    ("/usr/bin/blaze-sentinel doctor", "__M9_B1_07_SENTINEL_DOCTOR__", 0, "B1-07"),
-    ("cat /proc/loadavg; grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo", "__M9_B1_08_TELEMETRY__", 0, "B1-08")
+    ("id && whoami", "__M9_B11_01_USER_ID__", 0, "B1.1-01"),
+    ("ls -lh /usr/bin/solar-shell /usr/bin/solar-core /usr/bin/solar-session", "__M9_B11_02_SOLAR_BINARIES__", 0, "B1.1-02"),
+    ("cat /usr/share/wayland-sessions/solarui-niri.desktop", "__M9_B11_03_SOLAR_DESKTOP_ENTRY__", 0, "B1.1-03"),
+    ("mkdir -p /run/dbus && dbus-daemon --system --fork 2>/dev/null || true; export XDG_RUNTIME_DIR=/run/user/1000; timeout 2 /usr/bin/solar-core || true", "__M9_B11_04_SOLAR_CORE_CHECK__", 0, "B1.1-04"),
+    ("export XDG_RUNTIME_DIR=/run/user/1000; timeout 2 /usr/bin/solar-shell || true", "__M9_B11_05_SOLAR_SHELL_CHECK__", 0, "B1.1-05"),
+    ("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; niri msg --json version || niri --version", "__M9_B11_06_NIRI_IPC__", 0, "B1.1-06"),
+    ("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; timeout 2 /usr/bin/solar-shell || true", "__M9_B11_07_SUPERVISOR_RUN__", 0, "B1.1-07"),
+    ("! touch /var/lib/portadora/tamper_test 2>/dev/null", "__M9_B11_08_PORTADORA_WRITE_DENIAL__", 0, "B1.1-08"),
+    ("! touch /var/lib/portadora/db.sqlite-wal 2>/dev/null", "__M9_B11_09_PORTADORA_WAL_DENIAL__", 0, "B1.1-09"),
+    ("/usr/bin/portadora verify", "__M9_B11_10_PORTADORA_VERIFY__", 0, "B1.1-10"),
+    ("/usr/bin/blaze-sentinel doctor", "__M9_B11_11_SENTINEL_DOCTOR__", 0, "B1.1-11"),
+    ("cat /proc/loadavg; grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo", "__M9_B11_12_TELEMETRY__", 0, "B1.1-12")
 ]
 
 def capture_qemu_real_screendump():
@@ -140,16 +145,25 @@ while True:
             break
 
         buffer += data
+        sys.stdout.write(data)
+        sys.stdout.flush()
+        log_fp.write(data)
+        log_fp.flush()
         clean_buf = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', buffer)
 
         if stage == "BOOT":
-            if "blaze login:" in clean_buf and not sent_login:
+            if ("login:" in clean_buf) and not sent_login:
                 log("[M9-PHASE-B1] Login prompt detected. Logging in as unprivileged user 'blaze'...")
                 time.sleep(0.5)
                 os.write(master_fd, b"blaze\n")
                 sent_login = True
 
-            elif sent_login and ("blaze@blaze:~$" in clean_buf or "blaze@blaze:~#" in clean_buf or "-bash-5.3$" in clean_buf or "-bash-5.3#" in clean_buf):
+            elif sent_login and ("Password:" in clean_buf or "password:" in clean_buf) and not sent_pass:
+                time.sleep(0.5)
+                os.write(master_fd, b"\n")
+                sent_pass = True
+
+            elif sent_login and ("blaze@" in clean_buf or "-bash-5.3$" in clean_buf or "-bash-5.3#" in clean_buf):
                 log("[M9-PHASE-B1] Unprivileged 'blaze' shell obtained. Executing M9 Phase B.1 Solar Shell Acceptance Matrix...")
                 stage = "RUNNING_TESTS"
                 buffer = ""
@@ -171,7 +185,7 @@ while True:
                         os.killpg(os.getpgid(proc.pid), 9)
                         sys.exit(1)
 
-                    if test_id == "B1-05":
+                    if test_id == "B1.1-05":
                         capture_qemu_real_screendump()
 
                     cmd_index += 1

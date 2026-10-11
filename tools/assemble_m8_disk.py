@@ -9,8 +9,8 @@ import sys
 
 BLAZE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BUILD_DIR = os.path.join(BLAZE_ROOT, "build")
-ROOTFS_DIR = os.path.join(BUILD_DIR, "rootfs")
-DISK_IMG = os.path.join(BUILD_DIR, "blaze-disk.raw")
+ROOTFS_DIR = os.path.abspath(os.environ.get("BLAZE_ROOTFS", os.path.join(BUILD_DIR, "rootfs")))
+DISK_IMG = os.path.abspath(os.environ.get("BLAZE_DISK", os.path.join(BUILD_DIR, "blaze-disk.raw")))
 ESP_IMG = os.path.join(BUILD_DIR, "esp.img")
 ROOT_IMG = os.path.join(BUILD_DIR, "root.img")
 
@@ -34,7 +34,11 @@ os.makedirs(os.path.join(ROOTFS_DIR, "root"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "home", "blaze"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "run", "user", "1000"), exist_ok=True)
 os.makedirs(os.path.join(ROOTFS_DIR, "var", "lib", "portadora"), exist_ok=True)
-subprocess.run(f"chmod -R 0777 '{ROOTFS_DIR}/var/lib/portadora'", shell=True, check=False)
+subprocess.run(f"chmod 0755 '{ROOTFS_DIR}/var/lib/portadora'", shell=True, check=False)
+subprocess.run(f"rm -f '{ROOTFS_DIR}/var/lib/portadora/db.sqlite-wal' '{ROOTFS_DIR}/var/lib/portadora/db.sqlite-shm'", shell=True, check=False)
+db_file = os.path.join(ROOTFS_DIR, "var", "lib", "portadora", "db.sqlite")
+if os.path.exists(db_file):
+    subprocess.run(f"chmod 0644 '{db_file}'", shell=True, check=False)
 
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze-7.2.9"))
 shutil.copy2(VMLINUZ_729, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze"))
@@ -44,12 +48,7 @@ shutil.copy2(INITRD_729, os.path.join(ROOTFS_DIR, "boot", "initramfs-blaze.img")
 # Copy modules
 KMOD_DIR = os.path.join(K729_DEST, "usr", "lib", "modules")
 if os.path.exists(KMOD_DIR):
-    for item in os.listdir(KMOD_DIR):
-        src = os.path.join(KMOD_DIR, item)
-        dst = os.path.join(ROOTFS_DIR, "usr", "lib", "modules", item)
-        if os.path.isdir(src):
-            shutil.rmtree(dst, ignore_errors=True)
-            shutil.copytree(src, dst)
+    subprocess.run(f"cp -au '{KMOD_DIR}'/* '{ROOTFS_DIR}/usr/lib/modules/'", shell=True, check=False)
 
 # 3. Preserve Kernel 7.2.8 Fallback
 K728_VMLINUZ = os.path.join(BUILD_DIR, "kernel_7.2_work", "kernel-dest", "boot", "vmlinuz-linux")
@@ -62,6 +61,19 @@ if os.path.exists(K728_INITRD):
 # 4. Configure Unprivileged 'blaze' User Account (UID 1000, GID 1000)
 etc_dir = os.path.join(ROOTFS_DIR, "etc")
 os.makedirs(etc_dir, exist_ok=True)
+
+# 4.1 Ensure DBus System Bus service symlinks
+dbus_sys_dir = os.path.join(ROOTFS_DIR, "etc", "systemd", "system", "sysinit.target.wants")
+os.makedirs(dbus_sys_dir, exist_ok=True)
+dbus_link = os.path.join(dbus_sys_dir, "dbus.service")
+if not os.path.exists(dbus_link):
+    os.symlink("/usr/lib/systemd/system/dbus.service", dbus_link)
+
+dbus_sock_dir = os.path.join(ROOTFS_DIR, "etc", "systemd", "system", "sockets.target.wants")
+os.makedirs(dbus_sock_dir, exist_ok=True)
+dbus_sock_link = os.path.join(dbus_sock_dir, "dbus.socket")
+if not os.path.exists(dbus_sock_link):
+    os.symlink("/usr/lib/systemd/system/dbus.socket", dbus_sock_link)
 
 passwd_file = os.path.join(etc_dir, "passwd")
 if os.path.exists(passwd_file):
@@ -123,11 +135,9 @@ for sec_pkg in ["audit-dest", "apparmor-dest", "blaze-sentinel-dest"]:
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# Install updated native portadora binary
-portadora_rel = os.path.join(BLAZE_ROOT, "target", "release", "portadora")
-if os.path.exists(portadora_rel):
-    subprocess.run(f"cp -f '{portadora_rel}' '{ROOTFS_DIR}/usr/bin/portadora'", shell=True, check=False)
-    subprocess.run(f"chmod 0755 '{ROOTFS_DIR}/usr/bin/portadora'", shell=True, check=False)
+# NOTE (M9 B.1.1): /usr/bin/portadora is package-managed (portadora .blz). It is never
+# copied here; it is installed/upgraded only by a real Portadora transaction
+# (see tools/m9_b11_apply_packages.py).
 
 # 5.8. Install Milestone 8 Phase A Graphics Baseline Packages
 GRAPHICS_WORK = os.path.join(BUILD_DIR, "m8_graphics_work")
@@ -163,6 +173,29 @@ for solar_pkg in ["solar-shell-dest"]:
     pkg_root = os.path.join(SOLAR_WORK, solar_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+
+# 5.13. Run Shared Library Remediation & Write tmpfiles.d for /run/user/1000
+remediate_script = os.path.join(BLAZE_ROOT, "tools", "remediate_rootfs_libs.py")
+if os.path.exists(remediate_script):
+    subprocess.run([sys.executable, remediate_script, ROOTFS_DIR], check=True)
+
+tmpfiles_dir = os.path.join(ROOTFS_DIR, "usr", "lib", "tmpfiles.d")
+os.makedirs(tmpfiles_dir, exist_ok=True)
+with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
+    f.write("d /run/user/1000 0700 blaze blaze -\n")
+
+# 5.14. Setup Fontconfig & Cache Directories
+if os.path.exists("/etc/fonts"):
+    os.makedirs(os.path.join(ROOTFS_DIR, "etc"), exist_ok=True)
+    subprocess.run(f"cp -rf /etc/fonts '{ROOTFS_DIR}/etc/'", shell=True, check=False)
+
+os.makedirs(os.path.join(ROOTFS_DIR, "var", "cache", "fontconfig"), exist_ok=True)
+subprocess.run(f"chmod 0777 '{ROOTFS_DIR}/var/cache/fontconfig'", shell=True, check=False)
+
+blaze_cache = os.path.join(ROOTFS_DIR, "home", "blaze", ".cache", "fontconfig")
+os.makedirs(blaze_cache, exist_ok=True)
+subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze/.cache'", shell=True, check=False)
+
 
 # 6. Install Limine 12.x Configuration
 limine_conf = """timeout: 3
@@ -213,7 +246,8 @@ print("[DISK] Formatting Root partition (ext4)...")
 ROOT_SIZE = 33288192 * 512
 subprocess.run(["rm", "-f", ROOT_IMG], check=False)
 subprocess.run(["truncate", "-s", str(ROOT_SIZE), ROOT_IMG], check=True)
-subprocess.run(["unshare", "-r", "mkfs.ext4", "-F", "-L", "blaze-root", "-d", ROOTFS_DIR, ROOT_IMG], check=True)
+subprocess.run(["unshare", "-r", "mkfs.ext4", "-F", "-O", "^fast_commit,^orphan_file,^metadata_csum_seed", "-L", "blaze-root", "-d", ROOTFS_DIR, ROOT_IMG], check=True)
+subprocess.run(["e2fsck", "-fy", ROOT_IMG], check=False)
 
 print("[DISK] Writing raw disk image with GPT partition table...")
 subprocess.run(["rm", "-f", DISK_IMG], check=False)
@@ -229,7 +263,7 @@ p = subprocess.Popen(["sfdisk", DISK_IMG], stdin=subprocess.PIPE, text=True)
 p.communicate(sfdisk_script)
 
 subprocess.run(["dd", f"if={ESP_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
-subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=notrunc,sparse", "status=none"], check=True)
+subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=notrunc", "status=none"], check=True)
 
 subprocess.run(["rm", "-f", ESP_IMG, ROOT_IMG], check=False)
 print("=== Milestone 8 Phase B.1 Disk Image Created Successfully! ===")

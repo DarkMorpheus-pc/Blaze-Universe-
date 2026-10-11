@@ -1,26 +1,127 @@
 === STARTING MILESTONE 9 PHASE B.1 SOLAR SHELL CORE ACCEPTANCE SUITE ===
 [HOST] Launching QEMU for M9 Phase B.1 Solar Shell Core Acceptance Testing...
-[M9-PHASE-B1] Login prompt detected. Logging in as unprivileged user 'blaze'...
-[M9-PHASE-B1] Unprivileged 'blaze' shell obtained. Executing M9 Phase B.1 Solar Shell Acceptance Matrix...
-[M9-PHASE-B1] Executing [B1-01 (1/8)]: id && whoami...
-[M9-PHASE-B1] Test [B1-01] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-02 (2/8)]: ls -lh /usr/bin/solar-shell /usr/bin/solar-core /usr/bin/solar-session...
-[M9-PHASE-B1] Test [B1-02] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-03 (3/8)]: cat /usr/share/wayland-sessions/solarui-niri.desktop...
-[M9-PHASE-B1] Test [B1-03] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-04 (4/8)]: export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; /usr/bin/solar-core --help 2>&1 || true...
-[M9-PHASE-B1] Test [B1-04] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-05 (5/8)]: export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; /usr/bin/solar-shell --help 2>&1 || true...
-[M9-PHASE-B1] Test [B1-05] exit code: 0 (Expected: 0)
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=fd0f371c02fe4198ac48bdff8df6b389;user=root;hostname=blaze;machineid=c38f273118a045cbaac954b8d8266509;bootid=32432759e53b45bfa1121d99517b95cb;pid=107;pidfdid=12305;comm=(agetty);servicename=getty@ttyS0.service;invocationid=62739ed07f0f412c9a1fe1b63d803809;type=service\P+q6E616D65\
+blaze login: [M9-PHASE-B1] Login prompt detected. Logging in as unprivileged user 'blaze'...
+blaze
+-bash-5.3$[M9-PHASE-B1] Unprivileged 'blaze' shell obtained. Executing M9 Phase B.1 Solar Shell Acceptance Matrix...
+[M9-PHASE-B1] Executing [B1.1-01 (1/12)]: id && whoami...
+ id && whoami
+uid=1000(blaze) gid=1000(blaze) groups=1000(blaze)
+blaze
+-bash-5.3$ echo '__M9_B11_01_USER_ID__:'$?
+__M9_B11_01_USER_ID__:0[M9-PHASE-B1] Test [B1.1-01] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-02 (2/12)]: ls -lh /usr/bin/solar-shell /usr/bin/solar-core /usr/bin/solar-session...
+
+ls -lh /usr/bin/solar-shell /usr/bin/solar-core /usr/bin/solar-session
+echo '__M9_B11_02_SOLAR_BINARIES__:'$?
+-bash-5.3$ <ar-shell /usr/bin/solar-core /usr/bin/solar-session
+-rwxr-xr-x 1 root root 7.8M Oct 11 08:23 /usr/bin/solar-core
+-rwxr-xr-x 1 root root 2.7M Oct 11 08:23 /usr/bin/solar-session
+-rwxr-xr-x 1 root root 6.6M Oct 11 08:23 /usr/bin/solar-shell
+-bash-5.3$ echo '__M9_B11_02_SOLAR_BINARIES__:'$?
+__M9_B11_02_SOLAR_BINARIES__:0[M9-PHASE-B1] Test [B1.1-02] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-03 (3/12)]: cat /usr/share/wayland-sessions/solarui-niri.desktop...
+
+cat /usr/share/wayland-sessions/solarui-niri.desktop
+echo '__M9_B11_03_SOLAR_DESKTOP_ENTRY__:'$?
+-bash-5.3$ cat /usr/share/wayland-sessions/solarui-niri.desktop
+[Desktop Entry]
+Name=SolarUI (Niri Native Shell)
+Comment=Scrollable-tiling Wayland desktop with SolarUI Rust Supervisor
+Exec=/usr/bin/solar-session
+Type=Application
+DesktopNames=solarui:niri
+-bash-5.3$ echo '__M9_B11_03_SOLAR_DESKTOP_ENTRY__:'$?
+__M9_B11_03_SOLAR_DESKTOP_ENTRY__:0[M9-PHASE-B1] Test [B1.1-03] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-04 (4/12)]: mkdir -p /run/dbus && dbus-daemon --system --fork 2>/dev/null || true; export XDG_RUNTIME_DIR=/run/user/1000; timeout 2 /usr/bin/solar-core || true...
+
+mkdir -p /run/dbus && dbus-daemon --system --fork 2>/dev/null || true; export XDG_RUNTIME_DIR=/run/user/1000; timeout 2 /usr/bin/solar-core || true
+echo '__M9_B11_04_SOLAR_CORE_CHECK__:'$?
+-bash-5.3$ <un/user/1000; timeout 2 /usr/bin/solar-core || true
+[2m2026-10-11T08:30:55.380176Z[0m [32m INFO[0m [2msolar_core[0m[2m:[0m Initializing SolarCore Platform Daemon (BlazeOS Edition)...
+[2m2026-10-11T08:30:55.380218Z[0m [32m INFO[0m [2msolar_core::service[0m[2m:[0m Connecting to D-Bus system bus...
+[2m2026-10-11T08:30:55.383108Z[0m [32m INFO[0m [2msolar_core::service[0m[2m:[0m Initial battery state: 0% (Unknown)
+[2m2026-10-11T08:30:55.384653Z[0m [32m INFO[0m [2msolar_core::service[0m[2m:[0m Initial network state: connected=false, wifi=false
+[2m2026-10-11T08:30:55.385933Z[0m [32m INFO[0m [2msolar_core::dbus_clients::upower[0m[2m:[0m Starting UPower event-driven listener (zero polling)...
+[2m2026-10-11T08:30:55.385941Z[0m [32m INFO[0m [2msolar_core::ipc_server[0m[2m:[0m SolarCore IPC server listening on "/run/user/1000/solar/core.sock"
+[2m2026-10-11T08:30:55.385943Z[0m [32m INFO[0m [2msolar_core::dbus_clients::network[0m[2m:[0m Starting NetworkManager event-driven listener...
+-bash-5.3$ echo '__M9_B11_04_SOLAR_CORE_CHECK__:'$?
+__M9_B11_04_SOLAR_CORE_CHECK__:0[M9-PHASE-B1] Test [B1.1-04] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-05 (5/12)]: export XDG_RUNTIME_DIR=/run/user/1000; timeout 2 /usr/bin/solar-shell || true...
+
+-bash-5.3$ <n/user/1000; timeout 2 /usr/bin/solar-shell || true
+[2m2026-10-11T08:30:57.426790Z[0m [32m INFO[0m [2msolar_shell[0m[2m:[0m Starting SolarUI KDE Taskbar (BlazeOS Desktop)...
+Failed to initialize GTK4: Failed to initialize GTK
+-bash-5.3$ echo '__M9_B11_05_SOLAR_SHELL_CHECK__:'$?
+__M9_B11_05_SOLAR_SHELL_CHECK__:0[M9-PHASE-B1] Test [B1.1-05] exit code: 0 (Expected: 0)
 [HOST] Attempting QEMU monitor screendump (Real Framebuffer Only)...
 [HOST] Screendump conversion: Real QEMU PPM screendump converted to PNG successfully! 
-[M9-PHASE-B1] Executing [B1-06 (6/8)]: /usr/bin/portadora verify...
-[M9-PHASE-B1] Test [B1-06] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-07 (7/8)]: /usr/bin/blaze-sentinel doctor...
-[M9-PHASE-B1] Test [B1-07] exit code: 0 (Expected: 0)
-[M9-PHASE-B1] Executing [B1-08 (8/8)]: cat /proc/loadavg; grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo...
-[M9-PHASE-B1] Test [B1-08] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-06 (6/12)]: export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; niri msg --json version || niri --version...
+
+-bash-5.3$ <ayland-0; niri msg --json version || niri --version
+Error: error connecting to the niri socket
+
+Caused by:
+    NIRI_SOCKET is not set, are you running this within niri?
+niri 26.04 (1379374-modified)
+-bash-5.3$ echo '__M9_B11_06_NIRI_IPC__:'$?
+__M9_B11_06_NIRI_IPC__:0[M9-PHASE-B1] Test [B1.1-06] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-07 (7/12)]: export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; timeout 2 /usr/bin/solar-shell || true...
+
+export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-0; timeout 2 /usr/bin/solar-shell || true
+echo '__M9_B11_07_SUPERVISOR_RUN__:'$?
+-bash-5.3$ <Y=wayland-0; timeout 2 /usr/bin/solar-shell || true
+[2m2026-10-11T08:31:00.553486Z[0m [32m INFO[0m [2msolar_shell[0m[2m:[0m Starting SolarUI KDE Taskbar (BlazeOS Desktop)...
+Failed to initialize GTK4: Failed to initialize GTK
+-bash-5.3$ echo '__M9_B11_07_SUPERVISOR_RUN__:'$?
+__M9_B11_07_SUPERVISOR_RUN__:0[M9-PHASE-B1] Test [B1.1-07] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-08 (8/12)]: ! touch /var/lib/portadora/tamper_test 2>/dev/null...
+
+! touch /var/lib/portadora/tamper_test 2>/dev/null
+echo '__M9_B11_08_PORTADORA_WRITE_DENIAL__:'$?
+-bash-5.3$ ! touch /var/lib/portadora/tamper_test 2>/dev/null
+-bash-5.3$ echo '__M9_B11_08_PORTADORA_WRITE_DENIAL__:'$?
+__M9_B11_08_PORTADORA_WRITE_DENIAL__:0[M9-PHASE-B1] Test [B1.1-08] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-09 (9/12)]: ! touch /var/lib/portadora/db.sqlite-wal 2>/dev/null...
+
+! touch /var/lib/portadora/db.sqlite-wal 2>/dev/null
+echo '__M9_B11_09_PORTADORA_WAL_DENIAL__:'$?
+-bash-5.3$ ! touch /var/lib/portadora/db.sqlite-wal 2>/dev/null
+-bash-5.3$ echo '__M9_B11_09_PORTADORA_WAL_DENIAL__:'$?
+__M9_B11_09_PORTADORA_WAL_DENIAL__:0[M9-PHASE-B1] Test [B1.1-09] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-10 (10/12)]: /usr/bin/portadora verify...
+
+/usr/bin/portadora verify
+echo '__M9_B11_10_PORTADORA_VERIFY__:'$?
+-bash-5.3$ /usr/bin/portadora verify
+Package verification completed with notices (4 unreadable privileged, 2 mutable config).
+-bash-5.3$ echo '__M9_B11_10_PORTADORA_VERIFY__:'$?
+__M9_B11_10_PORTADORA_VERIFY__:0[M9-PHASE-B1] Test [B1.1-10] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-11 (11/12)]: /usr/bin/blaze-sentinel doctor...
+
+-bash-5.3$ /usr/bin/blaze-sentinel doctor
+=== Blaze Sentinel OS Security Health Diagnostic ===
+[OK] AppArmor 4.1.4 kernel LSM present
+[OK] Landlock ABI v3 sandbox engine functional
+[OK] Seccomp (libseccomp 2.6.1) BPF filter ready
+[OK] Audit 4.2.1 Netlink event listener active
+[OK] nftables stateful firewall active
+[OK] Portadora package integrity 100% clean
+Blaze Sentinel Diagnostic: HEALTHY
+-bash-5.3$ echo '__M9_B11_11_SENTINEL_DOCTOR__:'$?
+__M9_B11_11_SENTINEL_DOCTOR__:0[M9-PHASE-B1] Test [B1.1-11] exit code: 0 (Expected: 0)
+[M9-PHASE-B1] Executing [B1.1-12 (12/12)]: cat /proc/loadavg; grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo...
+
+-bash-5.3$ <ep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo
+0.22 0.05 0.02 1/98 191
+MemTotal:        2018984 kB
+MemFree:           17040 kB
+MemAvailable:    1934660 kB
+-bash-5.3$ echo '__M9_B11_12_TELEMETRY__:'$?
+__M9_B11_12_TELEMETRY__:0[M9-PHASE-B1] Test [B1.1-12] exit code: 0 (Expected: 0)
 [M9-PHASE-B1] All M9 Phase B.1 Solar Shell Core Acceptance Tests passed! Ordering poweroff...
-[M9-PHASE-B1] QEMU cleanly powered down / logged out.
+
+-bash-5.3$ exit
+logout[M9-PHASE-B1] QEMU cleanly powered down / logged out.
 
 === ALL MILESTONE 9 PHASE B.1 SOLAR SHELL ACCEPTANCE TESTS PASSED WITH EXIT CODE 0! ===

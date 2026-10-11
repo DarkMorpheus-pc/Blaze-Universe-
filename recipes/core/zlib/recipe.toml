@@ -1,7 +1,7 @@
 [package]
 name = "zlib"
 version = "1.3.1"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "Compression and decompression library"
 license = "Zlib"
@@ -13,5 +13,5 @@ provides = ["zlib = 1.3.1", "lib:libz.so.1"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m2_work/zlib-dest/"* "$DESTDIR/"
+cp -a "$CURRENT_DIR/build/b11_work/zlib-1.3.1-dest/"* "$DESTDIR/"
 """

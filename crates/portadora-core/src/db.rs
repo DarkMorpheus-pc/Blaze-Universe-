@@ -49,6 +49,36 @@ pub struct HistoryEntry {
 }
 
 impl Database {
+    pub fn open_read_only<P: AsRef<Path>>(db_path: P) -> Result<Self> {
+        let db_path = db_path.as_ref().to_path_buf();
+        if !db_path.exists() {
+            bail!("Database file does not exist at {}", db_path.display());
+        }
+
+        let conn = Connection::open_with_flags(
+            &db_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .with_context(|| format!("Failed to open read-only SQLite database at {}", db_path.display()))?;
+
+        Ok(Self { conn, db_path })
+    }
+
+    pub fn open_read_write<P: AsRef<Path>>(db_path: P) -> Result<Self> {
+        let db_path = db_path.as_ref().to_path_buf();
+        if !db_path.exists() {
+            bail!("Database file does not exist at {}", db_path.display());
+        }
+
+        let conn = Connection::open_with_flags(
+            &db_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .with_context(|| format!("Failed to open read-write SQLite database at {}", db_path.display()))?;
+
+        Ok(Self { conn, db_path })
+    }
+
     pub fn open_or_create<P: AsRef<Path>>(db_path: P) -> Result<Self> {
         let db_path = db_path.as_ref().to_path_buf();
         if let Some(parent) = db_path.parent() {
@@ -70,7 +100,7 @@ impl Database {
 
         conn.execute_batch(
             "PRAGMA foreign_keys = ON;
-             PRAGMA journal_mode = WAL;
+             PRAGMA journal_mode = DELETE;
              
              CREATE TABLE IF NOT EXISTS packages (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -470,14 +500,35 @@ impl Database {
 
             let clean_path = rel_path.trim_start_matches('/');
 
-            // Mode check (compare last 4 octal digits)
+            if rel_path.contains("..") {
+                issues.push(VerificationIssue {
+                    package_name: pkg_name.clone(),
+                    path: rel_path.clone(),
+                    issue_type: "PATH_TRAVERSAL_RISK".into(),
+                    details: "Path contains parent directory traversal ('..')".into(),
+                });
+                continue;
+            }
+
+            // Category 1: Runtime mounts and dynamic state directories
             let is_runtime_mount = clean_path == "var/lib/portadora"
                 || clean_path.starts_with("var/lib/portadora/")
-                || matches!(clean_path, "run" | "proc" | "sys" | "dev")
+                || matches!(clean_path, "run" | "proc" | "sys" | "dev" | "tmp" | "var/run" | "var/tmp" | "var/log")
                 || clean_path.starts_with("run/")
                 || clean_path.starts_with("proc/")
                 || clean_path.starts_with("sys/")
-                || clean_path.starts_with("dev/");
+                || clean_path.starts_with("dev/")
+                || clean_path.starts_with("tmp/")
+                || clean_path.starts_with("var/run/")
+                || clean_path.starts_with("var/tmp/")
+                || clean_path.starts_with("var/log/");
+
+            // Category 2: Genuinely mutable system identity & configuration files
+            let is_mutable_config = matches!(
+                clean_path,
+                "etc/passwd" | "etc/group" | "etc/shadow" | "etc/machine-id" | "etc/ld.so.cache"
+            ) || clean_path.starts_with("etc/ssh/");
+
             let actual_mode = format!("{:04o}", meta.permissions().mode() & 0o7777);
             if actual_mode != expected_mode && file_type != "symlink" && !is_runtime_mount {
                 issues.push(VerificationIssue {
@@ -513,58 +564,71 @@ impl Database {
                     }
                 }
             } else if file_type == "file" {
-                let is_volatile_cache = matches!(clean_path,
-                    "etc/ld.so.cache" | "etc/passwd" | "etc/group" | "etc/shadow" | "etc/machine-id" | "usr/bin/portadora"
-                ) || clean_path.starts_with("etc/ssh/");
-                if !is_volatile_cache {
+                if !is_runtime_mount {
                     if let Some(ref expected_hash) = expected_sha256 {
-                    let mut file = match File::open(&abs_path) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            if e.kind() != std::io::ErrorKind::PermissionDenied {
-                                issues.push(VerificationIssue {
-                                    package_name: pkg_name,
-                                    path: rel_path,
-                                    issue_type: "READ_ERROR".into(),
-                                    details: format!("Failed to open file: {}", e),
-                                });
-                            }
-                            continue;
-                        }
-                    };
-
-                    let mut hasher = Sha256::new();
-                    let mut buf = [0u8; 64 * 1024];
-                    let mut hash_err = false;
-                    loop {
-                        match file.read(&mut buf) {
-                            Ok(0) => break,
-                            Ok(n) => hasher.update(&buf[..n]),
+                        let mut file = match File::open(&abs_path) {
+                            Ok(f) => f,
                             Err(e) => {
-                                issues.push(VerificationIssue {
-                                    package_name: pkg_name.clone(),
-                                    path: rel_path.clone(),
-                                    issue_type: "READ_ERROR".into(),
-                                    details: format!("Failed reading file for hashing: {}", e),
-                                });
-                                hash_err = true;
-                                break;
+                                if e.kind() == std::io::ErrorKind::PermissionDenied {
+                                    issues.push(VerificationIssue {
+                                        package_name: pkg_name,
+                                        path: rel_path,
+                                        issue_type: "UNREADABLE_PRIVILEGED".into(),
+                                        details: format!("Privileged file inaccessible to current user: {}", e),
+                                    });
+                                } else {
+                                    issues.push(VerificationIssue {
+                                        package_name: pkg_name,
+                                        path: rel_path,
+                                        issue_type: "READ_ERROR".into(),
+                                        details: format!("Failed to open file: {}", e),
+                                    });
+                                }
+                                continue;
+                            }
+                        };
+
+                        let mut hasher = Sha256::new();
+                        let mut buf = [0u8; 64 * 1024];
+                        let mut hash_err = false;
+                        loop {
+                            match file.read(&mut buf) {
+                                Ok(0) => break,
+                                Ok(n) => hasher.update(&buf[..n]),
+                                Err(e) => {
+                                    issues.push(VerificationIssue {
+                                        package_name: pkg_name.clone(),
+                                        path: rel_path.clone(),
+                                        issue_type: "READ_ERROR".into(),
+                                        details: format!("Failed reading file for hashing: {}", e),
+                                    });
+                                    hash_err = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if !hash_err {
+                            let actual_hash = hex::encode(hasher.finalize());
+                            if actual_hash != *expected_hash {
+                                if is_mutable_config {
+                                    issues.push(VerificationIssue {
+                                        package_name: pkg_name,
+                                        path: rel_path,
+                                        issue_type: "MUTABLE_CONFIG".into(),
+                                        details: format!("Mutable system configuration altered (Expected {}, got {})", expected_hash, actual_hash),
+                                    });
+                                } else {
+                                    issues.push(VerificationIssue {
+                                        package_name: pkg_name,
+                                        path: rel_path,
+                                        issue_type: "CHECKSUM_MISMATCH".into(),
+                                        details: format!("Expected SHA256 {}, got {}", expected_hash, actual_hash),
+                                    });
+                                }
                             }
                         }
                     }
-
-                    if !hash_err {
-                        let actual_hash = hex::encode(hasher.finalize());
-                        if actual_hash != *expected_hash {
-                            issues.push(VerificationIssue {
-                                package_name: pkg_name,
-                                path: rel_path,
-                                issue_type: "CHECKSUM_MISMATCH".into(),
-                                details: format!("Expected SHA256 {}, got {}", expected_hash, actual_hash),
-                            });
-                        }
-                    }
-                }
                 }
             }
         }

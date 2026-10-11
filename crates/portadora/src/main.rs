@@ -251,10 +251,20 @@ fn main() -> Result<()> {
         eprintln!("[portadora] Using database: {}", db_path.display());
     }
 
-    // Startup check: Recover any interrupted transactions
-    let recovered = TransactionRecovery::recover_pending_transactions(&root)?;
-    if !recovered.is_empty() {
-        eprintln!("[portadora] Auto-recovered {} interrupted transaction(s): {:?}", recovered.len(), recovered);
+    // Startup check: Recover any interrupted transactions for mutating commands
+    let is_mutating = matches!(
+        cli.command,
+        Commands::Update { .. }
+            | Commands::Install { .. }
+            | Commands::Upgrade { .. }
+            | Commands::Remove { .. }
+    );
+    if is_mutating {
+        if let Ok(recovered) = TransactionRecovery::recover_pending_transactions(&root) {
+            if !recovered.is_empty() {
+                eprintln!("[portadora] Auto-recovered {} interrupted transaction(s): {:?}", recovered.len(), recovered);
+            }
+        }
     }
 
     match cli.command {
@@ -299,7 +309,7 @@ fn main() -> Result<()> {
 
         Commands::Info { target } => {
             let db = if db_path.exists() {
-                Some(Database::open_or_create(&db_path)?)
+                Some(Database::open_read_only(&db_path)?)
             } else {
                 None
             };
@@ -452,7 +462,7 @@ fn main() -> Result<()> {
                 return Ok(());
             }
 
-            let db = Database::open_or_create(&db_path)?;
+            let db = Database::open_read_only(&db_path)?;
             let packages = db.list_packages()?;
 
             if packages.is_empty() {
@@ -469,20 +479,45 @@ fn main() -> Result<()> {
             if !db_path.exists() {
                 bail!("Database does not exist at {}", db_path.display());
             }
-            let db = Database::open_or_create(&db_path)?;
+            let db = Database::open_read_only(&db_path)?;
             let issues = db.verify_files(&root, package.as_deref())?;
 
-            if issues.is_empty() {
-                println!("All managed files verified.");
-            } else {
-                eprintln!("Verification issues detected ({}):", issues.len());
-                for issue in issues {
-                    eprintln!(
-                        "[{}] {}: {} ({})",
-                        issue.package_name, issue.path, issue.issue_type, issue.details
-                    );
+            let mut critical_failures = 0;
+            let mut notices = 0;
+            let mut unreadable_privileged = 0;
+
+            for issue in &issues {
+                match issue.issue_type.as_str() {
+                    "UNREADABLE_PRIVILEGED" => {
+                        unreadable_privileged += 1;
+                        if cli.verbose {
+                            eprintln!("[NOTICE] [{}] {}: {} ({})", issue.package_name, issue.path, issue.issue_type, issue.details);
+                        }
+                    }
+                    "MUTABLE_CONFIG" => {
+                        notices += 1;
+                        if cli.verbose {
+                            eprintln!("[NOTICE] [{}] {}: {} ({})", issue.package_name, issue.path, issue.issue_type, issue.details);
+                        }
+                    }
+                    _ => {
+                        critical_failures += 1;
+                        eprintln!(
+                            "[{}] {}: {} ({})",
+                            issue.package_name, issue.path, issue.issue_type, issue.details
+                        );
+                    }
                 }
-                bail!("Package verification failed.");
+            }
+
+            if critical_failures > 0 {
+                bail!("Package verification failed with {} integrity issue(s).", critical_failures);
+            }
+
+            if unreadable_privileged > 0 || notices > 0 {
+                println!("Package verification completed with notices ({} unreadable privileged, {} mutable config).", unreadable_privileged, notices);
+            } else {
+                println!("All managed files verified.");
             }
         }
 
@@ -491,7 +526,7 @@ fn main() -> Result<()> {
                 println!("No transaction history found.");
                 return Ok(());
             }
-            let db = Database::open_or_create(&db_path)?;
+            let db = Database::open_read_only(&db_path)?;
             let history = db.list_history()?;
             if history.is_empty() {
                 println!("No transactions recorded.");

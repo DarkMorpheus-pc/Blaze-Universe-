@@ -1,7 +1,7 @@
 [package]
 name = "gcc"
 version = "16.2.0"
-release = 1
+release = 2
 architecture = "x86_64"
 summary = "The GNU Compiler Collection (C, C++, and runtime libraries)"
 description = "GCC provides modern C and C++ compilers, libstdc++, libgcc_s, and internal support tools."
