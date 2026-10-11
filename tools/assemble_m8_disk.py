@@ -263,7 +263,7 @@ p = subprocess.Popen(["sfdisk", DISK_IMG], stdin=subprocess.PIPE, text=True)
 p.communicate(sfdisk_script)
 
 subprocess.run(["dd", f"if={ESP_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
-subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=notrunc", "status=none"], check=True)
+subprocess.run(["dd", f"if={ROOT_IMG}", f"of={DISK_IMG}", "bs=1M", "seek=129", "conv=sparse,notrunc", "status=none"], check=True)
 
 subprocess.run(["rm", "-f", ESP_IMG, ROOT_IMG], check=False)
 print("=== Milestone 8 Phase B.1 Disk Image Created Successfully! ===")

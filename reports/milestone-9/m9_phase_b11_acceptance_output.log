@@ -1,0 +1,261 @@
+=== STARTING MILESTONE 9 PHASE B.1.1 RIGOROUS ACCEPTANCE TEST SUITE ===
+[HOST] Creating disposable QCOW2 overlay on top of /home/darkmorpheus/Projeler/blaze_base/build/blaze-disk-b11.raw...
+[HOST] Launching QEMU...
+[HOST] Waiting for login prompt...
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=75f1496a5d5e44458fd9dfaca5e87af0;user=root;hostname=blaze;machineid=f0d44e3850ea4c91bcf10e3d9f5a721a;bootid=18d2771c06564ecba5c086e902b72aa0;pid=104;pidfdid=8219;comm=(agetty);servicename=getty@ttyS0.service;invocationid=5aceb7051b874c51814a1bf2453f1222;type=service\P+q6E616D65\
+blaze login: root
+-bash-5.3# [HOST] Root shell obtained.
+
+>>> EXECUTING: Start seatd daemon and verify socket
+
+-bash-5.3# <sleep 1; test -S /run/seatd.sock && echo 'SEATD_OK'
+[1] 147
+SEATD_OK
+-bash-5.3# echo '__SENTINEL_1791712846403__:'$?
+__SENTINEL_1791712846403__:0
+[HOST RESULT] [Start seatd daemon and verify socket] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start D-Bus system daemon
+
+-bash-5.3# < && dbus-daemon --system --fork 2>/dev/null || true
+-bash-5.3# echo '__SENTINEL_1791712847410__:'$?
+__SENTINEL_1791712847410__:0
+[HOST RESULT] [Start D-Bus system daemon] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Ensure /run/user/1000 permissions
+
+-bash-5.3# </user/1000 /home/blaze && chmod 0700 /run/user/1000
+-bash-5.3# echo '__SENTINEL_1791712847417__:'$?
+__SENTINEL_1791712847417__:0
+[HOST RESULT] [Ensure /run/user/1000 permissions] Exit Code: 0 (Expected: 0)
+
+[HOST] Switching to unprivileged user 'blaze' (UID 1000)...
+
+-bash-5.3# su - blaze
+-bash-5.3$ [HOST] User 'blaze' shell active.
+
+>>> EXECUTING: Verify UID 1000 (blaze)
+id && whoami
+uid=1000(blaze) gid=1000(blaze) groups=1000(blaze)
+blaze
+-bash-5.3$ echo '__SENTINEL_1791712848424__:'$?
+__SENTINEL_1791712848424__:0
+-bash-5.3$ 
+[HOST RESULT] [Verify UID 1000 (blaze)] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start Niri compositor under UID 1000
+<st -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'
+[1] 162
+[2m2026-10-11T10:00:48.451279Z[0m [32m INFO[0m [2mniri[0m[2m:[0m starting version 26.04 (1379374-modified)
+[2m2026-10-11T10:00:48.451858Z[0m [34mDEBUG[0m [2mniri_config[0m[2m:[0m loaded config from "/etc/niri/config.kdl"
+[2m2026-10-11T10:00:48.457760Z[0m [32m INFO[0m [2mniri::backend::tty[0m[2m:[0m using as the render node: "/dev/dri/renderD128"
+[2m2026-10-11T10:00:48.639283Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m adding device: 57856 "/dev/dri/card0"
+[2m2026-10-11T10:00:48.639307Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m this is the primary node
+[2m2026-10-11T10:00:48.686485Z[0m [33m WARN[0m [2mniri::backend::tty[0m[2m:[0m software EGL renderer detected (llvmpipe/softpipe); enabling virtual machine fallback
+[2m2026-10-11T10:00:48.686871Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m got render node: renderD128
+[2m2026-10-11T10:00:48.686876Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m initializing the primary renderer
+[2m2026-10-11T10:00:48.814464Z[0m [33m WARN[0m [2mniri::backend::tty[0m[2m:[0m error initializing DRM leasing for card0: UnableToOpenNode(Os { code: 13, kind: PermissionDenied, message: "Permission denied" })
+[2m2026-10-11T10:00:48.814503Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m device changed: 57856
+[2m2026-10-11T10:00:48.814904Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m new connector: Virtual-1 "Red Hat, Inc. QEMU Monitor Unknown"
+[2m2026-10-11T10:00:48.814940Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m connecting connector: Virtual-1
+[2m2026-10-11T10:00:48.814967Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m picking mode: Mode { name: "1280x800", clock: 107300, size: (1280, 800), hsync: (1600, 1638, 1728), vsync: (804, 808, 828), hskew: 0, vscan: 0, vrefresh: 75, mode_type: ModeTypeFlags(PREFERRED | DRIVER) }
+[2m2026-10-11T10:00:48.815012Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m failed to set HDR properties: couldn't find property: "HDR_OUTPUT_METADATA"
+[2m2026-10-11T10:00:48.815046Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m couldn't get gamma properties: missing GAMMA_LUT property
+[2m2026-10-11T10:00:48.815055Z[0m [34mDEBUG[0m [2mniri::backend::tty[0m[2m:[0m couldn't reset gamma: setting gamma is not supported
+[2m2026-10-11T10:00:48.816270Z[0m [34mDEBUG[0m [2mniri::niri[0m[2m:[0m putting output Virtual-1 at x=0 y=0
+[2m2026-10-11T10:00:48.816377Z[0m [32m INFO[0m [2mniri[0m[2m:[0m listening on Wayland socket: wayland-1
+[2m2026-10-11T10:00:48.816383Z[0m [32m INFO[0m [2mniri[0m[2m:[0m IPC listening on: /run/user/1000/niri.wayland-1.162.sock
+[2m2026-10-11T10:00:48.818131Z[0m [32m INFO[0m [2mniri[0m[2m:[0m listening on X11 socket: :0
+[2m2026-10-11T10:00:48.819158Z[0m [33m WARN[0m [2mniri::cursor[0m[2m:[0m error loading xcursor default@24: no default icon
+[2m2026-10-11T10:00:48.819997Z[0m [33m WARN[0m [2mniri::dbus::freedesktop_locale1[0m[2m:[0m error receiving initial properties: SpawnExecFailed("Failed to execute program org.freedesktop.login1: No such file or directory")
+[2m2026-10-11T10:00:48.820526Z[0m [33m WARN[0m [2mniri::dbus::freedesktop_login1[0m[2m:[0m error receiving initial properties: SpawnExecFailed("Failed to execute program org.freedesktop.login1: No such file or directory")
+WAYLAND_OK
+-bash-5.3$ echo '__SENTINEL_1791712848440__:'$?
+__SENTINEL_1791712848440__:0
+[HOST RESULT] [Start Niri compositor under UID 1000] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Query Niri version via IPC
+
+-bash-5.3$ <user/1000/niri.*.sock | head -n1); niri msg version
+Compositor version: 26.04 (1379374-modified)
+CLI version:        26.04 (1379374-modified)
+-bash-5.3$ echo '__SENTINEL_1791712851481__:'$?
+__SENTINEL_1791712851481__:0
+[HOST RESULT] [Query Niri version via IPC] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Launch Wayland client window in Niri and query via JSON IPC
+
+-bash-5.3$ <00/niri.*.sock | head -n1); niri msg --json windows
+[2] 194
+[{"id":2,"title":"Alacritty","app_id":"Alacritty","pid":194,"workspace_id":1,"is_focused":true,"is_floating":false,"is_urgent":false,"layout":{"pos_in_scrolling_layout":[1,1],"tile_size":[628.0,784.0],"window_size":[628,784],"tile_pos_in_workspace_view":null,"window_offset_in_tile":[0.0,0.0]},"focus_timestamp":{"secs":14,"nanos":146773687}}]
+-bash-5.3$ echo '__SENTINEL_1791712851494__:'$?
+__SENTINEL_1791712851494__:0
+[HOST RESULT] [Launch Wayland client window in Niri and query via JSON IPC] Exit Code: 0 (Expected: 0)
+[HOST] Taking QEMU screendump via monitor socket...
+[HOST] Saved screendump to /tmp/solar_shell_b1_screenshot.png and artifact /home/darkmorpheus/.gemini/antigravity/brain/edfcc68e-d62a-469a-afaa-c49b73f87c64/solar_shell_b1_screenshot.png (Size: (1280, 800))
+[HOST] Screendump distinct colors count: 406
+
+>>> EXECUTING: Query initial Solar Shell status
+
+-bash-5.3$ <p/solar-core.log 2>&1 & sleep 1; solar-shell status
+[3] 221
+[2m2026-10-11T10:00:58.581197Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connecting to SolarCore IPC at "/run/user/1000/solar/core.sock"...
+[2m2026-10-11T10:00:58.582856Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connected to SolarCore IPC successfully.
+┌─────────
+                         SOLAR SHELL SUPERVISOR                         
+
+ Desired Shell Engine: noctalia             Profile: balanced          
+ Actual Shell Engine:  none                 Status:  Drifted (Repair Needed) 
+─
+ Workspaces: [1] 2                Time: 10:00    Date: 11 Oct, Sun     
+ Network:     Offline            Battery: 0%                             
+─
+ Active Running Windows (1):                                            
+  [*2] Alacritty                           (tile)     [id: 2   ] 
+
+-bash-5.3$ echo '__SENTINEL_1791712857548__:'$?
+__SENTINEL_1791712857548__:0
+[HOST RESULT] [Query initial Solar Shell status] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Trigger workspace switch and verify Solar Shell state transition
+
+-bash-5.3$ < focus-workspace 2 && sleep 1 && solar-shell status
+[2m2026-10-11T10:01:00.036497Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connecting to SolarCore IPC at "/run/user/1000/solar/core.sock"...
+[2m2026-10-11T10:01:00.036560Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connected to SolarCore IPC successfully.
+┌──────────────
+                         SOLAR SHELL SUPERVISOR                         
+
+ Desired Shell Engine: noctalia             Profile: balanced          
+ Actual Shell Engine:  none                 Status:  Drifted (Repair Needed) 
+─
+ Workspaces:  1 [2]               Time: 10:01    Date: 11 Oct, Sun     
+ Network:     Offline            Battery: 0%                             
+───
+ Active Running Windows (1):                                            
+  [ 2] Alacritty                           (tile)     [id: 2   ] 
+
+-bash-5.3$ echo '__SENTINEL_1791712859010__:'$?
+__SENTINEL_1791712859010__:0
+[HOST RESULT] [Trigger workspace switch and verify Solar Shell state transition] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Stop solar-shell and verify Niri and client window survive
+
+-bash-5.3$ <00/niri.*.sock | head -n1); niri msg --json windows
+[{"id":2,"title":"Alacritty","app_id":"Alacritty","pid":194,"workspace_id":1,"is_focused":false,"is_floating":false,"is_urgent":false,"layout":{"pos_in_scrolling_layout":[1,1],"tile_size":[628.0,784.0],"window_size":[628,784],"tile_pos_in_workspace_view":null,"window_offset_in_tile":[0.0,0.0]},"focus_timestamp":{"secs":14,"nanos":146773687}}]
+-bash-5.3$ echo '__SENTINEL_1791712860466__:'$?
+__SENTINEL_1791712860466__:0
+[HOST RESULT] [Stop solar-shell and verify Niri and client window survive] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Restart solar-shell supervisor and verify IPC reconnection
+
+-bash-5.3$ <ar-shell-sup.log 2>&1 & sleep 1; solar-shell status
+[4] 264
+[4]+  Exit 1                     solar-shell supervisor > /tmp/solar-shell-sup.log 2>&1
+[2m2026-10-11T10:01:01.505433Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connecting to SolarCore IPC at "/run/user/1000/solar/core.sock"...
+[2m2026-10-11T10:01:01.506887Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connected to SolarCore IPC successfully.
+┌───
+                         SOLAR SHELL SUPERVISOR                         │
+├────────────────────────────────────────┤
+ Desired Shell Engine: noctalia             Profile: balanced          │
+ Actual Shell Engine:  none                 Status:  Drifted (Repair Needed) 
+──
+ Workspaces:  1 [2]               Time: 10:01    Date: 11 Oct, Sun     
+ Network:     Offline            Battery: 0%                             
+────────
+ Active Running Windows (1):                                            │
+  [ 2] Alacritty                           (tile)     [id: 2   ] │
+└───────────────────────────────┘
+-bash-5.3$ echo '__SENTINEL_1791712860487__:'$?
+__SENTINEL_1791712860487__:0
+[HOST RESULT] [Restart solar-shell supervisor and verify IPC reconnection] Exit Code: 0 (Expected: 0)
+
+[HOST] Returning to root shell for Portadora package restoration testing...
+
+-bash-5.3$ exit
+logout
+-bash-5.3# [HOST] Root shell resumed.
+
+>>> EXECUTING: Record baseline SHA-256 hashes
+<baseline_sha256.txt && cat /tmp/baseline_sha256.txt
+771e4c92f1450c99c259b3b7ece97390b71c418ce2fb4019795e365122d71a56  /usr/bin/solar-shell
+6f9e34980d0bd5dbe0e19d7772d71d1912fcd3228fcf5c5e8a8f6f4ab91e526c  /usr/bin/portadora
+-bash-5.3# echo '__SENTINEL_1791712862949__:'$?
+__SENTINEL_1791712862949__:0
+[HOST RESULT] [Record baseline SHA-256 hashes] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Tamper binaries and verify independent verifier detects mismatch
+
+-bash-5.3# <ortadora && ! sha256sum -c /tmp/baseline_sha256.txt
+/usr/bin/solar-shell: FAILED
+/usr/bin/portadora: FAILED
+sha256sum: WARNING: 2 computed checksums did NOT match
+-bash-5.3# echo '__SENTINEL_1791712862989__:'$?
+__SENTINEL_1791712862989__:0
+[HOST RESULT] [Tamper binaries and verify independent verifier detects mismatch] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Portadora verify detects corruption with non-zero exit code
+
+-bash-5.3# ! /usr/bin/portadora verify
+[portadora] usr/bin/portadora: CHECKSUM_MISMATCH (Expected SHA256 6f9e34980d0bd5dbe0e19d7772d71d1912fcd3228fcf5c5e8a8f6f4ab91e526c, got 86121ac2200af3783a92c83cfa98ec848f3aa7ea12ec32ee8df02c1258f4671c)
+[solar-shell] usr/bin/solar-shell: CHECKSUM_MISMATCH (Expected SHA256 771e4c92f1450c99c259b3b7ece97390b71c418ce2fb4019795e365122d71a56, got f38247045ae9f0b9cecccc310a121f0f3f62db7e5a27e5368810c8d38105826c)
+Error: Package verification failed with 2 integrity issue(s).
+-bash-5.3# echo '__SENTINEL_1791712863029__:'$?
+__SENTINEL_1791712863029__:0
+[HOST RESULT] [Portadora verify detects corruption with non-zero exit code] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Restore corrupted binaries via authentic Portadora transactions
+
+-bash-5.3# <che/portadora/packages/portadora-0.2.0-4.x86_64.blz
+Installing solar-shell 1.0.0-1 (x86_64)...
+Successfully installed solar-shell (1.0.0)
+Installing portadora 0.2.0-4 (x86_64)...
+Successfully installed portadora (0.2.0)
+-bash-5.3# echo '__SENTINEL_1791712874790__:'$?
+__SENTINEL_1791712874790__:0
+[HOST RESULT] [Restore corrupted binaries via authentic Portadora transactions] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify restored binaries match authentic baseline SHA-256
+
+sha256sum -c /tmp/baseline_sha256.txt
+echo '__SENTINEL_1791712874854__:'$?
+-bash-5.3# sha256sum -c /tmp/baseline_sha256.txt
+/usr/bin/solar-shell: OK
+/usr/bin/portadora: OK
+-bash-5.3# echo '__SENTINEL_1791712874854__:'$?
+__SENTINEL_1791712874854__:0
+[HOST RESULT] [Verify restored binaries match authentic baseline SHA-256] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify Portadora verify passes with exit code 0 after restoration
+
+/usr/bin/portadora verify
+echo '__SENTINEL_1791712874890__:'$?
+-bash-5.3# /usr/bin/portadora verify
+Package verification completed with notices (0 unreadable privileged, 3 mutable config).
+-bash-5.3# echo '__SENTINEL_1791712874890__:'$?
+__SENTINEL_1791712874890__:0
+[HOST RESULT] [Verify Portadora verify passes with exit code 0 after restoration] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify transaction history contains authentic INSTALL records
+
+/usr/bin/portadora history | tail -n 6
+echo '__SENTINEL_1791712886676__:'$?
+-bash-5.3# /usr/bin/portadora history | tail -n 6
+tx-1791706985767     INSTALL    libdisplay-info          0.3.0-1          SUCCESS   
+tx-1791706985767     INSTALL    xwayland-satellite       0.7.0-1          SUCCESS   
+tx-1791706985767     INSTALL    niri                     26.4.0-1         SUCCESS   
+tx-1791706985767     INSTALL    solar-shell              1.0.0-1          SUCCESS   
+tx-local-1791712874820 INSTALL    solar-shell              1.0.0-1          SUCCESS   
+tx-local-1791712874840 INSTALL    portadora                0.2.0-4          SUCCESS   
+-bash-5.3# echo '__SENTINEL_1791712886676__:'$?
+__SENTINEL_1791712886676__:0
+[HOST RESULT] [Verify transaction history contains authentic INSTALL records] Exit Code: 0 (Expected: 0)
+
+[HOST] All Milestone 9 Phase B.1.1 acceptance tests passed! Ordering poweroff...
+
+poweroff
+-bash-5.3# poweroff
+[0;1;38:5:185mFailed to set wall message, ignoring: Failed to execute program org.freedesktop.login1: No such file or directory[0m
+[0;1;31mCall to PowerOff failed: Failed to execute program org.freedesktop.login1: No such file or directory[0m
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=75f1496a5d5e44458fd9dfaca5e87af0\[r[H[3Jc[   49.735276] reboot: Power down
+
+=== ALL MILESTONE 9 PHASE B.1.1 RIGOROUS ACCEPTANCE TESTS COMPLETED SUCCESSFULLY WITH EXIT CODE 0! ===
