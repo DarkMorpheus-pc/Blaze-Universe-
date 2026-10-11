@@ -163,7 +163,10 @@ def capture_screendump():
     im = Image.open(PPM_SCREENSHOT)
     im.save(PNG_SCREENSHOT)
     im.save(ARTIFACT_PNG)
-    log(f"[HOST] Saved screendump to {PNG_SCREENSHOT} and artifact {ARTIFACT_PNG} (Size: {im.size})")
+    unique_png = os.path.join(ARTIFACT_DIR, "blazeos_m9_b11_niri_alacritty_real_framebuffer.png")
+    im.save(unique_png)
+    log(f"[HOST] Saved screendump to {PNG_SCREENSHOT}, {ARTIFACT_PNG}, and {unique_png} (Size: {im.size})")
+
     colors = im.getcolors(maxcolors=100000)
     log(f"[HOST] Screendump distinct colors count: {len(colors) if colors else 'many'}")
     return True

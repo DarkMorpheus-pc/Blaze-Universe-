@@ -185,9 +185,12 @@ with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
     f.write("d /run/user/1000 0700 blaze blaze -\n")
 
 # 5.14. Setup Fontconfig & Cache Directories
-if os.path.exists("/etc/fonts"):
-    os.makedirs(os.path.join(ROOTFS_DIR, "etc"), exist_ok=True)
-    subprocess.run(f"cp -rf /etc/fonts '{ROOTFS_DIR}/etc/'", shell=True, check=False)
+fonts_src = "/etc/fonts"
+fonts_dst = os.path.join(ROOTFS_DIR, "etc", "fonts")
+if os.path.exists(fonts_src):
+    os.makedirs(os.path.dirname(fonts_dst), exist_ok=True)
+    shutil.copytree(fonts_src, fonts_dst, dirs_exist_ok=True)
+
 
 os.makedirs(os.path.join(ROOTFS_DIR, "var", "cache", "fontconfig"), exist_ok=True)
 subprocess.run(f"chmod 0777 '{ROOTFS_DIR}/var/cache/fontconfig'", shell=True, check=False)
