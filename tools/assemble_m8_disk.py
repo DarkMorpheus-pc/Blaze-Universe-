@@ -204,6 +204,12 @@ blaze_cache = os.path.join(ROOTFS_DIR, "home", "blaze", ".cache", "fontconfig")
 os.makedirs(blaze_cache, exist_ok=True)
 subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze/.cache'", shell=True, check=False)
 
+blaze_niri_dir = os.path.join(ROOTFS_DIR, "home", "blaze", ".config", "niri")
+os.makedirs(blaze_niri_dir, exist_ok=True)
+if os.path.exists("/home/darkmorpheus/solarui/data/niri.kdl"):
+    shutil.copy2("/home/darkmorpheus/solarui/data/niri.kdl", os.path.join(blaze_niri_dir, "config.kdl"))
+subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze/.config'", shell=True, check=False)
+
 
 # 6. Install Limine 12.x Configuration
 limine_conf = """timeout: 3

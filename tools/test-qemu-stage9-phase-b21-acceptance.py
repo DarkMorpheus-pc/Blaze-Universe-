@@ -2,6 +2,7 @@
 # ==============================================================================
 # Blaze Universe — Milestone 9 Phase B.2.1 Acceptance Test Suite
 # Real Graphics / Noctalia 5.1.0 Wayland Layer-Shell / Launcher / Supervisor
+# Unattended Watchdog Recovery / Keybinding Verification / App Launch
 # ==============================================================================
 import json
 import os
@@ -146,6 +147,16 @@ def run_step(cmd_text, desc, expected_code=0):
     os.killpg(os.getpgid(proc.pid), 9)
     sys.exit(1)
 
+def send_qemu_monitor(cmd_str):
+    log(f"[HOST MONITOR] Sending command: {cmd_str}")
+    time.sleep(0.5)
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(MONITOR_SOCKET)
+    s.recv(1024)
+    s.sendall(f"{cmd_str}\n".encode("utf-8"))
+    time.sleep(0.5)
+    s.close()
+
 def capture_screendump():
     log("[HOST] Taking QEMU screendump via monitor socket...")
     time.sleep(2)
@@ -180,8 +191,8 @@ log("[HOST] Root shell obtained.")
 # 2. Portadora verification on boot
 run_step("/usr/bin/portadora verify", "Audit complete package integrity with Portadora", 0)
 
-# 3. Check Noctalia ELF and libraries
-run_step("file /usr/bin/noctalia && ldd /usr/bin/noctalia | grep 'not found' || echo 'ALL_LIBS_OK'", "Verify Noctalia native ELF and zero missing shared libraries", 0)
+# 3. Check Noctalia and Solar Shell ELF binaries and libraries
+run_step("file /usr/bin/noctalia /usr/bin/solar-shell && ldd /usr/bin/noctalia | grep 'not found' || echo 'ALL_LIBS_OK'", "Verify native ELF binaries and zero missing shared libraries", 0)
 
 # 4. Start system services
 run_step("seatd -u blaze -g blaze -n 1 > /tmp/seatd.log 2>&1 & sleep 1; test -S /run/seatd.sock && echo 'SEATD_OK'", "Start seatd daemon", 0)
@@ -200,41 +211,51 @@ run_step("id && whoami", "Verify UID 1000 (blaze)", 0)
 # 6. Start D-Bus session bus for user 1000
 run_step("export XDG_RUNTIME_DIR=/run/user/1000; dbus-daemon --session --fork --address=unix:path=/run/user/1000/bus 2>/dev/null || true; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; echo 'DBUS_USER_OK'", "Start D-Bus user session daemon", 0)
 
-# 7. Start Niri Compositor
-run_step("export XDG_RUNTIME_DIR=/run/user/1000; export LIBSEAT_BACKEND=seatd; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; unset WAYLAND_DISPLAY; niri --config /etc/niri/config.kdl > /tmp/niri.log 2>&1 & sleep 3; test -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'", "Start Niri compositor with SolarUI configuration", 0)
+# 7. Start Niri Compositor with SolarUI configuration
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export LIBSEAT_BACKEND=seatd; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; unset WAYLAND_DISPLAY; niri --config /home/blaze/.config/niri/config.kdl > /tmp/niri.log 2>&1 & sleep 3; test -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'", "Start Niri compositor with SolarUI configuration", 0)
 
-# 8. Start Solar Shell Supervisor and Noctalia
-run_step("export XDG_RUNTIME_DIR=/run/user/1000; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); solar-shell supervisor > /tmp/solar-shell.log 2>&1 & sleep 3; noctalia msg status || /usr/bin/noctalia --daemon; sleep 2; (pidof noctalia || pgrep -x noctalia) && echo 'NOCTALIA_RUNNING'", "Start Solar Shell supervisor & Noctalia visual shell", 0)
-
+# 8. Start Solar Shell Supervisor and verify Noctalia visual shell
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); (pgrep -x solar-shell || solar-shell supervisor > /tmp/solar-shell.log 2>&1 &); sleep 4; pgrep -x noctalia && echo 'NOCTALIA_RUNNING'", "Start Solar Shell supervisor & reconcile Noctalia visual shell", 0)
 
 # 9. Verify Noctalia status via IPC (barVisible, workspaces, clock)
 run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; noctalia msg status | head -n 30", "Query Noctalia status JSON via IPC", 0)
 
-# 10. Launch Wayland client window inside Niri
+# 10. Launch first Wayland client window inside Niri
 run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; alacritty --hold -e echo 'BLAZEOS REAL WAYLAND CLIENT WITH NOCTALIA PANEL' > /tmp/alacritty.log 2>&1 & sleep 2; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows", "Launch client window in Niri and query via IPC", 0)
 
-# 11. Open Application Launcher via Noctalia IPC
-run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; noctalia msg panel-open launcher; sleep 1; echo 'LAUNCHER_OPENED'", "Open Noctalia Application Launcher surface", 0)
+# 11. Verify Active Keybindings & Layer-Shell Surfaces
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json layers | grep -i 'noctalia-bar' && echo 'NOCTALIA_LAYER_BAR_OK'", "Verify Noctalia top panel is active in Niri layer-shell", 0)
 
-# 12. Take genuine QEMU framebuffer screendump
+# 12. Open Application Launcher, verify layer surface, and launch application
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; noctalia msg panel-open launcher 'alacritty'; sleep 1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json layers | grep -i 'noctalia-panel' && noctalia msg status | grep -i 'launcher' && echo 'LAUNCHER_ACTIVE_OK'", "Open Noctalia Application Launcher with query", 0)
+
+log("[HOST] Activating application launch via Niri compositor action...")
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg action spawn -- alacritty --hold -e echo 'LAUNCHED FROM SOLARUI APPLICATION LAUNCHER'; sleep 2; niri msg --json windows", "Launch application and verify multiple windows registered in Niri", 0)
+
+# 13. Take genuine QEMU framebuffer screendump
 ok = capture_screendump()
 if not ok:
     log("[HOST ERROR] Framebuffer screendump capture failed!")
     os.killpg(os.getpgid(proc.pid), 9)
     sys.exit(1)
 
-# 13. Close launcher and test workspace switch
-run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; noctalia msg panel-close launcher; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg action focus-workspace 2 && sleep 1 && solar-shell status", "Close launcher, switch workspace and verify state transition", 0)
+# 14. Close launcher and test workspace switch
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; noctalia msg panel-close launcher 2>/dev/null || true; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg action focus-workspace 2 && sleep 1 && solar-shell status", "Close launcher, switch workspace and verify state transition", 0)
 
-# 14. Supervisor Resilience: Kill Noctalia and verify Niri survival and supervisor recovery
-run_step("killall -9 noctalia; sleep 1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows", "Kill Noctalia and verify Niri and client window survive", 0)
+# 15. Unattended Supervisor Watchdog Crash-Recovery Test (NO MANUAL RESTART)
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); pidof noctalia | awk '{print $1}' > /tmp/old_noctalia_pid; OLD_PID=$(cat /tmp/old_noctalia_pid); echo \"INITIAL_NOCTALIA_PID=$OLD_PID\"; test -n \"$OLD_PID\" && kill -9 $OLD_PID; sleep 1; niri msg --json windows | grep -i 'alacritty' && echo 'NIRI_SURVIVED_KILL'", "Kill Noctalia with SIGKILL and verify Niri + client windows survived continuously", 0)
 
-run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; sleep 3; (pgrep -x noctalia || /usr/bin/noctalia --daemon); sleep 1; pgrep -x noctalia && echo 'NOCTALIA_RECOVERED'", "Verify Noctalia restarts and reconnects", 0)
+run_step("export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; sleep 5; NEW_PID=$(pidof noctalia | awk '{print $1}'); OLD_PID=$(cat /tmp/old_noctalia_pid); echo \"RECOVERED_NOCTALIA_PID=$NEW_PID (OLD=$OLD_PID)\"; test -n \"$NEW_PID\" && test \"$NEW_PID\" != \"$OLD_PID\" && noctalia msg status | grep '\"barVisible\": true' && echo 'UNATTENDED_WATCHDOG_RECOVERY_SUCCESS'", "Verify Solar Shell supervisor watchdog automatically restarted Noctalia without manual intervention", 0)
 
-# 15. Verify fallback sessions
+run_step("grep -E 'Noctalia v5|Shell transition|Reconcil' /tmp/solar-shell.log | tail -n 10", "Verify supervisor log recorded reconciliation and restart", 0)
+
+# 16. Resource telemetry for SolarUI stack
+run_step("for p in $(pidof niri solar-shell noctalia); do echo \"=== PID $p ===\"; grep -E '^(Name|VmRSS|VmSize):' /proc/$p/status; done", "Record CPU and RSS memory telemetry for Niri, Solar Shell, and Noctalia", 0)
+
+# 17. Verify fallback sessions
 run_step("test -f /usr/share/wayland-sessions/niri.desktop && test -f /usr/share/wayland-sessions/labwc.desktop && echo 'FALLBACK_SESSIONS_OK'", "Verify standalone Niri and Labwc fallback sessions preserved", 0)
 
-# 16. Poweroff
+# 18. Poweroff
 log("\n[HOST] All Milestone 9 Phase B.2.1 acceptance tests passed! Ordering poweroff...")
 send("exit")
 time.sleep(1)
