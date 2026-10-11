@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌌 BlazeOS Native — Blaze Universe
+# BlazeOS Native — Blaze Universe
 
 **An independent, modern, high-performance Linux distribution built from source.**  
 *Not a fork. Not a respin. Engineered from scratch with Rust, Wayland, and strict cryptographic integrity.*
@@ -16,7 +16,7 @@
 
 ---
 
-## 🌟 Overview & Vision
+## Overview & Vision
 
 **BlazeOS Native** is the foundational operating system of the **Blaze Universe** ecosystem. 
 
@@ -29,7 +29,7 @@ Unlike traditional distributions that layer scripts over Debian, Ubuntu, Fedora,
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## Architecture & Technology Stack
 
 ```
 +--------------------------------------------------------------------------+
@@ -82,7 +82,7 @@ All binaries and dynamic libraries reside in `/usr`:
 
 ---
 
-## 🚀 Quickstart: Running BlazeOS Native
+## Quickstart: Running BlazeOS Native
 
 ### Prerequisites
 - Linux host with KVM enabled (`/dev/kvm`).
@@ -110,7 +110,7 @@ cd Blaze-Universe-
 
 ---
 
-## ⌨️ Desktop Shortcuts
+## Desktop Shortcuts
 
 | Shortcut | Action |
 | :--- | :--- |
@@ -122,7 +122,7 @@ cd Blaze-Universe-
 
 ---
 
-## 📦 Portadora Package Commands
+## Portadora Package Commands
 
 ```bash
 # List all installed packages
@@ -140,7 +140,7 @@ portadora verify
 
 ---
 
-## 🛠️ Building From Source
+## Building From Source
 
 BlazeOS packages are declared using clean TOML recipes in `recipes/core/`:
 
@@ -157,7 +157,7 @@ python3 tools/assemble_m8_disk.py
 
 ---
 
-## 🌐 Distribution & Mirror Architecture
+## Distribution & Mirror Architecture
 
 To ensure high availability, redundancy, and scalable bandwidth, the Blaze Universe uses a multi-tier mirror network:
 
@@ -170,7 +170,7 @@ To ensure high availability, redundancy, and scalable bandwidth, the Blaze Unive
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 Blaze-Universe-/
@@ -188,18 +188,6 @@ Blaze-Universe-/
 │   └── specs/              # Formal specifications (Blaze Base, BLZ Format, Portadora)
 └── Cargo.toml              # Cargo workspace manifest
 ```
-
----
-
-## 🗺️ Roadmap & Milestones
-
-- [x] **Milestone 1–4:** Toolchain bootstrap, glibc 2.38+, UsrMerge rootfs layout.
-- [x] **Milestone 5:** Portadora package manager with TUF cryptographic verification.
-- [x] **Milestone 6–7:** Linux kernel integration, systemd orchestration, and security hardening.
-- [x] **Milestone 8:** Multi-package resolution, networking, and user authentication (PAM/Shadow).
-- [x] **Milestone 9:** Native Wayland desktop (Niri 26.04), Noctalia 5.1.0 Shell, fast boot optimization (<4s).
-- [ ] **Milestone 10:** Live ISO generator and graphical Calamares/Solar-Installer.
-- [ ] **Milestone 11:** Multi-architecture support (`aarch64` / ARM64).
 
 ---
 
