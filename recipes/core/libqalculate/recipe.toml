@@ -1,0 +1,18 @@
+[package]
+name = "libqalculate"
+version = "5.5.0"
+release = 1
+architecture = "x86_64"
+summary = "Multi-purpose desktop calculator and mathematical library"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44", "gmp >= 6.3.0", "mpfr >= 4.2.1"]
+provides = ["libqalculate = 5.5.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/libqalculate-dest/"* "$DESTDIR/"
+"""

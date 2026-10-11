@@ -1,0 +1,18 @@
+[package]
+name = "libical"
+version = "3.0.18"
+release = 1
+architecture = "x86_64"
+summary = "Open source implementation of the iCalendar protocols and data formats"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["libical = 3.0.18"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/libical-dest/"* "$DESTDIR/"
+"""

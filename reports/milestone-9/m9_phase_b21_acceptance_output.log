@@ -1,0 +1,260 @@
+=== STARTING MILESTONE 9 PHASE B.2.1 NOCTALIA VISUAL SHELL ACCEPTANCE TEST ===
+[HOST] Creating disposable QCOW2 overlay on top of /home/darkmorpheus/Projeler/blaze_base/build/blaze-disk-b11.raw...
+[HOST] Launching QEMU...
+[HOST] Waiting for login prompt...
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=71cfc4c42e87474e8cff848f4c78e2e7;user=root;hostname=blaze;machineid=9ca5fbca2b3141c4a63d18d69d70899e;bootid=8fd79ce782d6480a8b8da1f5979781a0;pid=104;pidfdid=67;comm=(agetty);servicename=getty@ttyS0.service;invocationid=02b1e56b4543401591c62af79642dfbc;type=service\P+q6E616D65\
+blaze login: root
+-bash-5.3# [HOST] Root shell obtained.
+
+>>> EXECUTING: Audit complete package integrity with Portadora
+
+-bash-5.3# /usr/bin/portadora verify
+Package verification completed with notices (0 unreadable privileged, 3 mutable config).
+-bash-5.3# echo '__SENTINEL_1791718463588__:'$?
+__SENTINEL_1791718463588__:0
+[HOST RESULT] [Audit complete package integrity with Portadora] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify Noctalia native ELF and zero missing shared libraries
+
+-bash-5.3# <n/noctalia | grep 'not found' || echo 'ALL_LIBS_OK'
+file: could not find any valid magic files! (No such file or directory)
+ALL_LIBS_OK
+-bash-5.3# echo '__SENTINEL_1791718475826__:'$?
+__SENTINEL_1791718475826__:0
+[HOST RESULT] [Verify Noctalia native ELF and zero missing shared libraries] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start seatd daemon
+
+-bash-5.3# <sleep 1; test -S /run/seatd.sock && echo 'SEATD_OK'
+[1] 152
+SEATD_OK
+-bash-5.3# echo '__SENTINEL_1791718475834__:'$?
+__SENTINEL_1791718475834__:0
+[HOST RESULT] [Start seatd daemon] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start D-Bus system daemon
+
+-bash-5.3# < && dbus-daemon --system --fork 2>/dev/null || true
+-bash-5.3# echo '__SENTINEL_1791718476841__:'$?
+__SENTINEL_1791718476841__:0
+[HOST RESULT] [Start D-Bus system daemon] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Ensure /run/user/1000 permissions
+
+-bash-5.3# </user/1000 /home/blaze && chmod 0700 /run/user/1000
+-bash-5.3# echo '__SENTINEL_1791718476849__:'$?
+__SENTINEL_1791718476849__:0
+[HOST RESULT] [Ensure /run/user/1000 permissions] Exit Code: 0 (Expected: 0)
+
+[HOST] Switching to unprivileged user 'blaze' (UID 1000)...
+
+-bash-5.3# su - blaze
+-bash-5.3$ [HOST] User 'blaze' shell active.
+
+>>> EXECUTING: Verify UID 1000 (blaze)
+id && whoami
+uid=1000(blaze) gid=1000(blaze) groups=1000(blaze)
+blaze
+-bash-5.3$ echo '__SENTINEL_1791718477856__:'$?
+__SENTINEL_1791718477856__:0
+[HOST RESULT] [Verify UID 1000 (blaze)] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start D-Bus user session daemon
+
+-bash-5.3$ <S=unix:path=/run/user/1000/bus; echo 'DBUS_USER_OK'
+DBUS_USER_OK
+-bash-5.3$ echo '__SENTINEL_1791718477861__:'$?
+__SENTINEL_1791718477861__:0
+[HOST RESULT] [Start D-Bus user session daemon] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start Niri compositor with SolarUI configuration
+
+-bash-5.3$ <st -S /run/user/1000/wayland-1 && echo 'WAYLAND_OK'
+[1] 170
+WAYLAND_OK
+-bash-5.3$ echo '__SENTINEL_1791718477871__:'$?
+__SENTINEL_1791718477871__:0
+[HOST RESULT] [Start Niri compositor with SolarUI configuration] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Start Solar Shell supervisor & Noctalia visual shell
+
+-bash-5.3$ <ia || pgrep -x noctalia) && echo 'NOCTALIA_RUNNING'
+[2] 200
+[2]+  Done                       solar-shell supervisor > /tmp/solar-shell.log 2>&1
+{
+  "barVisible": true,
+  "panelOpen": true,
+  "activePanelId": "setup-wizard",
+  "locked": false
+}
+215
+NOCTALIA_RUNNING
+-bash-5.3$ echo '__SENTINEL_1791718480881__:'$?
+__SENTINEL_1791718480881__:0
+[HOST RESULT] [Start Solar Shell supervisor & Noctalia visual shell] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Query Noctalia status JSON via IPC
+
+-bash-5.3$ <DISPLAY=wayland-1; noctalia msg status | head -n 30
+{
+  "barVisible": true,
+  "panelOpen": true,
+  "activePanelId": "setup-wizard",
+  "locked": false
+}
+-bash-5.3$ echo '__SENTINEL_1791718485923__:'$?
+__SENTINEL_1791718485923__:0
+[HOST RESULT] [Query Noctalia status JSON via IPC] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Launch client window in Niri and query via IPC
+
+export XDG_RUNTIME_DIR=/run/user/1000; export WAYLAND_DISPLAY=wayland-1; alacritty --hold -e echo 'BLAZEOS REAL WAYLAND CLIENT WITH NOCTALIA PANEL' > /tmp/alacritty.log 2>&1 & sleep 2; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows
+echo '__SENTINEL_1791718485951__:'$?
+-bash-5.3$ <00/niri.*.sock | head -n1); niri msg --json windows
+[2] 308
+[{"id":2,"title":"Alacritty","app_id":"Alacritty","pid":308,"workspace_id":1,"is_focused":true,"is_floating":false,"is_urgent":false,"layout":{"pos_in_scrolling_layout":[1,1],"tile_size":[628.0,750.0],"window_size":[628,750],"tile_pos_in_workspace_view":null,"window_offset_in_tile":[0.0,0.0]},"focus_timestamp":{"secs":31,"nanos":426326163}}]
+-bash-5.3$ echo '__SENTINEL_1791718485951__:'$?
+__SENTINEL_1791718485951__:0
+-bash-5.3$ 
+[HOST RESULT] [Launch client window in Niri and query via IPC] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Open Noctalia Application Launcher surface
+<anel-open launcher; sleep 1; echo 'LAUNCHER_OPENED'
+ok
+LAUNCHER_OPENED
+-bash-5.3$ echo '__SENTINEL_1791718487973__:'$?
+__SENTINEL_1791718487973__:0
+[HOST RESULT] [Open Noctalia Application Launcher surface] Exit Code: 0 (Expected: 0)
+[HOST] Taking QEMU screendump via monitor socket...
+[HOST] Saved screendump to /tmp/blazeos_m9_b21_noctalia_real_framebuffer.png and artifact /home/darkmorpheus/.gemini/antigravity/brain/edfcc68e-d62a-469a-afaa-c49b73f87c64/blazeos_m9_b21_noctalia_real_framebuffer.png (Size: (1280, 800))
+[HOST] Screendump distinct colors count: 7031
+
+>>> EXECUTING: Close launcher, switch workspace and verify state transition
+
+-bash-5.3$ < focus-workspace 2 && sleep 1 && solar-shell status
+ok
+[2m2026-10-11T11:34:53.175740Z[0m [32m INFO[0m [2msolar_shell::ipc[0m[2m:[0m Connecting to SolarCore IPC at "/run/user/1000/solar/core.sock"...
+┌──────────────
+                         SOLAR SHELL SUPERVISOR                         
+──
+ Desired Shell Engine: noctalia             Profile: balanced          
+ Actual Shell Engine:  noctalia             Status:  Reconciled (OK)   
+
+ Workspaces:  1                   Time: 11:34    Date: 11 Oct, Sun     
+ Network:     Offline            Battery: AC                             
+
+ Active Running Windows (0):                                            
+──
+-bash-5.3$ echo '__SENTINEL_1791718492112__:'$?
+__SENTINEL_1791718492112__:0
+[HOST RESULT] [Close launcher, switch workspace and verify state transition] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Kill Noctalia and verify Niri and client window survive
+
+killall -9 noctalia; sleep 1; export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock | head -n1); niri msg --json windows
+echo '__SENTINEL_1791718493600__:'$?
+-bash-5.3$ <00/niri.*.sock | head -n1); niri msg --json windows
+[{"id":2,"title":"Alacritty","app_id":"Alacritty","pid":308,"workspace_id":1,"is_focused":false,"is_floating":false,"is_urgent":false,"layout":{"pos_in_scrolling_layout":[1,1],"tile_size":[628.0,784.0],"window_size":[628,784],"tile_pos_in_workspace_view":null,"window_offset_in_tile":[0.0,0.0]},"focus_timestamp":{"secs":31,"nanos":426326163}}]
+-bash-5.3$ echo '__SENTINEL_1791718493600__:'$?
+__SENTINEL_1791718493600__:0
+[HOST RESULT] [Kill Noctalia and verify Niri and client window survive] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify Noctalia restarts and reconnects
+
+-bash-5.3$ <p 1; pgrep -x noctalia && echo 'NOCTALIA_RECOVERED'
+11:34:57.664 [[32mINF[0m] [[34mfdlimit[0m] RLIMIT_NOFILE soft limit raised 1024 -> 524288
+11:34:57.665 [[32mINF[0m] [[34mconfig[0m] loading /home/blaze/.local/state/noctalia/settings.toml
+11:34:57.665 [[32mINF[0m] [[34mstate[0m] loading /home/blaze/.local/state/noctalia/state.toml
+11:34:57.666 [[32mINF[0m] [[34mconfig[0m] no [bar.*] defined, using defaults
+11:34:57.666 [[32mINF[0m] [[34mconfig[0m] 1 bar(s) defined
+11:34:57.667 [[32mINF[0m] [[34mconfig[0m] bar order: default
+11:34:57.667 [[32mINF[0m] [[34mconfig[0m] idle behaviors=3
+11:34:57.667 [[32mINF[0m] [[34mconfig[0m] hooks kinds with commands=0
+11:34:57.668 [[32mINF[0m] [[34mthumbnail[0m] spawned 2 decode worker(s)
+11:34:57.669 [[32mINF[0m] [[34mapp[0m] noctalia v5.1.0 (8b68a3094595-dirty)
+11:34:57.693 [[32mINF[0m] [[34mi18n[0m] language: en
+11:34:57.695 [[32mINF[0m] [[34mseat[0m] keyboard: bound
+11:34:57.695 [[32mINF[0m] [[34mseat[0m] pointer: bound
+11:34:57.695 [[32mINF[0m] [[34mseat[0m] pointer: cursor-shape-v1 available
+xkbcommon: ERROR: [XKB-679] No Compose file for locale "en_US.UTF-8": locale is either invalid or not installed
+xkbcommon: ERROR: [XKB-679] couldn't find a Compose file for locale "C" (mapped to "C")
+11:34:57.697 [[32mINF[0m] [[34mseat[0m] keyboard: keymap loaded
+11:34:57.697 [[32mINF[0m] [[34mwayland[0m] connected compositor=yes shm=yes layer-shell=yes xdg-shell=yes xdg-output=yes ext-workspace=yes kde-vd=no dwl-ipc=no session-lock=yes fractional-scale=yes gamma-control=yes output-management=yes outputs=1
+11:34:57.698 [[32mINF[0m] [[34mwayland[0m] output Virtual-1 global=43 wl_scale=1 detected_fractional_scale=1.000 logical=1280x800 mode=1280x800 orientation=normal desc="Red Hat, Inc. - QEMU Monitor - Virtual-1"
+11:34:57.698 [[32mINF[0m] [[34mworkspace[0m] workspace backend=ext-workspace
+MESA-EGL: warning: egl: failed to create dri2 screen
+MESA-EGL: warning: egl: failed to create dri2 screen
+11:34:57.720 [[32mINF[0m] [[34mgl[0m] requesting robust EGL contexts with graphics reset notification
+11:34:57.730 [[32mINF[0m] [[34mgl[0m] initialized EGL 1.5 with shared root context
+11:34:57.730 [[32mINF[0m] [[34mtext-input[0m] text-input-v3 bound
+11:34:57.730 [[32mINF[0m] [[34mapp[0m] distro: BlazeOS Native (Blaze Universe)
+11:34:57.730 [[32mINF[0m] [[34msysmon[0m] detected stats sources: cpu=/proc/stat memory=/proc/meminfo network=/proc/net/dev (2 active) load=/proc/loadavg disk=statvfs
+11:34:57.731 [[33mWRN[0m] [[34msysmon[0m] detected CPU temperature source: unavailable; no CPU temperature sensor found
+11:34:57.731 [[32mINF[0m] [[34mapp[0m] system monitor service active
+11:34:57.731 [[32mINF[0m] [[34mapp[0m] connected to system bus
+11:34:57.731 [[32mINF[0m] [[34mapp[0m] logind not available on system bus; sleep monitor disabled
+11:34:57.732 [[32mINF[0m] [[34mapp[0m] accounts service disabled: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.freedesktop.Accounts: No such file or directory
+11:34:57.732 [[32mINF[0m] [[34mapp[0m] power profiles service active (state loading asynchronously)
+11:34:57.734 [[33mWRN[0m] [[34mupower[0m] GetDisplayDevice failed: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.freedesktop.UPower: No such file or directory
+11:34:57.734 [[33mWRN[0m] [[34mupower[0m] EnumerateDevices failed: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.freedesktop.UPower: No such file or directory
+11:34:57.735 [[32mINF[0m] [[34mupower[0m] connected (no system battery present)
+11:34:57.735 [[33mWRN[0m] [[34mkeyboard-backlight[0m] failed to enumerate keyboard backlights: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.freedesktop.UPower: No such file or directory
+11:34:57.736 [[33mWRN[0m] [[34mapp[0m] NetworkManager unavailable ([org.freedesktop.DBus.Error.ServiceUnknown] The name org.freedesktop.NetworkManager was not provided by any .service files), trying wpa_supplicant
+11:34:57.736 [[33mWRN[0m] [[34mapp[0m] wpa_supplicant unavailable ([org.freedesktop.DBus.Error.ServiceUnknown] The name fi.w1.wpa_supplicant1 was not provided by any .service files), trying iwd
+11:34:57.736 [[33mWRN[0m] [[34mapp[0m] network service disabled: [org.freedesktop.DBus.Error.ServiceUnknown] The name net.connman.iwd was not provided by any .service files
+11:34:57.736 [[32mINF[0m] [[34mapp[0m] bluetooth service active
+11:34:57.736 [[33mWRN[0m] [[34mbluetooth[0m] BlueZ agent registration failed: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.bluez: No such file or directory
+11:34:57.737 [[32mINF[0m] [[34mmodem[0m] modem manager not on the bus; waiting for it to appear
+11:34:57.737 [[32mINF[0m] [[34mapp[0m] modem manager service active
+11:34:57.737 [[33mWRN[0m] [[34mbrightness[0m] failed to resolve logind session: [org.freedesktop.DBus.Error.Spawn.ExecFailed] Failed to execute program org.freedesktop.login1: No such file or directory
+[E] pw.loop [loop.c:70 pw_loop_new()] 0x7f5eea81db60: can't make support.system handle: No such file or directory
+11:34:57.737 [[33mWRN[0m] [[34mapp[0m] pipewire disabled: pipewire: failed to create loop
+11:34:57.738 [[32mINF[0m] [[34mapp[0m] connected to session bus
+11:34:57.738 [[32mINF[0m] [[34mapp[0m] debug service active on dev.noctalia.Debug
+11:34:57.738 [[32mINF[0m] [[34mapp[0m] mpris discovery active
+11:34:57.739 [[32mINF[0m] [[34mapp[0m] listening on org.freedesktop.Notifications
+11:34:57.760 [[33mWRN[0m] [[34mplugins[0m] plugin source 'official': cannot prepare source cache: 
+11:34:57.762 [[33mWRN[0m] [[34mplugins[0m] plugin source 'community': cannot prepare source cache: 
+11:34:57.770 [[32mINF[0m] [[34mrender[0m] EGL vendor="Mesa Project" version="1.5" APIs="OpenGL OpenGL_ES "
+11:34:57.770 [[32mINF[0m] [[34mrender[0m] OpenGL ES vendor="Mesa" renderer="llvmpipe (LLVM 22.1.8, 256 bits)" version="OpenGL ES 3.2 Mesa 26.2.3-arch3.1"
+11:34:57.770 [[32mINF[0m] [[34mrender[0m] graphics reset status polling enabled
+11:34:57.775 [[32mINF[0m] [[34mbackdrop[0m] disabled in config
+11:34:57.776 [[32mINF[0m] [[34mclipboard[0m] clipboard service bound via ext_data_control_manager_v1
+I/O warning : failed to load "/usr/share/qalculate/prefixes.xml": No such file or directory
+I/O warning : failed to load "/usr/share/qalculate/currencies.xml": No such file or directory
+I/O warning : failed to load "/usr/share/qalculate/units.xml": No such file or directory
+I/O warning : failed to load "/usr/share/qalculate/functions.xml": No such file or directory
+I/O warning : failed to load "/usr/share/qalculate/datasets.xml": No such file or directory
+I/O warning : failed to load "/usr/share/qalculate/variables.xml": No such file or directory
+11:34:57.812 [[32mINF[0m] [[34mscreensaver[0m] listening on org.freedesktop.ScreenSaver (2 object path(s))
+11:34:57.813 [[32mINF[0m] [[34mdock[0m] dock disabled in config
+11:34:57.813 [[32mINF[0m] [[34mwallpaper[0m] creating on Virtual-1 (Red Hat, Inc. - QEMU Monitor - Virtual-1), path=/usr/share/noctalia/assets/noctalia-wallpaper.png
+11:34:57.814 [[32mINF[0m] [[34mbar[0m] creating #0 "default" on Virtual-1 (Red Hat, Inc. - QEMU Monitor - Virtual-1), thickness=34 position=top reserve_space=true exclusive_zone=34
+11:34:57.884 [[32mINF[0m] [[34mapp[0m] IPC socket at /run/user/1000/noctalia-wayland-1.sock
+11:34:57.884 [[32mINF[0m] [[34mdmenu[0m] listening on /run/user/1000/noctalia-dmenu-wayland-1.sock
+11:34:57.885 [[32mINF[0m] [[34mtelemetry[0m] telemetry disabled
+noctalia started [pid: 362]
+362
+NOCTALIA_RECOVERED
+-bash-5.3$ echo '__SENTINEL_1791718494617__:'$?
+__SENTINEL_1791718494617__:0
+[HOST RESULT] [Verify Noctalia restarts and reconnects] Exit Code: 0 (Expected: 0)
+
+>>> EXECUTING: Verify standalone Niri and Labwc fallback sessions preserved
+
+-bash-5.3$ <ssions/labwc.desktop && echo 'FALLBACK_SESSIONS_OK'
+FALLBACK_SESSIONS_OK
+-bash-5.3$ echo '__SENTINEL_1791718498901__:'$?
+__SENTINEL_1791718498901__:0
+[HOST RESULT] [Verify standalone Niri and Labwc fallback sessions preserved] Exit Code: 0 (Expected: 0)
+
+[HOST] All Milestone 9 Phase B.2.1 acceptance tests passed! Ordering poweroff...
+
+-bash-5.3$ exit
+logout
+-bash-5.3# poweroff
+[0;1;38:5:185mFailed to set wall message, ignoring: Failed to execute program org.freedesktop.login1: No such file or directory[0m
+[0;1;31mCall to PowerOff failed: Failed to execute program org.freedesktop.login1: No such file or directory[0m
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=71cfc4c42e87474e8cff8[r[H[3Jc[   45.757408] reboot: Power down
+
+=== ALL MILESTONE 9 PHASE B.2.1 TESTS COMPLETED SUCCESSFULLY WITH EXIT CODE 0! ===

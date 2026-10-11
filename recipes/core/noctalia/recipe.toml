@@ -1,0 +1,18 @@
+[package]
+name = "noctalia"
+version = "5.1.0"
+release = 1
+architecture = "x86_64"
+summary = "Native Wayland Layer-Shell Desktop UI Engine for SolarUI"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44", "sdbus-cpp >= 2.1.0", "tomlplusplus >= 3.4.0", "librsvg >= 2.59.2", "solar-shell >= 1.0.0"]
+provides = ["noctalia = 5.1.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/noctalia-dest/"* "$DESTDIR/"
+"""

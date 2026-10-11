@@ -1,0 +1,18 @@
+[package]
+name = "sdbus-cpp"
+version = "2.1.0"
+release = 1
+architecture = "x86_64"
+summary = "High-level C++ D-Bus library for Linux"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["sdbus-cpp = 2.1.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/sdbus-cpp-dest/"* "$DESTDIR/"
+"""

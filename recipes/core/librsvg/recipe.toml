@@ -1,0 +1,18 @@
+[package]
+name = "librsvg"
+version = "2.59.2"
+release = 1
+architecture = "x86_64"
+summary = "SVG rendering library for Cairo/Pango"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44", "pixman >= 0.44.2", "freetype >= 2.13.3", "fontconfig >= 2.15.0"]
+provides = ["librsvg = 2.59.2"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/librsvg-dest/"* "$DESTDIR/"
+"""

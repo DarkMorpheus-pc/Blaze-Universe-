@@ -1,0 +1,18 @@
+[package]
+name = "jemalloc"
+version = "5.3.0"
+release = 1
+architecture = "x86_64"
+summary = "General purpose malloc implementation emphasizing fragmentation avoidance"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["jemalloc = 5.3.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/jemalloc-dest/"* "$DESTDIR/"
+"""

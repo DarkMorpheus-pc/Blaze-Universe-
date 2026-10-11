@@ -1,0 +1,18 @@
+[package]
+name = "polkit"
+version = "0.124"
+release = 1
+architecture = "x86_64"
+summary = "Application-level authorization toolkit and agent libraries"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["polkit = 0.124"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/polkit-dest/"* "$DESTDIR/"
+"""

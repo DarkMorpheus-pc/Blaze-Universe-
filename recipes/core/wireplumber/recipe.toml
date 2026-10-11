@@ -1,0 +1,18 @@
+[package]
+name = "wireplumber"
+version = "0.5.6"
+release = 1
+architecture = "x86_64"
+summary = "Modular session / policy manager for PipeWire"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44", "pipewire >= 1.2.0"]
+provides = ["wireplumber = 0.5.6"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/wireplumber-dest/"* "$DESTDIR/"
+"""

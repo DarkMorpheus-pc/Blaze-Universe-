@@ -1,0 +1,18 @@
+[package]
+name = "libaudio-codecs"
+version = "1.0.0"
+release = 1
+architecture = "x86_64"
+summary = "Audio decoding and encoding runtime libraries (Sndfile, Ogg, Vorbis, FLAC, Opus, MP3)"
+license = "LGPL-2.1-or-later OR GPL-3.0-or-later OR MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://blazeos.org"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["libaudio-codecs = 1.0.0"]
+
+[build]
+script = """
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/libaudio-codecs-dest/"* "$DESTDIR/"
+"""

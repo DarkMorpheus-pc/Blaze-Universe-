@@ -48,7 +48,11 @@ shutil.copy2(INITRD_729, os.path.join(ROOTFS_DIR, "boot", "initramfs-blaze.img")
 # Copy modules
 KMOD_DIR = os.path.join(K729_DEST, "usr", "lib", "modules")
 if os.path.exists(KMOD_DIR):
-    subprocess.run(f"cp -au '{KMOD_DIR}'/* '{ROOTFS_DIR}/usr/lib/modules/'", shell=True, check=False)
+    build_sym = os.path.join(ROOTFS_DIR, "usr", "lib", "modules", "7.2.9", "build")
+    if os.path.isdir(build_sym) and not os.path.islink(build_sym):
+        shutil.rmtree(build_sym, ignore_errors=True)
+    subprocess.run(f"cp -a '{KMOD_DIR}'/* '{ROOTFS_DIR}/usr/lib/modules/'", shell=True, check=False)
+
 
 # 3. Preserve Kernel 7.2.8 Fallback
 K728_VMLINUZ = os.path.join(BUILD_DIR, "kernel_7.2_work", "kernel-dest", "boot", "vmlinuz-linux")
@@ -187,9 +191,10 @@ with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
 # 5.14. Setup Fontconfig & Cache Directories
 fonts_src = "/etc/fonts"
 fonts_dst = os.path.join(ROOTFS_DIR, "etc", "fonts")
-if os.path.exists(fonts_src):
+if os.path.exists(fonts_src) and not os.path.exists(fonts_dst):
     os.makedirs(os.path.dirname(fonts_dst), exist_ok=True)
-    shutil.copytree(fonts_src, fonts_dst, dirs_exist_ok=True)
+    shutil.copytree(fonts_src, fonts_dst, symlinks=True, dirs_exist_ok=True)
+
 
 
 os.makedirs(os.path.join(ROOTFS_DIR, "var", "cache", "fontconfig"), exist_ok=True)
