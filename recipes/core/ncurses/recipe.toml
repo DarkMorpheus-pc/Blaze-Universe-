@@ -1,0 +1,33 @@
+[package]
+name = "ncurses"
+version = "6.5"
+release = 1
+architecture = "x86_64"
+summary = "Terminal handling library and terminal control utilities (clear, tput, reset)"
+license = "MIT"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://invisible-island.net/ncurses/"
+
+[dependencies]
+provides = [
+    "ncurses = 6.5",
+    "cmd:clear",
+    "cmd:tput",
+    "cmd:reset"
+]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+mkdir -p "$DESTDIR/usr/share/terminfo"
+
+for b in clear tput reset tabs; do
+    if [ -f "/usr/bin/$b" ]; then
+        cp -a "/usr/bin/$b" "$DESTDIR/usr/bin/"
+    fi
+done
+
+if [ -d "/usr/share/terminfo" ]; then
+    cp -a /usr/share/terminfo/* "$DESTDIR/usr/share/terminfo/" 2>/dev/null || true
+fi
+"""

@@ -404,7 +404,29 @@ fn main() -> Result<()> {
                 if path.is_file() && p.ends_with(".blz") {
                     local_pkgs.push(path.to_path_buf());
                 } else {
-                    remote_pkgs.push(p.clone());
+                    // Check local package cache (/var/cache/portadora/packages) for matching package
+                    let cache_dir = root.join("var/cache/portadora/packages");
+                    let mut found_cached = None;
+                    if cache_dir.is_dir() {
+                        if let Ok(entries) = fs::read_dir(&cache_dir) {
+                            for entry in entries.flatten() {
+                                let ep = entry.path();
+                                if ep.extension().map(|e| e == "blz").unwrap_or(false) {
+                                    if let Some(fname) = ep.file_name().and_then(|f| f.to_str()) {
+                                        if fname.starts_with(&format!("{}-", p)) {
+                                            found_cached = Some(ep);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if let Some(cached_pkg) = found_cached {
+                        local_pkgs.push(cached_pkg);
+                    } else {
+                        remote_pkgs.push(p.clone());
+                    }
                 }
             }
 

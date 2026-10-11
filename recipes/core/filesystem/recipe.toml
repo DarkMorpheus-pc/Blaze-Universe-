@@ -1,7 +1,7 @@
 [package]
 name = "filesystem"
 version = "0.1.0"
-release = 3
+release = 4
 architecture = "x86_64"
 summary = "Base filesystem layout, UsrMerge symlinks and system release files"
 description = "The foundational layout package for BlazeOS Native, enforcing strict UsrMerge and FHS standards."
@@ -139,8 +139,7 @@ echo "blaze" > "$DESTDIR/etc/hostname"
 cat << 'EOF' > "$DESTDIR/etc/fstab"
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 LABEL=blaze-root   /               ext4    rw,relatime     0       1
-LABEL=BLAZE-EFI    /boot/efi       vfat    defaults,nofail 0       2
-LABEL=blaze-build  /build          ext4    defaults,nofail 0       2
+LABEL=BLAZE-EFI    /boot/efi       vfat    defaults,nofail,x-systemd.device-timeout=1s 0       2
 EOF
 
 chmod 0644 "$DESTDIR/etc/os-release" "$DESTDIR/etc/shells" "$DESTDIR/etc/passwd" "$DESTDIR/etc/group" "$DESTDIR/etc/nsswitch.conf" "$DESTDIR/etc/ld.so.conf" "$DESTDIR/etc/hostname" "$DESTDIR/etc/fstab"

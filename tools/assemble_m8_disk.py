@@ -241,7 +241,15 @@ if os.path.exists(remediate_script):
 tmpfiles_dir = os.path.join(ROOTFS_DIR, "usr", "lib", "tmpfiles.d")
 os.makedirs(tmpfiles_dir, exist_ok=True)
 with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
-    f.write("d /run/user/1000 0700 blaze blaze -\n")
+    f.write("""d /run/user/1000 0700 blaze blaze -
+Z /home/blaze 0755 blaze blaze -
+d /home/blaze/.config 0755 blaze blaze -
+d /home/blaze/.local 0755 blaze blaze -
+d /home/blaze/.local/state 0755 blaze blaze -
+d /home/blaze/.local/state/noctalia 0755 blaze blaze -
+d /home/blaze/.local/share 0755 blaze blaze -
+d /home/blaze/.cache 0755 blaze blaze -
+""")
 
 # Ensure clean fstab (no phantom partitions causing 90s timeout)
 with open(os.path.join(etc_dir, "fstab"), "w") as f:
