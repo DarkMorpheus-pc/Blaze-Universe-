@@ -243,6 +243,21 @@ os.makedirs(tmpfiles_dir, exist_ok=True)
 with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
     f.write("d /run/user/1000 0700 blaze blaze -\n")
 
+# Ensure clean fstab (no phantom partitions causing 90s timeout)
+with open(os.path.join(etc_dir, "fstab"), "w") as f:
+    f.write("""# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+LABEL=blaze-root   /               ext4    rw,relatime     0       1
+LABEL=BLAZE-EFI    /boot/efi       vfat    defaults,nofail,x-systemd.device-timeout=1s 0       2
+""")
+
+# Ensure getty@tty1 is explicitly enabled for autologin to SolarUI
+for target in ["getty.target.wants", "multi-user.target.wants"]:
+    wants_dir = os.path.join(etc_dir, "systemd", "system", target)
+    os.makedirs(wants_dir, exist_ok=True)
+    symlink_path = os.path.join(wants_dir, "getty@tty1.service")
+    if not os.path.exists(symlink_path):
+        os.symlink("/usr/lib/systemd/system/getty@.service", symlink_path)
+
 # 5.14. Setup Fontconfig & Cache Directories
 fonts_src = "/etc/fonts"
 fonts_dst = os.path.join(ROOTFS_DIR, "etc", "fonts")

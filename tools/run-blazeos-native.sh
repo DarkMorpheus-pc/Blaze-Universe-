@@ -75,5 +75,6 @@ exec qemu-system-x86_64 \
     -drive "file=${OVERLAY_DISK},format=qcow2,if=virtio,id=drv0" \
     -device intel-hda \
     -device hda-duplex \
+    -serial mon:stdio \
     -net none
 
