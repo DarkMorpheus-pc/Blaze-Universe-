@@ -16,7 +16,7 @@ LIMINE_DATA="${LIMINE_DIR}"
 KERNEL="${KERNEL_DEST}/boot/vmlinuz-blaze-7.2.9"
 INITRAMFS="${KERNEL_DEST}/boot/initramfs-blaze-7.2.9.img"
 
-for tool in mksquashfs xorriso; do
+for tool in mksquashfs xorriso cargo mkfs.vfat mkfs.ext4 unsquashfs; do
     command -v "${tool}" >/dev/null || {
         echo "[ERROR] Required host tool is missing: ${tool}" >&2
         exit 1
@@ -33,7 +33,7 @@ done
 
 echo "[LIVE-ISO] Preparing staging tree..."
 rm -rf "${STAGING}"
-mkdir -p "${STAGING}/boot" "${STAGING}/EFI/BOOT" "${STAGING}/blaze" \
+mkdir -p "${STAGING}/boot" "${STAGING}/EFI/BOOT" "${STAGING}/blaze" "${STAGING}/installer" \
          "${STAGING}/.disk" "${OUTPUT_DIR}"
 
 cp "${KERNEL}" "${STAGING}/boot/vmlinuz-blaze-7.2.9"
@@ -42,6 +42,25 @@ cp "${LIMINE_DATA}/limine-bios-cd.bin" "${STAGING}/boot/"
 cp "${LIMINE_DATA}/limine-bios.sys" "${STAGING}/boot/"
 cp "${LIMINE_DATA}/limine-uefi-cd.bin" "${STAGING}/boot/"
 cp "${LIMINE_DATA}/BOOTX64.EFI" "${STAGING}/EFI/BOOT/BOOTX64.EFI"
+cp "${LIMINE_DATA}/BOOTX64.EFI" "${STAGING}/installer/BOOTX64.EFI"
+cp "${LIMINE_DATA}/limine-bios.sys" "${STAGING}/installer/limine-bios.sys"
+cp "${LIMINE_TOOL}" "${STAGING}/installer/limine"
+
+echo "[LIVE-ISO] Building and staging the Solar Installer engine..."
+cargo build --release --manifest-path "${BLAZE_ROOT}/Cargo.toml" -p solar-installer
+install -Dm755 "${BLAZE_ROOT}/target/release/solar-installer" \
+    "${ROOTFS}/usr/bin/solar-installer"
+
+# Bundle the deployment tools and their resolved runtime libraries. Retaining
+# them in the installed root also supports later recovery and repair workflows.
+for live_tool in mkfs.vfat mkfs.ext4 unsquashfs; do
+    tool_path="$(command -v "${live_tool}")"
+    install -Dm755 "${tool_path}" "${ROOTFS}${tool_path}"
+    while read -r library; do
+        [[ -n "${library}" && -f "${library}" ]] || continue
+        install -Dm755 "${library}" "${ROOTFS}${library}"
+    done < <(ldd "${tool_path}" | awk '/=> \// {print $3} /^\// {print $1}')
+done
 
 cat > "${STAGING}/limine.conf" <<'EOF'
 timeout: 3
@@ -51,13 +70,13 @@ default_entry: 1
     protocol: linux
     kernel_path: boot():/boot/vmlinuz-blaze-7.2.9
     module_path: boot():/boot/initramfs-blaze-7.2.9.img
-    cmdline: blaze.live=1 ro console=ttyS0 console=tty0 quiet loglevel=3
+    cmdline: blaze.live=1 systemd.gpt_auto=0 ro console=ttyS0 console=tty0 quiet loglevel=3
 
 /Blaze Emergency Recovery Environment
     protocol: linux
     kernel_path: boot():/boot/vmlinuz-blaze-7.2.9
     module_path: boot():/boot/initramfs-blaze-7.2.9.img
-    cmdline: blaze.live=1 ro console=ttyS0 console=tty0 berp
+    cmdline: blaze.live=1 systemd.gpt_auto=0 ro console=ttyS0 console=tty0 berp
 EOF
 cp "${STAGING}/limine.conf" "${STAGING}/EFI/BOOT/limine.conf"
 
@@ -71,11 +90,11 @@ cp -a "${KERNEL_DEST}/usr/lib/modules/7.2.9" "${ROOTFS}/usr/lib/modules/7.2.9"
 echo "[LIVE-ISO] Compressing immutable root filesystem..."
 mksquashfs "${ROOTFS}" "${STAGING}/blaze/rootfs.squashfs" \
     -noappend -comp gzip -b 1M -all-root -wildcards \
-    -e 'boot/*' 'dev/*' 'proc/*' 'run/*' 'sys/*' 'tmp/*'
+    -e 'boot/*' 'dev/*' 'proc/*' 'run/*' 'sys/*' 'tmp/*' 'etc/fstab'
 
 (
     cd "${STAGING}"
-    find blaze boot -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+    find blaze boot installer -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
 )
 
 echo "[LIVE-ISO] Creating hybrid BIOS/UEFI ISO..."

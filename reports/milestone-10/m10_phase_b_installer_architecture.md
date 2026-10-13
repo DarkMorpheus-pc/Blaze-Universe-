@@ -13,8 +13,8 @@ Date: 2026-10-13
   not depend on an experimental Calamares release.
 - Current util-linux `sfdisk` documentation recommends exclusive device
   locking to avoid udev races and MiB-based/default placement for portable
-  alignment. The planned transaction uses GPT, `--lock`, explicit signature
-  wiping, and named type GUIDs.
+  alignment. The transaction holds its own exclusive lock for its complete
+  lifetime and uses GPT, explicit signature wiping, and named type GUIDs.
 
 Primary references:
 
@@ -34,7 +34,8 @@ planner:
 - requires at least 16 GiB;
 - validates that the live SquashFS source exists;
 - emits a machine-readable versioned JSON plan;
-- defines a 512 MiB EFI System Partition and a Linux x86-64 root partition;
+- defines a 1 MiB BIOS Boot partition, a 512 MiB EFI System Partition, and a
+  Linux x86-64 root partition;
 - records the ordered deployment and verification transaction;
 - performs no writes in `probe` or `plan` mode.
 
@@ -42,7 +43,6 @@ The host NVMe containing the active system was correctly reported as blocked.
 A 20 GiB sparse regular-file fixture produced the expected plan without being
 modified.
 
-The next Phase B.2 slice will implement the privileged transaction executor
-against a disposable QEMU target disk, with exact target confirmation,
-exclusive locking, cleanup guards, post-install verification, and no access
-to host storage devices.
+Phase B.2 implemented the privileged transaction executor and verified it on
+a disposable QEMU disk. See `m10_phase_b2_transaction_report.md` for the
+transaction, failure-path, UEFI, and legacy BIOS evidence.

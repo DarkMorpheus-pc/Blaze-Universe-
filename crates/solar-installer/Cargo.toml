@@ -1,6 +1,6 @@
 [package]
 name = "solar-installer"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["BlazeOS Core Team <core@blazeos.org>"]
 description = "Safety-first installation planner and deployment engine for BlazeOS Native"
@@ -10,4 +10,8 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tempfile = { workspace = true }
+libc = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
 

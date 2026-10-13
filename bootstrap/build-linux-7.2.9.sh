@@ -325,6 +325,9 @@ int main(int argc, char *argv[]) {
     const char *candidates[] = {
         "/dev/disk/by-partuuid/44444444-4444-4444-4444-444444444444",
         "/dev/disk/by-partlabel/blaze-root",
+        "/dev/vda3",
+        "/dev/sda3",
+        "/dev/nvme0n1p3",
         "/dev/vda2",
         "/dev/sda2",
         "/dev/nvme0n1p2",
