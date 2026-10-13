@@ -22,9 +22,10 @@ import sys
 import time
 
 ROOT = "/home/darkmorpheus/Projeler/blaze_base"
-BASE_DISK = os.path.join(ROOT, "build", "blaze-disk-b11.raw")
-OVERLAY_DISK = "/tmp/acceptance_test_overlay.qcow2"
-QMP_SOCK = "/tmp/acceptance_qmp.sock"
+BASE_DISK = os.environ.get("BLAZE_TEST_DISK", os.path.join(ROOT, "build", "blaze-disk-b11.raw"))
+RUN_ID = str(os.getpid())
+OVERLAY_DISK = f"/tmp/acceptance_test_overlay_{RUN_ID}.qcow2"
+QMP_SOCK = f"/tmp/acceptance_qmp_{RUN_ID}.sock"
 REPORT_LOG = os.path.join(ROOT, "reports", "milestone-9", "m9_privilege_and_input_acceptance.log")
 os.makedirs(os.path.dirname(REPORT_LOG), exist_ok=True)
 
@@ -37,8 +38,7 @@ def log(msg):
 
 log("=== STARTING BLAZEOS NATIVE PRIVILEGE & INPUT ACCEPTANCE TEST ===")
 
-# Clean prior sockets & overlays
-subprocess.run("pkill -9 -f qemu-system-x86_64 || true", shell=True, check=False)
+# Clean only artifacts owned by this test process. Never terminate unrelated VMs.
 for f in [OVERLAY_DISK, QMP_SOCK]:
     if os.path.exists(f):
         try: os.remove(f)
@@ -64,7 +64,7 @@ cmd = [
     "-serial", "mon:stdio",
     "-qmp", f"unix:{QMP_SOCK},server,nowait",
     "-net", "none",
-    "-nographic"
+    "-display", "gtk,gl=on"
 ]
 
 master, slave = pty.openpty()
@@ -144,6 +144,11 @@ else:
 # Test 2: Verify Pointer Event Delivery via QMP
 # ==============================================================================
 log("\n>>> [STEP 2] Dispatch QMP Absolute Pointer Motion and Button Click Events")
+send_line("timeout 6 dd if=/dev/input/event1 of=/tmp/pointer-event1.raw bs=24 count=4 status=none & echo __POINTER_CAPTURE_STARTED__")
+ok, out = read_until("__POINTER_CAPTURE_STARTED__", 10)
+if not ok:
+    log(f"[FAIL] Step 2: Could not start raw event capture: {out}")
+    sys.exit(1)
 qmp_res = send_qmp({
     "execute": "input-send-event",
     "arguments": {
@@ -156,10 +161,15 @@ qmp_res = send_qmp({
     }
 })
 log(f"[QMP Response]: {qmp_res.strip()}")
-if "return" in qmp_res:
-    log("[PASS] Step 2: Absolute mouse pointer and click events accepted by QEMU input subsystem!")
+time.sleep(2)
+send_line("wait; BYTES=$(wc -c < /tmp/pointer-event1.raw); echo __POINTER_EVENT_BYTES__:$BYTES")
+ok, out = read_until(r"__POINTER_EVENT_BYTES__:(\d+)", 10)
+match = re.search(r"__POINTER_EVENT_BYTES__:(\d+)", out)
+event_bytes = int(match.group(1)) if match else 0
+if "return" in qmp_res and event_bytes > 0:
+    log(f"[PASS] Step 2: QMP events reached /dev/input/event1 ({event_bytes} bytes of raw EV_ABS/EV_KEY evidence).")
 else:
-    log("[FAIL] Step 2: QMP input-send-event failed!")
+    log(f"[FAIL] Step 2: Pointer event delivery failed (raw bytes={event_bytes}).")
     sys.exit(1)
 
 # ==============================================================================

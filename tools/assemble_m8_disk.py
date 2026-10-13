@@ -127,9 +127,11 @@ if os.path.exists(shadow_file):
     with open(shadow_file, "r") as f:
         s_lines = f.readlines()
     new_s_lines = []
+    shadow_users = set()
     for line in s_lines:
         parts = line.strip().split(":")
         if len(parts) >= 2:
+            shadow_users.add(parts[0])
             if parts[0] == "root":
                 parts[1] = root_hash
                 line = ":".join(parts) + "\n"
@@ -137,6 +139,10 @@ if os.path.exists(shadow_file):
                 parts[1] = blaze_hash
                 line = ":".join(parts) + "\n"
         new_s_lines.append(line)
+    if "root" not in shadow_users:
+        new_s_lines.append(f"root:{root_hash}:19700:0:99999:7:::\n")
+    if "blaze" not in shadow_users:
+        new_s_lines.append(f"blaze:{blaze_hash}:19700:0:99999:7:::\n")
     with open(shadow_file, "w") as f:
         f.writelines(new_s_lines)
 else:

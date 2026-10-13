@@ -102,6 +102,7 @@ EOF
 # 5. Shadow passwords (empty password for root allows instant console login)
 cat << 'EOF' > "$DESTDIR/etc/shadow"
 root::19700:0:99999:7:::
+blaze:!:19700:0:99999:7:::
 bin:*:19700:0:99999:7:::
 daemon:*:19700:0:99999:7:::
 dbus:*:19700:0:99999:7:::

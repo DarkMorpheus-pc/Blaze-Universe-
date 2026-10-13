@@ -1,109 +1,113 @@
 === STARTING BLAZEOS NATIVE PRIVILEGE & INPUT ACCEPTANCE TEST ===
-[HOST] Creating disposable QCOW2 overlay on top of /home/darkmorpheus/Projeler/blaze_base/build/blaze-disk-b11.raw...
+[HOST] Creating disposable QCOW2 overlay on top of /home/darkmorpheus/Projeler/blaze_base/build/blaze-disk-b11-fixed.raw...
 [TEST] Waiting for system boot and login prompt on ttyS0...
-c[?7l[2J[0mSeaBIOS (version Arch Linux 1.17.0-2-2)
-Booting from ROM..c[?7l[2J[0m.[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=cbf372ab46d64f9e86f7a3f1b8ebbc53;user=root;hostname=blaze;machineid=150926fba4c641f4bd0aa294b9e40cff;bootid=38d905088ced4bd1ba848b7a0bd41715;pid=105;pidfdid=4127;comm=(agetty);servicename=getty@ttyS0.service;invocationid=f343e69562c9467fa6dffb2efc36db77;type=service\P+q6E616D65\
-blaze login: [PASS] Boot successful (fast direct boot).
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[r[H[3Jc[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=77e771214ed34da485eab1296e31bef6;user=root;hostname=blaze;machineid=905806b2b8794cc38776866b0bedd35f;bootid=b7fa04dd5b9c43e2b8566ab86e50a154;pid=103;pidfdid=46;comm=(agetty);servicename=getty@ttyS0.service;invocationid=ecfe3119511142298fd682e2e09d1fee;type=service\P+q6E616D65\
+blaze login:[PASS] Boot successful (fast direct boot).
 
 >>> [STEP 1] Verify VirtIO Tablet Input Device Presence & Capabilities
-root
-Password: 
--bash-5.3# cat /proc/bus/input/devices | grep -A 8 'QEMU Virtio Tablet'
-N: Name="QEMU Virtio Tablet"
-P: Phys=virtio1/input0
-S: Sysfs=/devices/pci0000:00/0000:00:03.0/virtio1/input/input1
-U: Uniq=
-H: Handlers=event1 
-B: PROP=0
-B: EV=f
-B: KEY=30400 1f0000 0 0 0 0
-B: REL=100
--bash-5.3# echo '__STEP1_DONE__:'$?
-__STEP1_DONE__:0
--bash-5.3# [PASS] Step 1: VirtIO Tablet device successfully detected by guest kernel!
+ root
+Password:
+[?2004h-bash-5.3# cat /proc/bus/input/devices | grep -A 8 'QEMU Virtio Tablet'
+[?2004lN: Name="QEMU Virtio Tablet"
+P: Phys=virtio1/input0
+S: Sysfs=/devices/pci0000:00/0000:00:03.0/virtio1/input/input1
+U: Uniq=
+H: Handlers=event1
+B: PROP=0
+B: EV=f
+B: KEY=30400 1f0000 0 0 0 0
+B: REL=100
+[?2004h-bash-5.3# echo '__STEP1_DONE__:'$?
+[?2004l__STEP1_DONE__:0
+[?2004h-bash-5.3# [PASS] Step 1: VirtIO Tablet device successfully detected by guest kernel!
 
 >>> [STEP 2] Dispatch QMP Absolute Pointer Motion and Button Click Events
-[QMP Response]: {"return": {}}
-[PASS] Step 2: Absolute mouse pointer and click events accepted by QEMU input subsystem!
+timeout 6 dd if=/dev/input/event1 of=/tmp/pointer-event1.raw bs=24 couunt=4 status=none & echo __POINTER_CAPTURE_STARTED__
+[?2004l[1] 149
+__POINTER_CAPTURE_STARTED__
+[?2004h-bash-5.3# [QMP Response]: {"return": {}}
+wait; BYTES=$(wc -c < /tmp/pointer-event1.raw); echo __POINTER_EVENT_BBYTES__:$BYTES
+[?2004l__POINTER_EVENT_BYTES__:96
+[?2004h-bash-5.3# [PASS] Step 2: QMP events reached /dev/input/event1 (96 bytes of raw EV_ABS/EV_KEY evidence).
 
 >>> [STEP 3] Test Negative Authentication: Incorrect Root Password Denied
-su - blaze
--bash-5.3$ [GUEST USER]: Switched to blaze: su - blaze
--bash-5.3$
-su - root
-Password: 
-su: Authentication failure
--b[PASS] Step 3: Incorrect password correctly REJECTED by PAM!
-ash-5.3$ 
+su - blaze
+[?2004l[?2004h-bash-5.3$ [GUEST USER]: Switched to blaze:
+[?2004l[?2004h-bash-5.3$
+su - root
+[?2004lPassword:
+su: Authentication failure[PASS] Step 3: Incorrect password correctly REJECTED by PAM!
+
+[?2004h-bash-5.3$
 >>> [STEP 4] Test Positive Authentication: Correct Root Password Accepted via su
-su - root
-Password: 
--bash-5.3# [PASS] Step 4: Correct password accepted! Root shell successfully acquired via su.
-exit
-logout
--bash-5.3$ 
+ su - root
+[?2004lPassword:
+[?2004h-bash-5.3# [PASS] Step 4: Correct password accepted! Root shell successfully acquired via su.
+exit
+[?2004llogout
+[?2004h-bash-5.3$
 >>> [STEP 5] Test Sudo Privilege Escalation for user blaze (wheel group)
-echo 'blaze' | sudo -S id
-
-We trust you have received the usual lecture from the local System
-Administrator. It usually boils down to these three things:
-
-    #1) Respect the privacy of others.
-    #2) Think before you type.
-    #3) With great power comes great responsibility.
-
-For security reasons, the password you type will not be visible.
-
-[sudo] password for blaze: uid=0(root) gid=0(root) groups=0(root),10(wheel)
--bash-5.3$ echo '__STEP5_DONE__:'$?
-__STEP5_DONE__:0
--bash-5.3$ [PASS] Step 5: Sudo execution succeeded! User blaze successfully elevated to root.
+echo 'blaze' | sudo -S id
+[?2004l
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+For security reasons, the password you type will not be visible.
+
+[sudo] password for blaze: uid=0(root) gid=0(root) groups=0(root),10(wheel)
+[?2004h-bash-5.3$ echo '__STEP5_DONE__:'$?
+[?2004l__STEP5_DONE__:0
+[?2004h-bash-5.3$ [PASS] Step 5: Sudo execution succeeded! User blaze successfully elevated to root.
 
 >>> [STEP 6] Test Portadora Non-Root Mutating Operation Clean Error UX
-portadora install fastfetch
-Error: Root privileges required for package operations. Please run with sudo or as root.
--bash-5.3$ echo '__STEP6_EXIT__:'$?
-__STEP6_EXIT__:1
--bash-5.3$ [PASS] Step 6: Portadora cleanly rejected unauthorized operation with friendly guidance!
+portadora install fastfetch
+[?2004lError: Root privileges required for package operations. Please run with sudo or as root.
+[?2004h-bash-5.3$ echo '__STEP6_EXIT__:'$?
+[?2004l__STEP6_EXIT__:1
+[?2004h-bash-5.3$ [PASS] Step 6: Portadora cleanly rejected unauthorized operation with friendly guidance!
 
 >>> [STEP 7] Test Authorized Package Installation via Sudo (Fastfetch)
-<he/portadora/packages/fastfetch-2.69.0-1.x86_64.blz
-Installing fastfetch 2.69.0-1 (x86_64)...
-Successfully installed fastfetch (2.69.0)
--bash-5.3$ echo '__STEP7_DONE__:'$?
-__STEP7_DONE__:0
--bash-5.3$ [PASS] Step 7: Fastfetch package installed successfully under authorized sudo transaction!
+echo 'blaze' | sudo -S portadora install /var/cache/portadora/packagess/fastfetch-2.69.0-1.x86_64.blz
+[?2004lInstalling fastfetch 2.69.0-1 (x86_64)...
+Successfully installed fastfetch (2.69.0)
+[?2004h-bash-5.3$ echo '__STEP7_DONE__:'$?
+[?2004l__STEP7_DONE__:0
+[?2004h-bash-5.3$ [PASS] Step 7: Fastfetch package installed successfully under authorized sudo transaction!
 
 >>> [STEP 8] Cryptographic Portadora Integrity Verification (portadora verify)
-portadora verify
-Package verification completed with notices (5 unreadable privileged, 2 mutable config).
--bash-5.3$ echo '__STEP8_DONE__:'$?
-__STEP8_DONE__:0[PASS] Step 8: Package integrity verification completed with 0 errors!
+portadora verify
+[?2004lPackage verification completed with notices (5 unreadable privileged, 2 mutable config).
+[?2004h-bash-5.3$ echo '__STEP8_DONE__:'$?
+[?2004l__STEP8_DONE__:0[PASS] Step 8: Package integrity verification completed with 0 errors!
 
 >>> [STEP 9] Execute Fastfetch and Verify BlazeOS System Identification
-
--bash-5.3$ fastfetch --pipe false
-[m[1m[37m        [90m#####[m            [m[1m[33mblaze[m@[1m[33mblaze[m
-[1m[90m       [90m#######[m           -----------
-[1m[90m       [90m##[37mO[90m#[37mO[90m##[m           [m[1m[39mOS[m: [mBlazeOS Native (Blaze Universe) x86_64
-[1m[90m       [90m#[33m#####[90m#[m           [m[1m[39mHost[m: [mKVM/QEMU Standard PC (i440FX + PIIX, 1996) (pc-i440fx-11.1)
-[1m[90m     [90m##[37m##[33m###[37m##[90m##[m         [m[1m[39mKernel[m: [mLinux 7.2.9
-[1m[90m    [90m#[37m##########[90m##[m        [m[1m[39mUptime[m: [m30 seconds
-[1m[90m   [90m#[37m############[90m##[m       [m[1m[39mShell[m: [mbash 5.3.20
-[1m[90m   [90m#[37m############[90m###[m      [m[1m[39mDisplay (QEMU Monitor)[m: [m1280x800 in 15", 75 Hz
-[1m[90m  [33m##[90m#[37m###########[90m##[33m#[m      [m[1m[39mTerminal[m: [mvt220
-[1m[33m[33m######[90m#[37m#######[90m#[33m######[m    [m[1m[39mCPU[m: [mIntel(R) Core(TM) i9-10885H (4) @ 2.40 GHz
-[1m[33m[33m#######[90m#[37m#####[90m#[33m#######[m    [m[1m[39mGPU[m: [mRedHat Device 1050 (VGA compatible)
-[1m[33m  [33m#####[90m#######[33m#####[m      [m[1m[39mMemory[m: [m328.55 MiB / 1.93 GiB ([32m17%[m)
-                         [m[1m[39mSwap[m: [mDisabled
-                         [m[1m[39mDisk (/)[m: [m4.84 GiB / 15.52 GiB ([32m31%[m) - ext4
-                         [m[1m[39mLocale[m: [mC
-                         
-                         [m[40m   [41m   [42m   [43m   [44m   [45m   [46m   [47m   [m
-                         [5m[100m   [101m   [102m   [103m   [104m   [105m   [106m   [107m   [m
-[m-bash-5.3$ echo '__STEP9_DONE__:'$?
-__STEP9_DONE__:0
--bash-5.3$ [PASS] Step 9: Fastfetch executed successfully and displayed system telemetry!
+
+[?2004h-bash-5.3$ fastfetch --pipe false
+[?2004l[m[1m[37m        [90m#####[m            [m[1m[33mblaze[m@[1m[33mblaze[m
+[1m[90m       [90m#######[m           -----------
+[1m[90m       [90m##[37mO[90m#[37mO[90m##[m           [m[1m[39mOS[m: [mBlazeOS Native (Blaze Universe) x86_64
+[1m[90m       [90m#[33m#####[90m#[m           [m[1m[39mHost[m: [mKVM/QEMU Standard PC (i440FX + PIIX, 1996) (pc-i440fx-11.1)
+[1m[90m     [90m##[37m##[33m###[37m##[90m##[m         [m[1m[39mKernel[m: [mLinux 7.2.9
+[1m[90m    [90m#[37m##########[90m##[m        [m[1m[39mUptime[m: [m29 seconds
+[1m[90m   [90m#[37m############[90m##[m       [m[1m[39mShell[m: [mbash 5.3.20
+[1m[90m   [90m#[37m############[90m###[m      [m[1m[39mDisplay (QEMU Monitor)[m: [m640x480 in 8", 60 Hz
+[1m[90m  [33m##[90m#[37m###########[90m##[33m#[m      [m[1m[39mTerminal[m: [mvt220
+[1m[33m[33m######[90m#[37m#######[90m#[33m######[m    [m[1m[39mCPU[m: [mIntel(R) Core(TM) i9-10885H (4) @ 2.40 GHz
+[1m[33m[33m#######[90m#[37m#####[90m#[33m#######[m    [m[1m[39mGPU[m: [mRedHat Device 1050 (VGA compatible)
+[1m[33m  [33m#####[90m#######[33m#####[m      [m[1m[39mMemory[m: [m82.64 MiB / 1.93 GiB ([32m4%[m)
+                         [m[1m[39mSwap[m: [mDisabled
+                         [m[1m[39mDisk (/)[m: [m4.86 GiB / 15.52 GiB ([32m31%[m) - ext4
+                         [m[1m[39mLocale[m: [mC
+
+                         [m[40m   [41m   [42m   [43m   [44m   [45m   [46m   [47m   [m
+                         [5m[100m   [101m   [102m   [103m   [104m   [105m   [106m   [107m   [m
+[m[?2004h-bash-5.3$ echo '__STEP9_DONE__:'$?
+[?2004l__STEP9_DONE__:0
+[?2004h-bash-5.3$ [PASS] Step 9: Fastfetch executed successfully and displayed system telemetry!
 [PASS] Final authentic screendump saved to /home/darkmorpheus/.gemini/antigravity/brain/edfcc68e-d62a-469a-afaa-c49b73f87c64/blazeos_m9_acceptance_final.png
 
 ==================================================================
