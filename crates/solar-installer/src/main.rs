@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
@@ -64,7 +64,20 @@ enum Command {
         /// Permit installation to a device marked removable by the kernel.
         #[arg(long)]
         allow_removable: bool,
+        /// Test-only deterministic interruption point for recovery acceptance tests.
+        #[arg(long, value_enum, hide = true)]
+        fail_after: Option<FailurePoint>,
     },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+enum FailurePoint {
+    Verified,
+    Partitioned,
+    Formatted,
+    Extracted,
+    Bootloader,
 }
 
 #[derive(Debug, Serialize)]
@@ -398,6 +411,32 @@ fn required_file(directory: &Path, name: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
+fn transaction_checkpoint(
+    target: &Path,
+    state: &str,
+    fail_after: Option<FailurePoint>,
+    point: Option<FailurePoint>,
+) -> Result<()> {
+    let directory = Path::new("/run/solar-installer");
+    fs::create_dir_all(directory)?;
+    let final_path = directory.join("transaction.json");
+    let temporary_path = directory.join("transaction.json.new");
+    let document = serde_json::json!({
+        "schema_version": 1,
+        "target": target,
+        "state": state,
+    });
+    let mut file = File::create(&temporary_path)?;
+    file.write_all(&serde_json::to_vec_pretty(&document)?)?;
+    file.sync_all()?;
+    fs::rename(&temporary_path, &final_path)?;
+    File::open(directory)?.sync_all()?;
+    if point.is_some() && point == fail_after {
+        bail!("injected installer failure after {state}");
+    }
+    Ok(())
+}
+
 fn wait_for_partitions(partitions: &[&Path], timeout: Duration) -> Result<()> {
     let deadline = Instant::now() + timeout;
     loop {
@@ -460,6 +499,7 @@ fn apply_install(
     limine_directory: PathBuf,
     confirm_erase: String,
     allow_removable: bool,
+    fail_after: Option<FailurePoint>,
 ) -> Result<()> {
     if unsafe { libc::geteuid() } != 0 {
         bail!("installation requires root privileges");
@@ -499,8 +539,15 @@ fn apply_install(
     let bios_sys = required_file(&limine_directory, "limine-bios.sys")?;
     let limine = required_file(&limine_directory, "limine")?;
 
+    transaction_checkpoint(&plan.target, "preflight", fail_after, None)?;
     println!("[0/8] Verifying live root SHA-256...");
     let source_sha256 = verify_live_source(&source)?;
+    transaction_checkpoint(
+        &plan.target,
+        "verified",
+        fail_after,
+        Some(FailurePoint::Verified),
+    )?;
 
     let _lock = TargetLock::acquire(&plan.target)?;
     let target_s = plan.target.to_str().context("non-UTF-8 target path")?;
@@ -520,6 +567,12 @@ fn apply_install(
     wait_for_partitions(
         &[&bios_partition, &esp_partition, &root_partition],
         Duration::from_secs(10),
+    )?;
+    transaction_checkpoint(
+        &plan.target,
+        "partitioned",
+        fail_after,
+        Some(FailurePoint::Partitioned),
     )?;
     println!("[2/8] Formatting filesystems...");
     run(
@@ -541,6 +594,12 @@ fn apply_install(
             root_partition.to_str().context("non-UTF-8 root path")?,
         ],
     )?;
+    transaction_checkpoint(
+        &plan.target,
+        "formatted",
+        fail_after,
+        Some(FailurePoint::Formatted),
+    )?;
 
     let mounted = MountedTarget::new(&root_partition, &esp_partition)?;
     let root = mounted.root.path();
@@ -553,6 +612,12 @@ fn apply_install(
             root.to_str().context("non-UTF-8 root mount")?,
             source.to_str().context("non-UTF-8 source")?,
         ],
+    )?;
+    transaction_checkpoint(
+        &plan.target,
+        "extracted",
+        fail_after,
+        Some(FailurePoint::Extracted),
     )?;
     for directory in ["dev", "proc", "run", "sys", "tmp"] {
         fs::create_dir_all(root.join(directory))?;
@@ -598,6 +663,8 @@ fn apply_install(
         "source_sha256": source_sha256,
         "kernel": "7.2.9",
         "bootloader": "Limine 12.9.1",
+        "recovery_model": "restart-from-verified-source",
+        "transaction_schema_version": 1,
         "layout": ["bios-boot", "efi-system", "linux-x86-64-root"]
     });
     fs::create_dir_all(root.join("var/lib/solar-installer"))?;
@@ -610,6 +677,12 @@ fn apply_install(
     run(
         limine.to_str().context("non-UTF-8 Limine path")?,
         &["bios-install", target_s, "1"],
+    )?;
+    transaction_checkpoint(
+        &plan.target,
+        "bootloader",
+        fail_after,
+        Some(FailurePoint::Bootloader),
     )?;
     println!("[7/8] Flushing installation data...");
     run("sync", &[])?;
@@ -646,6 +719,7 @@ fn apply_install(
         "BlazeOS installation completed successfully on {}",
         plan.target.display()
     );
+    transaction_checkpoint(&plan.target, "complete", fail_after, None)?;
     Ok(())
 }
 
@@ -699,6 +773,7 @@ fn main() -> Result<()> {
             limine_directory,
             confirm_erase,
             allow_removable,
+            fail_after,
         } => {
             apply_install(
                 target,
@@ -707,6 +782,7 @@ fn main() -> Result<()> {
                 limine_directory,
                 confirm_erase,
                 allow_removable,
+                fail_after,
             )?;
         }
     }

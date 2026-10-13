@@ -79,9 +79,14 @@ make x86_64_defconfig
 ./scripts/config --enable CONFIG_PARTITION_ADVANCED
 ./scripts/config --enable CONFIG_EFI_PARTITION
 ./scripts/config --enable CONFIG_NETFILTER
+./scripts/config --enable CONFIG_NETFILTER_ADVANCED
 ./scripts/config --enable CONFIG_NF_TABLES
+./scripts/config --enable CONFIG_NF_TABLES_INET
 ./scripts/config --enable CONFIG_NF_TABLES_IPV4
 ./scripts/config --enable CONFIG_NF_TABLES_IPV6
+./scripts/config --enable CONFIG_NFT_CT
+./scripts/config --enable CONFIG_NFT_LIMIT
+./scripts/config --enable CONFIG_NFT_REJECT_INET
 ./scripts/config --enable CONFIG_SECURITY
 ./scripts/config --enable CONFIG_SECURITYFS
 ./scripts/config --enable CONFIG_SECURITY_NETWORK
@@ -406,7 +411,7 @@ cat << 'EOF_RECIPE' > "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml"
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 3
+release = 4
 architecture = "x86_64"
 summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
 license = "GPL-2.0-only"
@@ -423,7 +428,7 @@ cp -a "$KERNEL_DEST_DIR/"* "$DESTDIR/"
 """
 EOF_RECIPE
 
-"${BUILDER}" "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml"
+(cd "${BLAZE_ROOT}" && "${BUILDER}" "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml")
 
 echo "=== linux-blaze 7.2.9 Package Created Successfully ==="
 ls -lh "${PKGS_DIR}/linux-blaze"*

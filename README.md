@@ -203,7 +203,7 @@ Blaze-Universe-/
   - [ ] **Phase B:** Safe target-disk deployment engine and graphical Solar Installer.
     - [x] **Phase B.1:** Non-destructive disk discovery, safety validation, and versioned install planning.
     - [x] **Phase B.2:** Transactional deployment to a disposable target disk with UEFI/BIOS boot verification.
-    - [ ] **Phase B.3:** Recovery, rollback metadata, failure injection, and installer safety hardening.
+    - [x] **Phase B.3:** Recovery, rollback metadata, failure injection, and installer safety hardening.
     - [ ] **Phase B.4:** User, locale, timezone, keyboard, and graphical Solar Installer workflow.
 - [ ] **Milestone 11:** Multi-architecture support (`aarch64` / ARM64).
 

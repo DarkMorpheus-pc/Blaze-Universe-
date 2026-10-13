@@ -1,0 +1,18 @@
+# BlazeOS SolarUI auto-launch with a safe text-console fallback.
+if [[ -z "$WAYLAND_DISPLAY" ]] && [[ "$(tty 2>/dev/null)" == "/dev/tty1" || "$(tty 2>/dev/null)" == "/dev/tty0" ]]; then
+    export XDG_RUNTIME_DIR=/run/user/1000
+    export LIBSEAT_BACKEND=seatd
+    if [[ ! -S /run/user/1000/bus ]]; then
+        dbus-daemon --session --fork --address=unix:path=/run/user/1000/bus 2>/dev/null || true
+    fi
+    export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+    if [[ -e /dev/dri/card0 ]]; then
+        if ! /usr/bin/solar-session; then
+            printf '\nBlazeOS graphical session could not start; continuing in the tty1 recovery shell.\n'
+        fi
+    else
+        printf '\nNo DRM device is available; continuing in the tty1 recovery shell.\n'
+    fi
+    stty sane 2>/dev/null || true
+    exec /usr/bin/bash --noprofile -i
+fi

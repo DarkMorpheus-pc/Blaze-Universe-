@@ -50,6 +50,11 @@ echo "[LIVE-ISO] Building and staging the Solar Installer engine..."
 cargo build --release --manifest-path "${BLAZE_ROOT}/Cargo.toml" -p solar-installer
 install -Dm755 "${BLAZE_ROOT}/target/release/solar-installer" \
     "${ROOTFS}/usr/bin/solar-installer"
+install -Dm644 "${BLAZE_ROOT}/config/blaze-bash-profile" \
+    "${ROOTFS}/home/blaze/.bash_profile"
+chown 1000:1000 "${ROOTFS}/home/blaze/.bash_profile" 2>/dev/null || true
+install -Dm644 "${BLAZE_ROOT}/config/getty-tty1-autologin.conf" \
+    "${ROOTFS}/etc/systemd/system/getty@tty1.service.d/autologin.conf"
 
 # Bundle the deployment tools and their resolved runtime libraries. Retaining
 # them in the installed root also supports later recovery and repair workflows.

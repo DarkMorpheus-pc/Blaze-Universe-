@@ -1,7 +1,7 @@
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 3
+release = 4
 architecture = "x86_64"
 summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
 license = "GPL-2.0-only"
