@@ -201,6 +201,8 @@ Blaze-Universe-/
 - [ ] **Milestone 10:** Live distribution and graphical installer.
   - [x] **Phase A:** Hybrid BIOS/UEFI Live ISO, SquashFS root, and writable tmpfs OverlayFS.
   - [ ] **Phase B:** Safe target-disk deployment engine and graphical Solar Installer.
+    - [x] **Phase B.1:** Non-destructive disk discovery, safety validation, and versioned install planning.
+    - [ ] **Phase B.2:** Transactional deployment to a disposable target disk with boot verification.
 - [ ] **Milestone 11:** Multi-architecture support (`aarch64` / ARM64).
 
 ---

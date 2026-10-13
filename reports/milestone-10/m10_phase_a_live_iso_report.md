@@ -13,7 +13,7 @@ without requiring a virtual hard disk.
 
 - File: `build/iso/BlazeOS-Native-m10-phase-a-x86_64.iso`
 - Size: 2,590,996,480 bytes
-- SHA-256: `8dc5a00aec760f16e2d9212f083c92e3879b7fd3b02b3763e9b8af9c61287d23`
+- SHA-256: `bed077ea9381f21e3b9c7f270e6f790c93aa5b5cdc4ce3ebcccacabb0fe3b4e2`
 - SquashFS size: 2,572,312,576 bytes
 - Volume label: `BLAZEOS_LIVE`
 
@@ -35,8 +35,8 @@ without requiring a virtual hard disk.
 - Critical ownership and SUID checks: PASS
 - Root write test on the ephemeral upper layer: PASS
 - Niri + Noctalia graphical live session: PASS
-- Limine UEFI boot through OVMF: PASS
-- Limine legacy BIOS boot through SeaBIOS: PASS
+- Limine 12.9.1 UEFI boot through OVMF: PASS
+- Limine 12.9.1 legacy BIOS boot through SeaBIOS: PASS
 - ISO SHA-256 verification: PASS
 
 Observed live mounts:

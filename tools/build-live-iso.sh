@@ -9,12 +9,14 @@ KERNEL_DEST="${BLAZE_ROOT}/build/kernel_7.2.9_work/kernel-dest"
 STAGING="${BLAZE_ROOT}/build/live-iso-staging"
 OUTPUT_DIR="${BLAZE_ROOT}/build/iso"
 OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-a-x86_64.iso"
-LIMINE_DATA="$(limine --print-datadir)"
+LIMINE_DIR="$("${SCRIPT_DIR}/prepare-limine.sh" | tail -n1)"
+LIMINE_TOOL="${LIMINE_DIR}/limine"
+LIMINE_DATA="${LIMINE_DIR}"
 
 KERNEL="${KERNEL_DEST}/boot/vmlinuz-blaze-7.2.9"
 INITRAMFS="${KERNEL_DEST}/boot/initramfs-blaze-7.2.9.img"
 
-for tool in mksquashfs xorriso limine; do
+for tool in mksquashfs xorriso; do
     command -v "${tool}" >/dev/null || {
         echo "[ERROR] Required host tool is missing: ${tool}" >&2
         exit 1
@@ -86,7 +88,7 @@ xorriso -as mkisofs \
     -efi-boot-part --efi-boot-image --protective-msdos-label \
     "${STAGING}" -o "${OUTPUT_ISO}"
 
-limine bios-install "${OUTPUT_ISO}"
+"${LIMINE_TOOL}" bios-install "${OUTPUT_ISO}"
 sha256sum "${OUTPUT_ISO}" > "${OUTPUT_ISO}.sha256"
 
 echo "[LIVE-ISO] Created: ${OUTPUT_ISO}"
