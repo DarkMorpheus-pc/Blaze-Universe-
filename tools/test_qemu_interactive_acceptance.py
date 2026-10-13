@@ -11,6 +11,7 @@
 # 7. Fastfetch execution & OS identification
 # ==============================================================================
 import json
+import atexit
 import os
 import pty
 import re
@@ -30,6 +31,23 @@ REPORT_LOG = os.path.join(ROOT, "reports", "milestone-9", "m9_privilege_and_inpu
 os.makedirs(os.path.dirname(REPORT_LOG), exist_ok=True)
 
 log_fp = open(REPORT_LOG, "w")
+proc = None
+
+def cleanup():
+    global proc
+    if proc is not None and proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            os.killpg(os.getpgid(proc.pid), 9)
+    for path in [OVERLAY_DISK, QMP_SOCK]:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+atexit.register(cleanup)
 
 def log(msg):
     print(msg, flush=True)

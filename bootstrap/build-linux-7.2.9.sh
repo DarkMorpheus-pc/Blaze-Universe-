@@ -65,6 +65,12 @@ make x86_64_defconfig
 ./scripts/config --enable CONFIG_BINFMT_ELF
 ./scripts/config --enable CONFIG_BINFMT_SCRIPT
 ./scripts/config --enable CONFIG_OVERLAY_FS
+./scripts/config --enable CONFIG_SQUASHFS
+./scripts/config --enable CONFIG_SQUASHFS_ZLIB
+./scripts/config --enable CONFIG_BLK_DEV_LOOP
+./scripts/config --enable CONFIG_ISO9660_FS
+./scripts/config --enable CONFIG_SCSI
+./scripts/config --enable CONFIG_BLK_DEV_SR
 ./scripts/config --enable CONFIG_AUTOFS_FS
 ./scripts/config --enable CONFIG_FHANDLE
 ./scripts/config --enable CONFIG_DMIID
@@ -100,7 +106,6 @@ make x86_64_defconfig
 ./scripts/config --module CONFIG_R8169
 ./scripts/config --module CONFIG_IWLWIFI
 ./scripts/config --module CONFIG_DUMMY
-./scripts/config --module CONFIG_BLK_DEV_LOOP
 
 # Speed up compilation
 ./scripts/config --disable CONFIG_DEBUG_INFO
@@ -148,7 +153,10 @@ cat << 'EOF_BERP' > "${INITRAMFS_WORK}/init.c"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/reboot.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
+#include <linux/loop.h>
+#include <errno.h>
 
 static int check_cmdline_flag(const char *flag) {
     FILE *f = fopen("/proc/cmdline", "r");
@@ -161,6 +169,78 @@ static int check_cmdline_flag(const char *flag) {
         }
     }
     fclose(f);
+    return 0;
+}
+
+static int setup_readonly_loop(const char *loop_dev, const char *image_path) {
+    int image_fd = open(image_path, O_RDONLY | O_CLOEXEC);
+    if (image_fd < 0) return -1;
+
+    int loop_fd = open(loop_dev, O_RDONLY | O_CLOEXEC);
+    if (loop_fd < 0) {
+        close(image_fd);
+        return -1;
+    }
+
+    if (ioctl(loop_fd, LOOP_SET_FD, image_fd) != 0) {
+        close(loop_fd);
+        close(image_fd);
+        return -1;
+    }
+
+    struct loop_info64 info = {0};
+    info.lo_flags = LO_FLAGS_READ_ONLY;
+    snprintf((char *)info.lo_file_name, LO_NAME_SIZE, "%s", image_path);
+    if (ioctl(loop_fd, LOOP_SET_STATUS64, &info) != 0) {
+        ioctl(loop_fd, LOOP_CLR_FD, 0);
+        close(loop_fd);
+        close(image_fd);
+        return -1;
+    }
+
+    close(loop_fd);
+    close(image_fd);
+    return 0;
+}
+
+static int mount_live_root(void) {
+    const char *media_candidates[] = { "/dev/sr0", "/dev/sda", "/dev/vda", NULL };
+    const char *media_dev = NULL;
+
+    mkdir("/run/live", 0755);
+    mkdir("/run/live/media", 0755);
+    mkdir("/run/live/lower", 0755);
+    mkdir("/run/live/cow", 0755);
+
+    printf("[LIVE] Waiting for BlazeOS ISO media...\n");
+    for (int retry = 0; retry < 50 && !media_dev; retry++) {
+        for (int i = 0; media_candidates[i]; i++) {
+            struct stat st;
+            if (stat(media_candidates[i], &st) == 0 && S_ISBLK(st.st_mode) &&
+                mount(media_candidates[i], "/run/live/media", "iso9660", MS_RDONLY, NULL) == 0) {
+                media_dev = media_candidates[i];
+                break;
+            }
+        }
+        if (!media_dev) usleep(100000);
+    }
+    if (!media_dev) return -1;
+
+    printf("[LIVE] Mounted ISO media from %s\n", media_dev);
+    if (access("/run/live/media/blaze/rootfs.squashfs", R_OK) != 0) return -1;
+    if (setup_readonly_loop("/dev/loop0", "/run/live/media/blaze/rootfs.squashfs") != 0) return -1;
+    if (mount("/dev/loop0", "/run/live/lower", "squashfs", MS_RDONLY, NULL) != 0) return -1;
+    if (mount("tmpfs", "/run/live/cow", "tmpfs", 0, "mode=0755") != 0) return -1;
+
+    mkdir("/run/live/cow/upper", 0755);
+    mkdir("/run/live/cow/work", 0755);
+    mkdir("/mnt", 0755);
+    if (mount("overlay", "/mnt", "overlay", 0,
+              "lowerdir=/run/live/lower,upperdir=/run/live/cow/upper,workdir=/run/live/cow/work") != 0) {
+        return -1;
+    }
+
+    printf("[LIVE] SquashFS + tmpfs OverlayFS root is ready.\n");
     return 0;
 }
 
@@ -233,6 +313,15 @@ int main(int argc, char *argv[]) {
         run_berp_recovery_console("Emergency recovery explicitly requested via kernel command line ('berp').");
     }
 
+    if (check_cmdline_flag("blaze.live=1")) {
+        if (mount_live_root() != 0) {
+            char reason[160];
+            snprintf(reason, sizeof(reason), "Live root assembly failed: %s", strerror(errno));
+            run_berp_recovery_console(reason);
+        }
+        goto root_ready;
+    }
+
     const char *candidates[] = {
         "/dev/disk/by-partuuid/44444444-4444-4444-4444-444444444444",
         "/dev/disk/by-partlabel/blaze-root",
@@ -268,6 +357,7 @@ int main(int argc, char *argv[]) {
         run_berp_recovery_console("Failed to mount root filesystem on /mnt.");
     }
 
+root_ready:
     printf("[INIT] Moving virtual filesystems to new root...\n");
     mkdir("/mnt/proc", 0755);
     mkdir("/mnt/sys", 0755);
@@ -313,9 +403,9 @@ cat << 'EOF_RECIPE' > "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml"
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 1
+release = 3
 architecture = "x86_64"
-summary = "Vanilla Linux kernel 7.2.9 for BlazeOS Native"
+summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://kernel.org"
