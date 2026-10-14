@@ -8,7 +8,7 @@ ROOTFS="${BLAZE_ROOT}/build/rootfs-b11"
 KERNEL_DEST="${BLAZE_ROOT}/build/kernel_7.2.9_work/kernel-dest"
 STAGING="${BLAZE_ROOT}/build/live-iso-staging"
 OUTPUT_DIR="${BLAZE_ROOT}/build/iso"
-OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-c1-x86_64.iso"
+OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-c2-x86_64.iso"
 LIMINE_DIR="$("${SCRIPT_DIR}/prepare-limine.sh" | tail -n1)"
 LIMINE_TOOL="${LIMINE_DIR}/limine"
 LIMINE_DATA="${LIMINE_DIR}"
@@ -48,8 +48,13 @@ cp "${LIMINE_TOOL}" "${STAGING}/installer/limine"
 
 echo "[LIVE-ISO] Building and staging the Solar Installer engine..."
 cargo build --release --manifest-path "${BLAZE_ROOT}/Cargo.toml" -p solar-installer
+cargo build --release --manifest-path "${BLAZE_ROOT}/Cargo.toml" -p portadora
 install -Dm755 "${BLAZE_ROOT}/target/release/solar-installer" \
     "${ROOTFS}/usr/bin/solar-installer"
+install -Dm755 "${BLAZE_ROOT}/target/release/portadora" \
+    "${ROOTFS}/usr/bin/portadora"
+install -Dm644 "${BLAZE_ROOT}/build/repository/stable/metadata/root.json" \
+    "${ROOTFS}/etc/portadora/trusted/root.json"
 install -Dm755 "${BLAZE_ROOT}/config/solar-installer/solar-installer-gui" \
     "${ROOTFS}/usr/bin/solar-installer-gui"
 install -Dm644 "${BLAZE_ROOT}/config/solar-installer/solar-installer.desktop" \
@@ -71,6 +76,8 @@ install -Dm644 "${BLAZE_ROOT}/config/blaze-bash-profile" \
 chown 1000:1000 "${ROOTFS}/home/blaze/.bash_profile" 2>/dev/null || true
 install -Dm644 "${BLAZE_ROOT}/config/getty-tty1-autologin.conf" \
     "${ROOTFS}/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+install -Dm644 "${BLAZE_ROOT}/config/virtio-gpu.conf" \
+    "${ROOTFS}/etc/modules-load.d/virtio-gpu.conf"
 
 # Bundle the deployment tools and their resolved runtime libraries. Retaining
 # them in the installed root also supports later recovery and repair workflows.
@@ -101,7 +108,7 @@ default_entry: 1
 EOF
 cp "${STAGING}/limine.conf" "${STAGING}/EFI/BOOT/limine.conf"
 
-echo "BlazeOS Native Milestone 10 Phase C.1" > "${STAGING}/.disk/info"
+echo "BlazeOS Native Milestone 10 Phase C.2" > "${STAGING}/.disk/info"
 
 echo "[LIVE-ISO] Synchronizing kernel modules with the live kernel..."
 rm -rf "${ROOTFS}/usr/lib/modules/7.2.9"

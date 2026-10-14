@@ -14,7 +14,7 @@ import tempfile
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
-TUF_SPEC_VERSION = "1.0.36"
+TUF_SPEC_VERSION = "1.0.37"
 
 def canonical_json(data):
     def sort_value(v):

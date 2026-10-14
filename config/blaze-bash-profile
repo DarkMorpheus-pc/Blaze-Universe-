@@ -11,7 +11,13 @@ if [[ -z "$WAYLAND_DISPLAY" ]] && [[ "$(tty 2>/dev/null)" == "/dev/tty1" || "$(t
         dbus-daemon --session --fork --address=unix:path=/run/user/1000/bus 2>/dev/null || true
     fi
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
-    if [[ -e /dev/dri/card0 ]]; then
+    # DRM nodes may appear after getty startup. A systemd path condition is
+    # evaluated only once, so wait here and retain a usable recovery shell.
+    for _blaze_drm_wait in {1..150}; do
+        compgen -G '/dev/dri/card[0-9]*' >/dev/null && break
+        sleep 0.1
+    done
+    if compgen -G '/dev/dri/card[0-9]*' >/dev/null; then
         if ! /usr/bin/solar-session; then
             printf '\nBlazeOS graphical session could not start; continuing in the tty1 recovery shell.\n'
         fi

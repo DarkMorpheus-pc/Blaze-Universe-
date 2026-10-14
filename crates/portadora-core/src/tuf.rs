@@ -468,7 +468,7 @@ mod tests {
         let keyid = "root-key".to_string();
         RootMetadata {
             _type: "root".into(),
-            spec_version: "1.0.36".into(),
+            spec_version: "1.0.37".into(),
             version,
             expires: Utc::now() + Duration::days(30),
             consistent_snapshot: Some(true),

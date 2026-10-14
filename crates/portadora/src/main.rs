@@ -248,7 +248,7 @@ fn execute_update(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsM
     atomic_write(&meta_dir.join("snapshot.json"), &snapshot_bytes)?;
     atomic_write(&meta_dir.join("targets.json"), &targets_bytes)?;
 
-    println!("Repository metadata successfully updated and verified (TUF v1.0.36)");
+    println!("Repository metadata successfully updated and verified (TUF v1.0.37)");
     Ok(verifier.targets.unwrap())
 }
 
