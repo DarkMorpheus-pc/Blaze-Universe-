@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Install BlazeOS
+Name[tr]=BlazeOS'u Kur
+Comment=Install BlazeOS Native to this computer
+Comment[tr]=BlazeOS Native sistemini bu bilgisayara kur
+Exec=/usr/bin/solar-installer-gui
+Icon=drive-harddisk-system
+Terminal=false
+Categories=System;
+StartupNotify=true

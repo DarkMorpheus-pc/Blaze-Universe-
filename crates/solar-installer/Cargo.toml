@@ -1,6 +1,6 @@
 [package]
 name = "solar-installer"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["BlazeOS Core Team <core@blazeos.org>"]
 description = "Safety-first installation planner and deployment engine for BlazeOS Native"

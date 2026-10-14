@@ -1,5 +1,8 @@
+mod configuration;
+
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
+use configuration::InstallAnswers;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
@@ -64,9 +67,22 @@ enum Command {
         /// Permit installation to a device marked removable by the kernel.
         #[arg(long)]
         allow_removable: bool,
+        /// Non-secret installation choices in the versioned JSON answers format.
+        #[arg(long, value_name = "FILE")]
+        answers: Option<PathBuf>,
+        /// Read the new user's password from standard input instead of process arguments.
+        #[arg(long, requires = "answers")]
+        password_stdin: bool,
         /// Test-only deterministic interruption point for recovery acceptance tests.
         #[arg(long, value_enum, hide = true)]
         fail_after: Option<FailurePoint>,
+    },
+    /// Validate non-secret installation answers without modifying a system.
+    ValidateAnswers {
+        #[arg(long, value_name = "FILE")]
+        answers: PathBuf,
+        #[arg(long, default_value = "/")]
+        root: PathBuf,
     },
 }
 
@@ -78,6 +94,37 @@ enum FailurePoint {
     Formatted,
     Extracted,
     Bootloader,
+    Configured,
+}
+
+struct SensitivePassword(Vec<u8>);
+
+impl SensitivePassword {
+    fn read_stdin() -> Result<Self> {
+        let mut bytes = Vec::new();
+        std::io::stdin()
+            .take(1026)
+            .read_to_end(&mut bytes)
+            .context("reading password from standard input")?;
+        if bytes.ends_with(b"\n") {
+            bytes.pop();
+            if bytes.ends_with(b"\r") {
+                bytes.pop();
+            }
+        }
+        configuration::validate_password(&bytes)?;
+        Ok(Self(bytes))
+    }
+
+    fn expose(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl Drop for SensitivePassword {
+    fn drop(&mut self) {
+        self.0.fill(0);
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -108,6 +155,18 @@ struct InstallPlan {
     root_type_guid: &'static str,
     bootloader: &'static str,
     steps: Vec<&'static str>,
+}
+
+struct ApplyOptions {
+    target: PathBuf,
+    source: PathBuf,
+    boot_directory: PathBuf,
+    limine_directory: PathBuf,
+    confirm_erase: String,
+    allow_removable: bool,
+    answers: Option<InstallAnswers>,
+    password_stdin: bool,
+    fail_after: Option<FailurePoint>,
 }
 
 fn read_trimmed(path: impl AsRef<Path>) -> String {
@@ -492,18 +551,32 @@ fn verify_live_source(source: &Path) -> Result<String> {
     Ok(actual)
 }
 
-fn apply_install(
-    target: PathBuf,
-    source: PathBuf,
-    boot_directory: PathBuf,
-    limine_directory: PathBuf,
-    confirm_erase: String,
-    allow_removable: bool,
-    fail_after: Option<FailurePoint>,
-) -> Result<()> {
+fn apply_install(options: ApplyOptions) -> Result<()> {
+    let ApplyOptions {
+        target,
+        source,
+        boot_directory,
+        limine_directory,
+        confirm_erase,
+        allow_removable,
+        answers,
+        password_stdin,
+        fail_after,
+    } = options;
     if unsafe { libc::geteuid() } != 0 {
         bail!("installation requires root privileges");
     }
+    if answers.is_some() && !password_stdin {
+        bail!("configured installations require --password-stdin");
+    }
+    if let Some(ref answers) = answers {
+        answers.validate_syntax()?;
+    }
+    let password = if password_stdin {
+        Some(SensitivePassword::read_stdin()?)
+    } else {
+        None
+    };
     let plan = build_plan(target, source.clone(), false)?;
     if confirm_erase != plan.target.to_string_lossy() {
         bail!(
@@ -540,7 +613,7 @@ fn apply_install(
     let limine = required_file(&limine_directory, "limine")?;
 
     transaction_checkpoint(&plan.target, "preflight", fail_after, None)?;
-    println!("[0/8] Verifying live root SHA-256...");
+    println!("[0/9] Verifying live root SHA-256...");
     let source_sha256 = verify_live_source(&source)?;
     transaction_checkpoint(
         &plan.target,
@@ -554,7 +627,7 @@ fn apply_install(
     let table = format!(
         "label: gpt\nsize=1MiB, type={BIOS_BOOT_GUID}, name=\"blaze-bios\"\nsize=512MiB, type={ESP_GUID}, name=\"BLAZE-EFI\"\ntype={ROOT_GUID}, name=\"blaze-root\"\n"
     );
-    println!("[1/8] Partitioning {}...", plan.target.display());
+    println!("[1/9] Partitioning {}...", plan.target.display());
     // The process already holds a non-blocking exclusive flock for the whole transaction.
     run_with_input(
         "sfdisk",
@@ -574,7 +647,7 @@ fn apply_install(
         fail_after,
         Some(FailurePoint::Partitioned),
     )?;
-    println!("[2/8] Formatting filesystems...");
+    println!("[2/9] Formatting filesystems...");
     run(
         "mkfs.vfat",
         &[
@@ -603,7 +676,7 @@ fn apply_install(
 
     let mounted = MountedTarget::new(&root_partition, &esp_partition)?;
     let root = mounted.root.path();
-    println!("[3/8] Extracting the verified live root...");
+    println!("[3/9] Extracting the verified live root...");
     run(
         "unsquashfs",
         &[
@@ -622,8 +695,16 @@ fn apply_install(
     for directory in ["dev", "proc", "run", "sys", "tmp"] {
         fs::create_dir_all(root.join(directory))?;
     }
+    // This narrowly scoped rule exists only in the immutable live image so the
+    // graphical installer can start its privileged engine without exposing a
+    // password. Never carry live-environment authorization into the install.
+    let live_installer_sudoers = root.join("etc/sudoers.d/solar-installer-live");
+    if live_installer_sudoers.exists() {
+        fs::remove_file(&live_installer_sudoers)
+            .context("removing live-only installer authorization")?;
+    }
 
-    println!("[4/8] Installing kernel and Limine assets...");
+    println!("[4/9] Installing kernel and Limine assets...");
     let boot = root.join("boot");
     fs::create_dir_all(boot.join("EFI/BOOT"))?;
     fs::copy(kernel, boot.join("vmlinuz-blaze-7.2.9"))?;
@@ -634,7 +715,7 @@ fn apply_install(
     fs::write(boot.join("limine.conf"), limine_conf)?;
     fs::write(boot.join("EFI/BOOT/limine.conf"), limine_conf)?;
 
-    println!("[5/8] Writing UUID-based fstab...");
+    println!("[5/9] Writing UUID-based fstab...");
     let root_uuid = output(
         "blkid",
         &[
@@ -657,6 +738,16 @@ fn apply_install(
         ),
     )?;
     fs::write(root.join("etc/machine-id"), "")?;
+    if let (Some(answers), Some(password)) = (answers.as_ref(), password.as_ref()) {
+        println!("[6/9] Applying user and regional configuration...");
+        configuration::apply(root, answers, password.expose())?;
+        transaction_checkpoint(
+            &plan.target,
+            "configured",
+            fail_after,
+            Some(FailurePoint::Configured),
+        )?;
+    }
     let install_manifest = serde_json::json!({
         "schema_version": 1,
         "installer": env!("CARGO_PKG_VERSION"),
@@ -665,6 +756,7 @@ fn apply_install(
         "bootloader": "Limine 12.9.1",
         "recovery_model": "restart-from-verified-source",
         "transaction_schema_version": 1,
+        "configuration": answers,
         "layout": ["bios-boot", "efi-system", "linux-x86-64-root"]
     });
     fs::create_dir_all(root.join("var/lib/solar-installer"))?;
@@ -673,7 +765,7 @@ fn apply_install(
         serde_json::to_vec_pretty(&install_manifest)?,
     )?;
 
-    println!("[6/8] Installing legacy BIOS boot stages...");
+    println!("[7/9] Installing legacy BIOS boot stages...");
     run(
         limine.to_str().context("non-UTF-8 Limine path")?,
         &["bios-install", target_s, "1"],
@@ -684,9 +776,9 @@ fn apply_install(
         fail_after,
         Some(FailurePoint::Bootloader),
     )?;
-    println!("[7/8] Flushing installation data...");
+    println!("[8/9] Flushing installation data...");
     run("sync", &[])?;
-    println!("[8/8] Verifying installed boot and system files...");
+    println!("[9/9] Verifying installed boot and system files...");
     for path in [
         root.join("etc/fstab"),
         boot.join("limine.conf"),
@@ -773,17 +865,27 @@ fn main() -> Result<()> {
             limine_directory,
             confirm_erase,
             allow_removable,
+            answers,
+            password_stdin,
             fail_after,
         } => {
-            apply_install(
+            let answers = answers.as_deref().map(InstallAnswers::load).transpose()?;
+            apply_install(ApplyOptions {
                 target,
                 source,
                 boot_directory,
                 limine_directory,
                 confirm_erase,
                 allow_removable,
+                answers,
+                password_stdin,
                 fail_after,
-            )?;
+            })?;
+        }
+        Command::ValidateAnswers { answers, root } => {
+            let answers = InstallAnswers::load(&answers)?;
+            answers.validate_resources(&root)?;
+            println!("Installation answers are valid for {}", root.display());
         }
     }
     Ok(())

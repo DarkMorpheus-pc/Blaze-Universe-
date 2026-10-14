@@ -1,0 +1,38 @@
+[package]
+name = "tzdata"
+version = "2026e"
+release = 1
+architecture = "x86_64"
+summary = "IANA time zone database"
+description = "Current civil time-zone rules and canonical zone metadata from IANA."
+license = "LicenseRef-IANA-TZ-Public-Domain"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://www.iana.org/time-zones"
+
+[source]
+url = "https://data.iana.org/time-zones/releases/tzdata2026e.tar.gz"
+sha256 = "b26882805f26aac59d5b222978e6580484b834ccdc98be89df2f05a6dc53a652"
+filename = "tzdata2026e.tar.gz"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["tzdata = 2026e", "zoneinfo"]
+
+[build]
+script = """
+install -d "$DESTDIR/usr/share/zoneinfo" \
+           "$DESTDIR/usr/share/zoneinfo/posix" \
+           "$DESTDIR/usr/share/zoneinfo/right" \
+           "$DESTDIR/usr/share/licenses/tzdata"
+
+zones="africa antarctica asia australasia europe northamerica southamerica etcetera factory backward"
+zic -b fat -d "$DESTDIR/usr/share/zoneinfo" $zones
+zic -b fat -d "$DESTDIR/usr/share/zoneinfo/posix" $zones
+zic -b fat -L leapseconds -d "$DESTDIR/usr/share/zoneinfo/right" $zones
+
+install -m644 iso3166.tab zone.tab zone1970.tab zonenow.tab \
+    "$DESTDIR/usr/share/zoneinfo/"
+install -m644 leapseconds "$DESTDIR/usr/share/zoneinfo/leapseconds"
+printf '2026e\n' > "$DESTDIR/usr/share/zoneinfo/tzdata.zi.version"
+install -m644 LICENSE "$DESTDIR/usr/share/licenses/tzdata/LICENSE"
+"""

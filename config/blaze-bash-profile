@@ -1,4 +1,9 @@
 # BlazeOS SolarUI auto-launch with a safe text-console fallback.
+if [[ -r /etc/locale.conf ]]; then
+    source /etc/locale.conf
+    export LANG
+fi
+
 if [[ -z "$WAYLAND_DISPLAY" ]] && [[ "$(tty 2>/dev/null)" == "/dev/tty1" || "$(tty 2>/dev/null)" == "/dev/tty0" ]]; then
     export XDG_RUNTIME_DIR=/run/user/1000
     export LIBSEAT_BACKEND=seatd

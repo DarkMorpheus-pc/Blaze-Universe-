@@ -198,13 +198,14 @@ Blaze-Universe-/
 - [x] **Milestone 6–7:** Linux kernel integration, systemd orchestration, and security hardening.
 - [x] **Milestone 8:** Multi-package resolution, networking, and user authentication (PAM/Shadow).
 - [x] **Milestone 9:** Native Wayland desktop (Niri 26.04), Noctalia 5.1.0 Shell, fast boot optimization (<4s).
-- [ ] **Milestone 10:** Live distribution and graphical installer.
+- [ ] **Milestone 10:** Live distribution, graphical installer, and signed remote distribution.
   - [x] **Phase A:** Hybrid BIOS/UEFI Live ISO, SquashFS root, and writable tmpfs OverlayFS.
-  - [ ] **Phase B:** Safe target-disk deployment engine and graphical Solar Installer.
+  - [x] **Phase B:** Safe target-disk deployment engine and graphical Solar Installer.
     - [x] **Phase B.1:** Non-destructive disk discovery, safety validation, and versioned install planning.
     - [x] **Phase B.2:** Transactional deployment to a disposable target disk with UEFI/BIOS boot verification.
     - [x] **Phase B.3:** Recovery, rollback metadata, failure injection, and installer safety hardening.
-    - [ ] **Phase B.4:** User, locale, timezone, keyboard, and graphical Solar Installer workflow.
+    - [x] **Phase B.4:** User, locale, timezone, keyboard, and graphical Solar Installer workflow.
+  - [ ] **Phase C:** Signed release publication, remote package repositories, mirrors, and upgrade acceptance.
 - [ ] **Milestone 11:** Multi-architecture support (`aarch64` / ARM64).
 
 ---

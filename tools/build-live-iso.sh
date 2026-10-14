@@ -8,7 +8,7 @@ ROOTFS="${BLAZE_ROOT}/build/rootfs-b11"
 KERNEL_DEST="${BLAZE_ROOT}/build/kernel_7.2.9_work/kernel-dest"
 STAGING="${BLAZE_ROOT}/build/live-iso-staging"
 OUTPUT_DIR="${BLAZE_ROOT}/build/iso"
-OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-a-x86_64.iso"
+OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-b4-x86_64.iso"
 LIMINE_DIR="$("${SCRIPT_DIR}/prepare-limine.sh" | tail -n1)"
 LIMINE_TOOL="${LIMINE_DIR}/limine"
 LIMINE_DATA="${LIMINE_DIR}"
@@ -50,6 +50,22 @@ echo "[LIVE-ISO] Building and staging the Solar Installer engine..."
 cargo build --release --manifest-path "${BLAZE_ROOT}/Cargo.toml" -p solar-installer
 install -Dm755 "${BLAZE_ROOT}/target/release/solar-installer" \
     "${ROOTFS}/usr/bin/solar-installer"
+install -Dm755 "${BLAZE_ROOT}/config/solar-installer/solar-installer-gui" \
+    "${ROOTFS}/usr/bin/solar-installer-gui"
+install -Dm644 "${BLAZE_ROOT}/config/solar-installer/solar-installer.desktop" \
+    "${ROOTFS}/usr/share/applications/solar-installer.desktop"
+install -d "${ROOTFS}/usr/share/solar-installer"
+install -Dm644 "${BLAZE_ROOT}/config/solar-installer/"*.qml \
+    "${ROOTFS}/usr/share/solar-installer/"
+install -d -m0750 "${ROOTFS}/etc/sudoers.d"
+if [[ -e "${ROOTFS}/etc/sudoers.d/solar-installer-live" ]]; then
+    chmod u+w "${ROOTFS}/etc/sudoers.d/solar-installer-live"
+fi
+cat > "${ROOTFS}/etc/sudoers.d/solar-installer-live" <<'EOF'
+# Live-media only: removed from the target immediately after extraction.
+blaze ALL=(root) NOPASSWD: /usr/bin/solar-installer
+EOF
+chmod 0440 "${ROOTFS}/etc/sudoers.d/solar-installer-live"
 install -Dm644 "${BLAZE_ROOT}/config/blaze-bash-profile" \
     "${ROOTFS}/home/blaze/.bash_profile"
 chown 1000:1000 "${ROOTFS}/home/blaze/.bash_profile" 2>/dev/null || true
@@ -85,7 +101,7 @@ default_entry: 1
 EOF
 cp "${STAGING}/limine.conf" "${STAGING}/EFI/BOOT/limine.conf"
 
-echo "BlazeOS Native Milestone 10 Phase A" > "${STAGING}/.disk/info"
+echo "BlazeOS Native Milestone 10 Phase B.4" > "${STAGING}/.disk/info"
 
 echo "[LIVE-ISO] Synchronizing kernel modules with the live kernel..."
 rm -rf "${ROOTFS}/usr/lib/modules/7.2.9"

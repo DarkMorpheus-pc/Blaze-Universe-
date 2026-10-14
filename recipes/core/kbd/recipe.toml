@@ -1,0 +1,30 @@
+[package]
+name = "kbd"
+version = "2.10.0"
+release = 1
+architecture = "x86_64"
+summary = "Linux console keyboard and font utilities"
+description = "Console keymaps, fonts, loadkeys, setfont, openvt and related Linux VT tools."
+license = "GPL-2.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://kbd-project.org/"
+
+[source]
+url = "https://cdn.kernel.org/pub/linux/utils/kbd/kbd-2.10.0.tar.xz"
+sha256 = "6e5ca4f8d76ee9e3a8db700b667f13e12aac9933828a64e1aaad93d26be9b479"
+filename = "kbd-2.10.0.tar.xz"
+
+[dependencies]
+requires = ["glibc >= 2.44"]
+provides = ["kbd = 2.10.0", "cmd:loadkeys", "cmd:setfont", "console-keymaps"]
+
+[build]
+script = """
+./configure \
+    --prefix=/usr \
+    --disable-vlock \
+    --disable-nls \
+    --enable-libkeymap
+make -j"$JOBS"
+make DESTDIR="$DESTDIR" install
+"""
