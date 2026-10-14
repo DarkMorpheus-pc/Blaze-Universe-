@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -39,6 +39,8 @@ pub struct RootMetadata {
     pub spec_version: String,
     pub version: u64,
     pub expires: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistent_snapshot: Option<bool>,
     pub keys: HashMap<String, KeyDefinition>,
     pub roles: HashMap<String, RoleDefinition>,
 }
@@ -180,21 +182,21 @@ impl TufVerifier {
         let role = signed_root.signed.roles.get("root")
             .context("Missing 'root' role in root metadata")?;
 
-        let mut valid_signatures = 0;
+        let mut valid_signatures = HashSet::new();
         for sig in &signed_root.signatures {
             if role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = signed_root.signed.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        valid_signatures += 1;
+                    valid_signatures.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
 
-        if valid_signatures < role.threshold {
+        if valid_signatures.len() < role.threshold {
             bail!(
                 "Trusted root signature check failed: got {} valid signatures, required threshold is {}",
-                valid_signatures,
+                valid_signatures.len(),
                 role.threshold
             );
         }
@@ -234,10 +236,16 @@ impl TufVerifier {
         let signed_new: SignedMetadata<RootMetadata> = serde_json::from_slice(new_root_raw)
             .context("Failed to parse candidate root.json")?;
 
-        if signed_new.signed.version < self.root.version {
+        let expected_version = self
+            .root
+            .version
+            .checked_add(1)
+            .context("trusted root version overflow")?;
+        if signed_new.signed.version != expected_version {
             bail!(
-                "SecurityError::RollbackDetected: candidate root version {} < current version {}",
+                "SecurityError::RootVersion: candidate root version {} must be exactly {} after current version {}",
                 signed_new.signed.version,
+                expected_version,
                 self.root.version
             );
         }
@@ -249,38 +257,38 @@ impl TufVerifier {
         let message = canonical_json(&signed_new.signed)?;
 
         let current_role = self.root.roles.get("root").context("Missing current root role")?;
-        let mut old_valid = 0;
+        let mut old_valid = HashSet::new();
         for sig in &signed_new.signatures {
             if current_role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = self.root.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        old_valid += 1;
+                        old_valid.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
-        if old_valid < current_role.threshold {
+        if old_valid.len() < current_role.threshold {
             bail!(
                 "SecurityError::ThresholdNotMet: candidate root not signed by current root threshold ({}/{})",
-                old_valid, current_role.threshold
+                old_valid.len(), current_role.threshold
             );
         }
 
         let new_role = signed_new.signed.roles.get("root").context("Missing candidate root role")?;
-        let mut new_valid = 0;
+        let mut new_valid = HashSet::new();
         for sig in &signed_new.signatures {
             if new_role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = signed_new.signed.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        new_valid += 1;
+                        new_valid.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
-        if new_valid < new_role.threshold {
+        if new_valid.len() < new_role.threshold {
             bail!(
                 "SecurityError::ThresholdNotMet: candidate root not signed by new root threshold ({}/{})",
-                new_valid, new_role.threshold
+                new_valid.len(), new_role.threshold
             );
         }
 
@@ -307,19 +315,19 @@ impl TufVerifier {
 
         let role = self.root.roles.get("timestamp").context("Missing 'timestamp' role in root")?;
         let message = canonical_json(&signed.signed)?;
-        let mut valid = 0;
+        let mut valid = HashSet::new();
         for sig in &signed.signatures {
             if role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = self.root.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        valid += 1;
+                        valid.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
 
-        if valid < role.threshold {
-            bail!("SecurityError::ThresholdNotMet: timestamp signatures below threshold ({}/{})", valid, role.threshold);
+        if valid.len() < role.threshold {
+            bail!("SecurityError::ThresholdNotMet: timestamp signatures below threshold ({}/{})", valid.len(), role.threshold);
         }
 
         self.timestamp = Some(signed.signed);
@@ -331,6 +339,11 @@ impl TufVerifier {
         let snap_meta_info = timestamp.meta.get("snapshot.json").context("timestamp does not declare snapshot.json")?;
 
         let actual_hash = hex::encode(Sha256::digest(snapshot_raw));
+        if let Some(expected_length) = snap_meta_info.length {
+            if snapshot_raw.len() as u64 != expected_length {
+                bail!("SecurityError::LengthMismatch: snapshot.json length differs from timestamp metadata");
+            }
+        }
         if let Some(expected_hash) = snap_meta_info.hashes.get("sha256") {
             if &actual_hash != expected_hash {
                 bail!("SecurityError::HashMismatch: snapshot.json sha256 mismatch (mix-and-match defense)");
@@ -340,8 +353,8 @@ impl TufVerifier {
         let signed: SignedMetadata<SnapshotMetadata> = serde_json::from_slice(snapshot_raw)
             .context("Failed to parse candidate snapshot.json")?;
 
-        if signed.signed.version < snap_meta_info.version {
-            bail!("SecurityError::RollbackDetected: snapshot version < declared timestamp version");
+        if signed.signed.version != snap_meta_info.version {
+            bail!("SecurityError::VersionMismatch: snapshot version differs from timestamp metadata");
         }
 
         if signed.signed.expires < Utc::now() {
@@ -350,19 +363,19 @@ impl TufVerifier {
 
         let role = self.root.roles.get("snapshot").context("Missing 'snapshot' role in root")?;
         let message = canonical_json(&signed.signed)?;
-        let mut valid = 0;
+        let mut valid = HashSet::new();
         for sig in &signed.signatures {
             if role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = self.root.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        valid += 1;
+                        valid.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
 
-        if valid < role.threshold {
-            bail!("SecurityError::ThresholdNotMet: snapshot signatures below threshold ({}/{})", valid, role.threshold);
+        if valid.len() < role.threshold {
+            bail!("SecurityError::ThresholdNotMet: snapshot signatures below threshold ({}/{})", valid.len(), role.threshold);
         }
 
         self.snapshot = Some(signed.signed);
@@ -374,6 +387,11 @@ impl TufVerifier {
         let targets_meta_info = snapshot.meta.get("targets.json").context("snapshot does not declare targets.json")?;
 
         let actual_hash = hex::encode(Sha256::digest(targets_raw));
+        if let Some(expected_length) = targets_meta_info.length {
+            if targets_raw.len() as u64 != expected_length {
+                bail!("SecurityError::LengthMismatch: targets.json length differs from snapshot metadata");
+            }
+        }
         if let Some(expected_hash) = targets_meta_info.hashes.get("sha256") {
             if &actual_hash != expected_hash {
                 bail!("SecurityError::HashMismatch: targets.json sha256 mismatch (mix-and-match defense)");
@@ -383,8 +401,8 @@ impl TufVerifier {
         let signed: SignedMetadata<TargetsMetadata> = serde_json::from_slice(targets_raw)
             .context("Failed to parse candidate targets.json")?;
 
-        if signed.signed.version < targets_meta_info.version {
-            bail!("SecurityError::RollbackDetected: targets version < declared snapshot version");
+        if signed.signed.version != targets_meta_info.version {
+            bail!("SecurityError::VersionMismatch: targets version differs from snapshot metadata");
         }
 
         if signed.signed.expires < Utc::now() {
@@ -393,19 +411,19 @@ impl TufVerifier {
 
         let role = self.root.roles.get("targets").context("Missing 'targets' role in root")?;
         let message = canonical_json(&signed.signed)?;
-        let mut valid = 0;
+        let mut valid = HashSet::new();
         for sig in &signed.signatures {
             if role.keyids.contains(&sig.keyid) {
                 if let Some(key_def) = self.root.keys.get(&sig.keyid) {
                     if verify_signature(&key_def.keyval, &sig.sig, &message)? {
-                        valid += 1;
+                        valid.insert(sig.keyid.as_str());
                     }
                 }
             }
         }
 
-        if valid < role.threshold {
-            bail!("SecurityError::ThresholdNotMet: targets signatures below threshold ({}/{})", valid, role.threshold);
+        if valid.len() < role.threshold {
+            bail!("SecurityError::ThresholdNotMet: targets signatures below threshold ({}/{})", valid.len(), role.threshold);
         }
 
         self.targets = Some(signed.signed);
@@ -437,5 +455,71 @@ impl TufVerifier {
         }
 
         Ok(target_file)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+    use ed25519_dalek::{Signer, SigningKey};
+
+    fn root(version: u64, key: &SigningKey, threshold: usize) -> RootMetadata {
+        let keyid = "root-key".to_string();
+        RootMetadata {
+            _type: "root".into(),
+            spec_version: "1.0.36".into(),
+            version,
+            expires: Utc::now() + Duration::days(30),
+            consistent_snapshot: Some(true),
+            keys: HashMap::from([(
+                keyid.clone(),
+                KeyDefinition {
+                    keytype: "ed25519".into(),
+                    scheme: "ed25519".into(),
+                    keyval: hex::encode(key.verifying_key().to_bytes()),
+                },
+            )]),
+            roles: HashMap::from([(
+                "root".into(),
+                RoleDefinition {
+                    keyids: vec![keyid],
+                    threshold,
+                },
+            )]),
+        }
+    }
+
+    fn signed_root(root: RootMetadata, key: &SigningKey, signatures: usize) -> Vec<u8> {
+        let message = canonical_json(&root).unwrap();
+        let signature = hex::encode(key.sign(&message).to_bytes());
+        serde_json::to_vec(&SignedMetadata {
+            signatures: (0..signatures)
+                .map(|_| SignatureEntry {
+                    keyid: "root-key".into(),
+                    sig: signature.clone(),
+                })
+                .collect(),
+            signed: root,
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn root_rotation_must_be_exactly_sequential() {
+        let key = SigningKey::from_bytes(&[7; 32]);
+        let mut verifier = TufVerifier::new_with_trusted_root(root(1, &key, 1));
+        let skipped = signed_root(root(3, &key, 1), &key, 1);
+        let error = verifier.update_root(&skipped).unwrap_err().to_string();
+        assert!(error.contains("must be exactly 2"), "{error}");
+    }
+
+    #[test]
+    fn duplicate_key_signatures_do_not_satisfy_threshold() {
+        let key = SigningKey::from_bytes(&[9; 32]);
+        let mut verifier = TufVerifier::new_with_trusted_root(root(1, &key, 2));
+        let duplicated = signed_root(root(2, &key, 2), &key, 2);
+        let error = verifier.update_root(&duplicated).unwrap_err().to_string();
+        assert!(error.contains("ThresholdNotMet"), "{error}");
     }
 }

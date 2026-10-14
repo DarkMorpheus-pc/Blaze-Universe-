@@ -206,6 +206,9 @@ Blaze-Universe-/
     - [x] **Phase B.3:** Recovery, rollback metadata, failure injection, and installer safety hardening.
     - [x] **Phase B.4:** User, locale, timezone, keyboard, and graphical Solar Installer workflow.
   - [ ] **Phase C:** Signed release publication, remote package repositories, mirrors, and upgrade acceptance.
+    - [x] **Phase C.1:** TUF client-chain hardening, sequential root rotation, downgrade prevention, and remote-operation VM acceptance.
+    - [ ] **Phase C.2:** Offline release signing, production/staging channel separation, and deterministic repository publication.
+    - [ ] **Phase C.3:** Mirror failover, full-system upgrade, release artifact publication, and final acceptance.
 - [ ] **Milestone 11:** Multi-architecture support (`aarch64` / ARM64).
 
 ---

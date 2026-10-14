@@ -213,14 +213,28 @@ fn topo_sort(
 }
 
 fn is_node_newer(candidate: &DependencyNode, existing: &DependencyNode) -> bool {
-    match compare_versions(&candidate.version, &existing.version) {
+    is_version_release_newer(
+        &candidate.version,
+        candidate.release,
+        &existing.version,
+        existing.release,
+    )
+}
+
+pub fn is_version_release_newer(
+    candidate_version: &str,
+    candidate_release: u32,
+    current_version: &str,
+    current_release: u32,
+) -> bool {
+    match compare_versions(candidate_version, current_version) {
         std::cmp::Ordering::Greater => true,
         std::cmp::Ordering::Less => false,
-        std::cmp::Ordering::Equal => candidate.release > existing.release,
+        std::cmp::Ordering::Equal => candidate_release > current_release,
     }
 }
 
-fn compare_versions(v1: &str, v2: &str) -> std::cmp::Ordering {
+pub fn compare_versions(v1: &str, v2: &str) -> std::cmp::Ordering {
     let p1: Vec<u64> = v1.split('.').filter_map(|s| s.parse().ok()).collect();
     let p2: Vec<u64> = v2.split('.').filter_map(|s| s.parse().ok()).collect();
     for (a, b) in p1.iter().zip(p2.iter()) {
@@ -231,3 +245,16 @@ fn compare_versions(v1: &str, v2: &str) -> std::cmp::Ordering {
     p1.len().cmp(&p2.len())
 }
 
+#[cfg(test)]
+mod version_tests {
+    use super::*;
+
+    #[test]
+    fn upgrades_only_to_a_strictly_newer_version_release_pair() {
+        assert!(is_version_release_newer("2.0.0", 1, "1.9.9", 9));
+        assert!(is_version_release_newer("1.0.0", 2, "1.0.0", 1));
+        assert!(!is_version_release_newer("1.0.0", 1, "1.0.0", 1));
+        assert!(!is_version_release_newer("1.0.0", 99, "2.0.0", 1));
+        assert!(!is_version_release_newer("6.8.12", 9, "7.2.8", 1));
+    }
+}

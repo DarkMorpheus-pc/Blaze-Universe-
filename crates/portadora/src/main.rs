@@ -1,13 +1,14 @@
 use std::collections::HashSet;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use portadora_core::{
-    BlzReader, Database, DependencyResolver, JournalOp, PackageDownloader,
-    TargetsMetadata, Transaction, TransactionRecovery, TufVerifier,
+    is_version_release_newer, BlzReader, Database, DependencyResolver, JournalOp,
+    PackageDownloader, TargetsMetadata, Transaction, TransactionRecovery, TufVerifier,
 };
 
 #[derive(Parser, Debug)]
@@ -45,6 +46,9 @@ enum Commands {
     Search {
         /// Search keyword (name or summary)
         query: String,
+        /// Optional repository URL override
+        #[arg(long)]
+        repo_url: Option<String>,
     },
 
     /// Install one or more packages (local .blz file or remote package name)
@@ -155,22 +159,22 @@ fn fetch_url_bytes(url: &str) -> Result<Vec<u8>> {
 }
 
 fn load_or_update_targets(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsMetadata> {
-    let meta_dir = root.join("var/lib/portadora/metadata");
-    let targets_file = meta_dir.join("targets.json");
-
-    if targets_file.is_file() {
-        if let Ok(content) = fs::read(&targets_file) {
-            if let Ok(signed) = serde_json::from_slice::<portadora_core::tuf::SignedMetadata<TargetsMetadata>>(&content) {
-                return Ok(signed.signed);
-            }
-        }
-    }
-
-    // If not cached, run update
     if verbose {
-        eprintln!("[portadora] Metadata cache missing, fetching from {}", repo_url);
+        eprintln!("[portadora] Refreshing and verifying repository metadata from {}", repo_url);
     }
     execute_update(root, repo_url, verbose)
+}
+
+fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
+    let parent = path.parent().context("metadata path has no parent")?;
+    fs::create_dir_all(parent)?;
+    let temporary = path.with_extension("json.new");
+    let mut file = fs::File::create(&temporary)?;
+    file.write_all(data)?;
+    file.sync_all()?;
+    fs::rename(&temporary, path)?;
+    fs::File::open(parent)?.sync_all()?;
+    Ok(())
 }
 
 fn execute_update(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsMetadata> {
@@ -188,19 +192,27 @@ fn execute_update(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsM
     let mut verifier = TufVerifier::load_trusted_root(&trusted_root_path)?;
     verifier.load_cached_metadata(&root.join("var/lib/portadora/metadata"));
 
-    // 0. Check for root updates / key rotation
+    // Root rotations are accepted one version at a time. Every intermediate
+    // root must be signed by both its predecessor and its own threshold.
     let root_url = format!("{}/metadata/root.json", repo_url);
-    if let Ok(candidate_root_bytes) = fetch_url_bytes(&root_url) {
-        if let Ok(signed_candidate) = serde_json::from_slice::<portadora_core::tuf::SignedMetadata<portadora_core::tuf::RootMetadata>>(&candidate_root_bytes) {
-            if signed_candidate.signed.version != verifier.root.version {
-                if verbose {
-                    eprintln!("[portadora] Detected root metadata version difference (v{} -> v{}), updating trust anchor...", verifier.root.version, signed_candidate.signed.version);
-                }
-                verifier.update_root(&candidate_root_bytes)?;
-                fs::write(&trusted_root_path, &candidate_root_bytes)?;
-                let meta_dir = root.join("var/lib/portadora/metadata");
-                fs::create_dir_all(&meta_dir)?;
-                fs::write(meta_dir.join("root.json"), &candidate_root_bytes)?;
+    if let Ok(latest_root_bytes) = fetch_url_bytes(&root_url) {
+        let latest: portadora_core::tuf::SignedMetadata<portadora_core::tuf::RootMetadata> =
+            serde_json::from_slice(&latest_root_bytes).context("parsing repository root.json")?;
+        if latest.signed.version > verifier.root.version {
+            let rotations = latest.signed.version - verifier.root.version;
+            if rotations > 32 {
+                bail!("SecurityError::RootRotationLimit: refusing more than 32 root rotations in one update");
+            }
+            for version in (verifier.root.version + 1)..=latest.signed.version {
+                let versioned_url = format!("{}/metadata/{}.root.json", repo_url, version);
+                let candidate = fetch_url_bytes(&versioned_url)
+                    .with_context(|| format!("fetching required intermediate root version {version}"))?;
+                verifier.update_root(&candidate)?;
+                atomic_write(&trusted_root_path, &candidate)?;
+                atomic_write(
+                    &root.join("var/lib/portadora/metadata/root.json"),
+                    &candidate,
+                )?;
                 println!("TUF trust anchor updated to version {}", verifier.root.version);
             }
         }
@@ -232,12 +244,11 @@ fn execute_update(root: &Path, repo_url: &str, verbose: bool) -> Result<TargetsM
 
     // Save verified metadata into /var/lib/portadora/metadata/
     let meta_dir = root.join("var/lib/portadora/metadata");
-    fs::create_dir_all(&meta_dir)?;
-    fs::write(meta_dir.join("timestamp.json"), &timestamp_bytes)?;
-    fs::write(meta_dir.join("snapshot.json"), &snapshot_bytes)?;
-    fs::write(meta_dir.join("targets.json"), &targets_bytes)?;
+    atomic_write(&meta_dir.join("timestamp.json"), &timestamp_bytes)?;
+    atomic_write(&meta_dir.join("snapshot.json"), &snapshot_bytes)?;
+    atomic_write(&meta_dir.join("targets.json"), &targets_bytes)?;
 
-    println!("Repository metadata successfully updated and verified (TUF v1.0.33)");
+    println!("Repository metadata successfully updated and verified (TUF v1.0.36)");
     Ok(verifier.targets.unwrap())
 }
 
@@ -295,8 +306,8 @@ fn main() -> Result<()> {
             execute_update(&root, &url, cli.verbose)?;
         }
 
-        Commands::Search { query } => {
-            let url = get_repo_url(&root, None);
+        Commands::Search { query, repo_url } => {
+            let url = get_repo_url(&root, repo_url.as_deref());
             let targets = load_or_update_targets(&root, &url, cli.verbose)?;
             let q = query.to_lowercase();
             let mut matches = Vec::new();
@@ -456,15 +467,34 @@ fn main() -> Result<()> {
                     }
                 }
 
-                // Check if repository has a newer version or release
+                let mut newest = None;
                 for (_filename, tf) in &targets.targets {
                     if let Some(ref custom) = tf.custom {
-                        if custom.name == inst.name {
-                            if custom.version != inst.version || custom.release > inst.release {
-                                upgradable.push((inst.clone(), custom.clone()));
-                            }
+                        if custom.name != inst.name
+                            || !is_version_release_newer(
+                                &custom.version,
+                                custom.release,
+                                &inst.version,
+                                inst.release,
+                            )
+                        {
+                            continue;
+                        }
+                        let replace = newest.as_ref().is_none_or(|current: &portadora_core::tuf::TargetCustom| {
+                            is_version_release_newer(
+                                &custom.version,
+                                custom.release,
+                                &current.version,
+                                current.release,
+                            )
+                        });
+                        if replace {
+                            newest = Some(custom.clone());
                         }
                     }
+                }
+                if let Some(newest) = newest {
+                    upgradable.push((inst.clone(), newest));
                 }
             }
 

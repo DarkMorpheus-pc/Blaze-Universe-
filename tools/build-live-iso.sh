@@ -8,7 +8,7 @@ ROOTFS="${BLAZE_ROOT}/build/rootfs-b11"
 KERNEL_DEST="${BLAZE_ROOT}/build/kernel_7.2.9_work/kernel-dest"
 STAGING="${BLAZE_ROOT}/build/live-iso-staging"
 OUTPUT_DIR="${BLAZE_ROOT}/build/iso"
-OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-b4-x86_64.iso"
+OUTPUT_ISO="${OUTPUT_DIR}/BlazeOS-Native-m10-phase-c1-x86_64.iso"
 LIMINE_DIR="$("${SCRIPT_DIR}/prepare-limine.sh" | tail -n1)"
 LIMINE_TOOL="${LIMINE_DIR}/limine"
 LIMINE_DATA="${LIMINE_DIR}"
@@ -101,7 +101,7 @@ default_entry: 1
 EOF
 cp "${STAGING}/limine.conf" "${STAGING}/EFI/BOOT/limine.conf"
 
-echo "BlazeOS Native Milestone 10 Phase B.4" > "${STAGING}/.disk/info"
+echo "BlazeOS Native Milestone 10 Phase C.1" > "${STAGING}/.disk/info"
 
 echo "[LIVE-ISO] Synchronizing kernel modules with the live kernel..."
 rm -rf "${ROOTFS}/usr/lib/modules/7.2.9"

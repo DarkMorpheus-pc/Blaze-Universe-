@@ -15,5 +15,5 @@ pub use elf::{scan_elf, ElfInfo};
 pub use journal::{JournalOp, Transaction, TransactionRecovery, TxState};
 pub use manifest::{BuildMeta, Dependencies, FileEntry, FileType, Manifest, PackageMeta, Triggers};
 pub use package::{BlzReader, BlzWriter};
-pub use resolver::{DependencyNode, DependencyResolver};
+pub use resolver::{is_version_release_newer, DependencyNode, DependencyResolver};
 pub use tuf::{TufVerifier, RootMetadata, TargetsMetadata};

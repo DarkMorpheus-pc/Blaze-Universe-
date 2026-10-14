@@ -14,6 +14,8 @@ import tempfile
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
+TUF_SPEC_VERSION = "1.0.36"
+
 def canonical_json(data):
     def sort_value(v):
         if isinstance(v, dict):
@@ -98,8 +100,9 @@ def init_repo(repo_dir, pkgs_dir):
             "snapshot": {"priv": snap_priv_hex, "pub": snap_pub, "keyid": "key-snap"},
             "targets": {"priv": tgt_priv_hex, "pub": tgt_pub, "keyid": "key-tgt"},
         }
-        with open(os.path.join(repo_dir, "keys", "private_keys.json"), "w") as f:
+        with open(priv_path, "w") as f:
             json.dump(priv_keys_info, f, indent=2)
+    os.chmod(priv_path, 0o600)
 
     # Copy selected packages
     targets_dict = {}
@@ -118,15 +121,9 @@ def init_repo(repo_dir, pkgs_dir):
             pkg_meta = manifest.get("package", {})
             deps_meta = manifest.get("dependencies", {})
 
-            # Corrupt package test fixture: deliberately record invalid sha256
-            if "corrupt-pkg" in fname:
-                reported_hash = "0000000000000000000000000000000000000000000000000000000000000000"
-            else:
-                reported_hash = h
-
             targets_dict[fname] = {
                 "length": size,
-                "hashes": {"sha256": reported_hash},
+                "hashes": {"sha256": h},
                 "custom": {
                     "name": pkg_meta.get("name", fname.split("-")[0]),
                     "version": str(pkg_meta.get("version", "1.0")),
@@ -145,7 +142,7 @@ def init_repo(repo_dir, pkgs_dir):
     # 1. targets.json
     targets_signed = {
         "_type": "targets",
-        "spec_version": "1.0.33",
+        "spec_version": TUF_SPEC_VERSION,
         "version": 1,
         "expires": expires,
         "targets": targets_dict,
@@ -166,7 +163,7 @@ def init_repo(repo_dir, pkgs_dir):
     # 2. snapshot.json
     snapshot_signed = {
         "_type": "snapshot",
-        "spec_version": "1.0.33",
+        "spec_version": TUF_SPEC_VERSION,
         "version": 1,
         "expires": expires,
         "meta": {
@@ -194,7 +191,7 @@ def init_repo(repo_dir, pkgs_dir):
     ts_expires = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
     ts_signed = {
         "_type": "timestamp",
-        "spec_version": "1.0.33",
+        "spec_version": TUF_SPEC_VERSION,
         "version": 1,
         "expires": ts_expires,
         "meta": {
@@ -218,9 +215,10 @@ def init_repo(repo_dir, pkgs_dir):
     root_expires = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
     root_signed = {
         "_type": "root",
-        "spec_version": "1.0.33",
+        "spec_version": TUF_SPEC_VERSION,
         "version": 1,
         "expires": root_expires,
+        "consistent_snapshot": False,
         "keys": {
             "key-root": {"keytype": "ed25519", "scheme": "ed25519", "keyval": root_pub},
             "key-ts": {"keytype": "ed25519", "scheme": "ed25519", "keyval": ts_pub},
@@ -240,8 +238,10 @@ def init_repo(repo_dir, pkgs_dir):
         "signatures": [{"keyid": "key-root", "sig": root_sig}],
         "signed": root_signed,
     }
-    with open(os.path.join(repo_dir, "metadata", "root.json"), "wb") as f:
-        f.write(json.dumps(root_envelope, indent=2).encode('utf-8'))
+    root_bytes = json.dumps(root_envelope, indent=2).encode('utf-8')
+    for root_name in ("root.json", "1.root.json"):
+        with open(os.path.join(repo_dir, "metadata", root_name), "wb") as f:
+            f.write(root_bytes)
 
     # 5. Create Test Fixtures: Expired Metadata
     exp_ts_signed = dict(ts_signed)
@@ -289,9 +289,10 @@ def rotate_root(repo_dir):
     root_expires = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
     root_signed_v2 = {
         "_type": "root",
-        "spec_version": "1.0.33",
+        "spec_version": TUF_SPEC_VERSION,
         "version": 2,
         "expires": root_expires,
+        "consistent_snapshot": False,
         "keys": {
             "key-root": {"keytype": "ed25519", "scheme": "ed25519", "keyval": old_root_pub},
             "key-root-2": {"keytype": "ed25519", "scheme": "ed25519", "keyval": new_root_pub},
@@ -319,9 +320,11 @@ def rotate_root(repo_dir):
         "signed": root_signed_v2,
     }
 
-    root_path = os.path.join(repo_dir, "metadata", "root.json")
-    with open(root_path, "wb") as f:
-        f.write(json.dumps(envelope_v2, indent=2).encode('utf-8'))
+    root_bytes = json.dumps(envelope_v2, indent=2).encode('utf-8')
+    for root_name in ("root.json", "2.root.json"):
+        root_path = os.path.join(repo_dir, "metadata", root_name)
+        with open(root_path, "wb") as f:
+            f.write(root_bytes)
 
     # Update private keys tracking
     priv_keys["root_v2"] = {
@@ -331,6 +334,7 @@ def rotate_root(repo_dir):
     }
     with open(os.path.join(repo_dir, "keys", "private_keys.json"), "w") as f:
         json.dump(priv_keys, f, indent=2)
+    os.chmod(os.path.join(repo_dir, "keys", "private_keys.json"), 0o600)
 
     print(f"[repo-server] Rotated TUF root key to version 2!")
     print(f"  Old Root pub: {old_root_pub}")
