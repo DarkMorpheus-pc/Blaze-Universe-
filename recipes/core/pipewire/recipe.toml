@@ -1,17 +1,46 @@
 [package]
 name = "pipewire"
-version = "1.6.0"
+version = "1.2.7"
 release = 1
 architecture = "x86_64"
-summary = "Low-latency multimedia framework, audio server, and WirePlumber session manager"
+summary = "Server and user space API to handle multimedia pipelines"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://pipewire.org"
 
+[source]
+url = "https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/1.2.7/pipewire-1.2.7.tar.gz"
+sha256 = "e75568ed18bcbe75e9779af57cb9cc256fd7ebfaadc12bb347a0717055d1d3a9"
+
 [dependencies]
-provides = ["pipewire = 1.6.0", "wireplumber = 0.5.18"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "pipewire = 1.2.7",
+    "cmd:pipewire",
+    "cmd:pipewire-pulse",
+    "cmd:pw-cli",
+    "cmd:pw-dump",
+    "cmd:pw-top",
+    "lib:libpipewire-0.3.so.0"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_integration_work/pipewire-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dsession-managers=[] \
+    -Dexamples=disabled \
+    -Dtests=disabled \
+    -Ddocs=disabled \
+    -Dman=disabled \
+    -Dgstreamer=disabled \
+    -Dsystemd=disabled \
+    -Dbluez5=disabled \
+    -Djack=disabled \
+    -Dvulkan=disabled \
+    -Dlibcamera=disabled
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
