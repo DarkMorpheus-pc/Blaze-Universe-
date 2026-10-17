@@ -3,15 +3,29 @@ name = "usbutils"
 version = "018"
 release = 1
 architecture = "x86_64"
-summary = "USB bus inspection utilities (lsusb)"
-license = "GPL-2.0-or-later"
+summary = "USB device identification utilities"
+license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
-url = "https://github.com/gregkh/usbutils"
+url = "https://kernel.org"
+
+[source]
+url = "https://kernel.org/pub/linux/utils/usb/usbutils/usbutils-018.tar.xz"
+sha256 = "83f68b59b58547589c00266e82671864627593ab4362d8c807f50eea923cad93"
 
 [dependencies]
-provides = ["usbutils = 018"]
+requires = ["libusb >= 1.0.26", "glibc >= 2.38"]
+provides = [
+    "usbutils = 018",
+    "cmd:lsusb",
+    "cmd:usb-devices"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/hw_utils_work/usbutils-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
