@@ -1,17 +1,36 @@
 [package]
 name = "wayland"
-version = "1.26.0"
+version = "1.23.0"
 release = 1
 architecture = "x86_64"
-summary = "Wayland Display Server & Client Protocol Library"
+summary = "Core Wayland display server and client library with protocol scanner"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://wayland.freedesktop.org"
 
+[source]
+url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.23.0/downloads/wayland-1.23.0.tar.xz"
+sha256 = "05b3e1574d3e67626b5974f862f36b5b427c7ceeb965cb36a4e6c2d342e45ab2"
+
 [dependencies]
-provides = ["wayland = 1.26.0", "lib:libwayland-server.so.0", "lib:libwayland-client.so.0", "lib:libwayland-egl.so.1"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "wayland = 1.23.0",
+    "cmd:wayland-scanner",
+    "lib:libwayland-client.so.0",
+    "lib:libwayland-server.so.0",
+    "lib:libwayland-cursor.so.0",
+    "lib:libwayland-egl.so.1"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_graphics_work/wayland-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Ddocumentation=false \
+    -Dtests=false
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
