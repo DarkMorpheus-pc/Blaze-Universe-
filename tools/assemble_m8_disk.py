@@ -187,57 +187,93 @@ for fw_pkg in ["firmware-base-dest", "firmware-intel-dest", "firmware-amd-dest",
     if os.path.exists(fw_path):
         subprocess.run(f"cp -rf '{fw_path}'/* '{ROOTFS_DIR}/usr/lib/firmware/'", shell=True, check=False)
 
-HW_WORK = os.path.join(BUILD_DIR, "hw_utils_work")
-for hw_pkg in ["pciutils-dest", "usbutils-dest"]:
-    bin_path = os.path.join(HW_WORK, hw_pkg, "usr", "bin")
-    if os.path.exists(bin_path):
-        subprocess.run(f"cp -rf '{bin_path}'/* '{ROOTFS_DIR}/usr/bin/'", shell=True, check=False)
+# 5.1. Install Phase 0 Authentic Compiled Packages from build/packages/
+AUTHENTIC_PKGS = [
+    "libseccomp-2.5.5-2.x86_64.blz",
+    "audit-4.0.2-1.x86_64.blz",
+    "apparmor-4.0.3-1.x86_64.blz",
+    "blaze-sentinel-0.2.0-1.x86_64.blz",
+    "pipewire-1.2.7-1.x86_64.blz",
+    "xwayland-satellite-0.5.0-1.x86_64.blz",
+    "freetype-2.13.3-1.x86_64.blz",
+    "fontconfig-2.15.0-2.x86_64.blz",
+    "pciutils-3.13.0-1.x86_64.blz",
+    "usbutils-018-1.x86_64.blz",
+    "libseat-0.9.1-1.x86_64.blz",
+    "libinput-1.26.2-1.x86_64.blz",
+    "wayland-1.23.0-1.x86_64.blz",
+    "pixman-0.44.2-1.x86_64.blz",
+    "libxkbcommon-1.7.0-1.x86_64.blz",
+    "wayland-protocols-1.38-1.noarch.blz",
+    "xtrans-1.5.0-1.noarch.blz",
+    "noctalia-5.1.0-1.x86_64.blz",
+    "solar-shell-1.0.0-2.x86_64.blz",
+    "niri-26.4.0-1.x86_64.blz",
+]
 
-# 5.5. Install Blaze Sentinel Security Packages (libseccomp is native in rootfs)
-SENTINEL_WORK = os.path.join(BUILD_DIR, "sentinel_work")
-for sec_pkg in ["audit-dest", "apparmor-dest", "blaze-sentinel-dest"]:
-    pkg_root = os.path.join(SENTINEL_WORK, sec_pkg)
-    if os.path.exists(pkg_root):
-        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+for pkg_name in AUTHENTIC_PKGS:
+    pkg_file = os.path.join(BUILD_DIR, "packages", pkg_name)
+    if os.path.exists(pkg_file):
+        cmd = f"tar -xf '{pkg_file}' data.tar.zst -O | zstd -d -q | tar -xf - -C '{ROOTFS_DIR}'"
+        subprocess.run(cmd, shell=True, check=True)
+    else:
+        print(f"[WARN] Package {pkg_file} not found!")
 
-# NOTE (M9 B.1.1): /usr/bin/portadora is package-managed (portadora .blz). It is never
-# copied here; it is installed/upgraded only by a real Portadora transaction
-# (see tools/m9_b11_apply_packages.py).
-
-# 5.8. Install Milestone 8 Phase A Graphics Baseline Packages
+# 5.2. Install Graphics & Session Runtime Assets (only non-stub assets)
 GRAPHICS_WORK = os.path.join(BUILD_DIR, "m8_graphics_work")
-for gfx_pkg in ["wayland-dest", "wayland-protocols-dest", "libdrm-dest", "libseat-dest", "libinput-dest", "mesa-dest", "vulkan-loader-dest", "mesa-utils-dest"]:
+for gfx_pkg in ["libdrm-dest", "vulkan-loader-dest"]:
     pkg_root = os.path.join(GRAPHICS_WORK, gfx_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# 5.9. Install Milestone 8 Phase B.1 Wayland Session Desktop Packages (including split packages)
 SESSION_WORK = os.path.join(BUILD_DIR, "m8_session_work")
-for sess_pkg in ["libxkbcommon-dest", "pixman-dest", "freetype-dest", "fontconfig-dest", "fcft-dest", "wlroots-dest", "weston-dest", "labwc-dest", "foot-dest"]:
+for sess_pkg in ["fcft-dest", "wlroots-dest"]:
     pkg_root = os.path.join(SESSION_WORK, sess_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# 5.10. Install Milestone 8 Phase C Desktop Integration Packages
 INTEGRATION_WORK = os.path.join(BUILD_DIR, "m8_integration_work")
-for integ_pkg in ["xwayland-dest", "polkit-gnome-dest", "pipewire-dest", "xdg-desktop-portal-dest", "waybar-dest", "wofi-dest", "gui-runtimes-dest"]:
+for integ_pkg in ["polkit-gnome-dest", "xdg-desktop-portal-dest"]:
     pkg_root = os.path.join(INTEGRATION_WORK, integ_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# 5.11. Install Milestone 9 Phase A Native Niri Packages
 NIRI_WORK = os.path.join(BUILD_DIR, "m9_niri_work")
-for niri_pkg in ["libdisplay-info-dest", "xwayland-satellite-dest", "niri-dest", "niri-session-assets-dest"]:
+for niri_pkg in ["libdisplay-info-dest", "niri-session-assets-dest"]:
     pkg_root = os.path.join(NIRI_WORK, niri_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
-# 5.12. Install Milestone 9 Phase B.1 Solar Shell Core Packages
-SOLAR_WORK = os.path.join(BUILD_DIR, "m9_b1_solar_work")
-for solar_pkg in ["solar-shell-dest"]:
-    pkg_root = os.path.join(SOLAR_WORK, solar_pkg)
-    if os.path.exists(pkg_root):
-        subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
+# Ensure aa-status in usr/bin points to authentic usr/sbin/aa-status
+aa_status_bin = os.path.join(ROOTFS_DIR, "usr", "bin", "aa-status")
+if os.path.exists(aa_status_bin) and not os.path.islink(aa_status_bin):
+    os.remove(aa_status_bin)
+if not os.path.exists(aa_status_bin) and os.path.exists(os.path.join(ROOTFS_DIR, "usr", "sbin", "aa-status")):
+    os.symlink("../sbin/aa-status", aa_status_bin)
+
+# Purge any legacy echo stubs
+for stub_rel in [
+    "usr/bin/Xwayland",
+    "usr/bin/eglinfo",
+    "usr/bin/glxinfo",
+    "usr/bin/vulkaninfo",
+    "usr/bin/gtk3-demo",
+    "usr/bin/gtk4-demo",
+    "usr/bin/qt6-demo",
+    "usr/bin/waybar",
+    "usr/bin/wofi",
+    "usr/bin/weston",
+    "usr/bin/foot",
+    "usr/bin/wireplumber",
+]:
+    stub_path = os.path.join(ROOTFS_DIR, stub_rel)
+    if os.path.exists(stub_path) and not os.path.islink(stub_path):
+        try:
+            with open(stub_path, "rb") as sf:
+                if sf.read(4) != b"\x7fELF":
+                    os.remove(stub_path)
+        except Exception:
+            pass
 
 # 5.13. Run Shared Library Remediation & Write tmpfiles.d for /run/user/1000
 remediate_script = os.path.join(BLAZE_ROOT, "tools", "remediate_rootfs_libs.py")
