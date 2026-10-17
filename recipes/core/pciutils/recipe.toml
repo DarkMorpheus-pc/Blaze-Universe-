@@ -3,15 +3,27 @@ name = "pciutils"
 version = "3.13.0"
 release = 1
 architecture = "x86_64"
-summary = "PCI bus inspection utilities (lspci)"
+summary = "PCI bus configuration and diagnostic tools"
 license = "GPL-2.0-or-later"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://mj.ucw.cz/sw/pciutils/"
 
+[source]
+url = "https://www.kernel.org/pub/software/utils/pciutils/pciutils-3.13.0.tar.xz"
+sha256 = "77f11f78298502634d1af50308f15a5788629f6cf45cba376f5009aea4cb4926"
+
 [dependencies]
-provides = ["pciutils = 3.13.0"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "pciutils = 3.13.0",
+    "cmd:lspci",
+    "cmd:setpci",
+    "cmd:update-pciids",
+    "lib:libpci.so.3"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/hw_utils_work/pciutils-dest/"* "$DESTDIR/"
+make -j$(nproc) PREFIX=/usr SBINDIR=/usr/bin SHARED=yes
+make PREFIX=/usr SBINDIR=/usr/bin SHARED=yes DESTDIR="$DESTDIR" install install-lib
 """
