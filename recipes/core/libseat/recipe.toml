@@ -1,17 +1,34 @@
 [package]
 name = "libseat"
-version = "0.8.0"
-release = 2
+version = "0.9.1"
+release = 1
 architecture = "x86_64"
-summary = "Universal Seat Management Library and seatd Daemon"
+summary = "Universal seat management daemon and client library"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
-url = "https://git.sr.ht/~kennylevinsen/seatd"
+url = "https://sr.ht/~kennylevinsen/seatd"
+
+[source]
+url = "https://github.com/kennylevinsen/seatd/archive/refs/tags/0.9.1.tar.gz"
+sha256 = "819979c922a0be258aed133d93920bce6a3d3565a60588d6d372ce9db2712cd3"
 
 [dependencies]
-provides = ["libseat = 0.8.0", "lib:libseat.so.1"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "libseat = 0.9.1",
+    "cmd:seatd",
+    "cmd:seatd-launch",
+    "lib:libseat.so.1"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_graphics_work/libseat-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dlibseat-builtin=enabled \
+    -Dserver=enabled
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
