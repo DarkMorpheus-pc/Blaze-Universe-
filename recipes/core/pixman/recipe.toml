@@ -1,17 +1,29 @@
 [package]
 name = "pixman"
-version = "0.43.4"
+version = "0.44.2"
 release = 1
 architecture = "x86_64"
-summary = "Pixel manipulation library for Wayland and X11"
+summary = "Low-level pixel manipulation library used by Cairo and X11"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
-url = "https://pixman.org"
+url = "https://cairographics.org"
+
+[source]
+url = "https://www.cairographics.org/releases/pixman-0.44.2.tar.gz"
+sha256 = "6349061ce1a338ab6952b92194d1b0377472244208d47ff25bef86fc71973466"
 
 [dependencies]
-provides = ["pixman = 0.43.4", "lib:libpixman-1.so.0"]
+requires = ["glibc >= 2.38"]
+provides = ["pixman = 0.44.2", "lib:libpixman-1.so.0"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_session_work/pixman-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dtests=disabled \
+    -Ddemos=disabled
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
