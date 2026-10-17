@@ -1,17 +1,48 @@
 [package]
 name = "apparmor"
-version = "4.1.4"
+version = "4.0.3"
 release = 1
 architecture = "x86_64"
-summary = "User space parser and utilities for AppArmor MAC engine"
+summary = "AppArmor userspace parser, utilities, and default profiles"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://gitlab.com/apparmor/apparmor"
 
+[source]
+url = "https://launchpad.net/apparmor/4.0/4.0.3/+download/apparmor-4.0.3.tar.gz"
+sha256 = "51e549dbac8e62f2e796c5830061c1d2565514af12edc55de33edb2718c807da"
+
 [dependencies]
-provides = ["apparmor = 4.1.4"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "apparmor = 4.0.3",
+    "cmd:apparmor_parser",
+    "cmd:aa-status",
+    "cmd:aa-enforce",
+    "cmd:aa-complain",
+    "lib:libapparmor.so.1"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/sentinel_work/apparmor-dest/"* "$DESTDIR/"
+# 1. Build and install libapparmor (static is required by in-tree parser)
+cd libraries/libapparmor
+./configure --prefix=/usr --sysconfdir=/etc --without-python --without-perl
+make -j$(nproc)
+make DESTDIR="$DESTDIR" install
+cd ../..
+
+# 2. Build and install apparmor_parser
+cd parser
+make -j$(nproc)
+make DESTDIR="$DESTDIR" SBINDIR="$DESTDIR/usr/bin" USR_SBINDIR="$DESTDIR/usr/bin" install
+cd ..
+
+# 3. Build and install profiles and binutils
+cd binutils
+make DESTDIR="$DESTDIR" BINDIR="$DESTDIR/usr/bin" install
+cd ..
+cd profiles
+make DESTDIR="$DESTDIR" install
+cd ..
 """
