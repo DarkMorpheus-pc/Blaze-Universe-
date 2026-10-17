@@ -1,17 +1,39 @@
 [package]
 name = "audit"
-version = "4.2.1"
+version = "4.0.2"
 release = 1
 architecture = "x86_64"
-summary = "User space utilities for storing and processing auditing records"
+summary = "User space tools for Linux Kernel 2.6+ audit subsystem"
 license = "GPL-2.0-or-later"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/linux-audit/audit-userspace"
 
+[source]
+url = "https://github.com/linux-audit/audit-userspace/archive/refs/tags/v4.0.2.tar.gz"
+sha256 = "642cea2699e961ed2e9c25543f08cf7cc8165b60dae6b9f36a01ae96cc45ff38"
+
 [dependencies]
-provides = ["audit = 4.2.1"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "audit = 4.0.2",
+    "cmd:auditctl",
+    "cmd:aureport",
+    "cmd:ausearch",
+    "cmd:autrace",
+    "lib:libaudit.so.1",
+    "lib:libauparse.so.0"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/sentinel_work/audit-dest/"* "$DESTDIR/"
+./autogen.sh
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --sbindir=/usr/bin \
+            --disable-static \
+            --without-python \
+            --without-python3 \
+            --without-golang
+make -j$(nproc)
+make DESTDIR="$DESTDIR" install
 """
