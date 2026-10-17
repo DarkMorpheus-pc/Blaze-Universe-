@@ -1,17 +1,27 @@
 [package]
 name = "wayland-protocols"
-version = "1.49"
+version = "1.38"
 release = 1
-architecture = "x86_64"
-summary = "Extended Wayland Desktop Specifications & Protocol XMLs"
+architecture = "noarch"
+summary = "Wayland protocol specifications and XML definitions"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://wayland.freedesktop.org"
 
+[source]
+url = "https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.38/downloads/wayland-protocols-1.38.tar.xz"
+sha256 = "ff17292c05159d2b20ce6cacfe42d7e31a28198fa1429a769b03af7c38581dbe"
+
 [dependencies]
-provides = ["wayland-protocols = 1.49"]
+provides = ["wayland-protocols = 1.38"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_graphics_work/wayland-protocols-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dtests=false
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
