@@ -1,17 +1,27 @@
 [package]
 name = "freetype"
-version = "2.13.2"
+version = "2.13.3"
 release = 1
 architecture = "x86_64"
-summary = "FreeType 2 font rendering engine"
-license = "FTL"
+summary = "Software font engine designed to be small, efficient, highly customizable, and produce high-quality output"
+license = "FTL OR GPL-2.0-or-later"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://freetype.org"
 
+[source]
+url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.3.tar.xz"
+sha256 = "0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289"
+
 [dependencies]
-provides = ["freetype = 2.13.2", "lib:libfreetype.so.6"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "freetype = 2.13.3",
+    "lib:libfreetype.so.6"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_session_work/freetype-dest/"* "$DESTDIR/"
+./configure --prefix=/usr --sysconfdir=/etc --disable-static --enable-freetype-config
+make -j$(nproc)
+make DESTDIR="$DESTDIR" install
 """
