@@ -1,17 +1,31 @@
 [package]
 name = "blaze-sentinel"
-version = "0.1.0"
-release = 2
+version = "0.2.0"
+release = 1
 architecture = "x86_64"
-summary = "BlazeOS Native Sentinel Security Subsystem CLI & Service"
+summary = "BlazeOS Native Sentinel Security Subsystem Daemon & CLI (Rust)"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://blazeos.org/sentinel"
 
 [dependencies]
-provides = ["blaze-sentinel = 0.1.0"]
+requires = ["glibc >= 2.38"]
+provides = ["blaze-sentinel = 0.2.0", "cmd:blaze-sentinel"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/sentinel_work/blaze-sentinel-dest/"* "$DESTDIR/"
+cargo build --release -p blaze-sentinel --manifest-path "$CURRENT_DIR/Cargo.toml"
+install -Dm755 "$CURRENT_DIR/target/release/blaze-sentinel" "$DESTDIR/usr/bin/blaze-sentinel"
+
+mkdir -p "$DESTDIR/etc/blaze"
+cat << 'CONFIG_EOF' > "$DESTDIR/etc/blaze/sentinel.toml"
+[sentinel]
+mode = "enforce"
+lsm_order = "landlock,lockdown,yama,bpf,apparmor"
+apparmor_enabled = true
+landlock_enabled = true
+seccomp_enabled = true
+audit_netlink_enabled = true
+portadora_integrity_check = true
+CONFIG_EOF
 """

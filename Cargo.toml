@@ -4,6 +4,7 @@ members = [
     "crates/portadora",
     "crates/blaze-builder",
     "crates/solar-installer",
+    "crates/blaze-sentinel",
 ]
 resolver = "2"
 

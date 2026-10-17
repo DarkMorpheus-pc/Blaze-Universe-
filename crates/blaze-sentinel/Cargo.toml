@@ -1,0 +1,12 @@
+[package]
+name = "blaze-sentinel"
+version = "0.2.0"
+edition = "2021"
+authors = ["BlazeOS Core Team <core@blazeos.org>"]
+description = "BlazeOS Native Sentinel Security Subsystem Daemon & CLI"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
