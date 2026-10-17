@@ -43,6 +43,10 @@ struct Args {
     /// Zstd compression level (1-22, default: 3 for rapid local dev)
     #[arg(long, default_value_t = 3)]
     compression_level: i32,
+
+    /// Allow packages without upstream [source] or that copy prebuilt artifacts (FORBIDDEN in Core CI)
+    #[arg(long)]
+    allow_prebuilt: bool,
 }
 
 fn calculate_sha256<P: AsRef<Path>>(path: P) -> Result<String> {
@@ -190,6 +194,24 @@ fn main() -> Result<()> {
 
         println!("Extracting source archive into {}...", src_dir.display());
         extract_archive(&local_source_path, &src_dir)?;
+    } else {
+        // Enforce Phase 0 Honesty Gate: No source means synthetic or stub package!
+        let script = &recipe.build.script;
+        let is_prebuilt_copy = script.contains("$CURRENT_DIR/build/") || script.contains("cp -a ") && script.contains("-dest");
+        if is_prebuilt_copy || !args.allow_prebuilt {
+            if !args.allow_prebuilt {
+                bail!(
+                    "[PHASE 0 HONESTY GATE ERROR] Package '{}' has no upstream [source] section and appears to copy prebuilt/stub artifacts.\n\
+                     Building from prebuilt artifacts without --allow-prebuilt is strictly forbidden in BlazeOS Core CI.",
+                    recipe.package.name
+                );
+            } else {
+                eprintln!(
+                    "[WARNING] Package '{}' built without upstream [source] using --allow-prebuilt flag.",
+                    recipe.package.name
+                );
+            }
+        }
     }
 
     // Determine actual source root (if tarball unpacked into a single subdirectory)

@@ -1,17 +1,23 @@
 [package]
 name = "libseccomp"
-version = "2.6.1"
-release = 1
+version = "2.5.5"
+release = 2
 architecture = "x86_64"
 summary = "High-level interface to the Linux Kernel's seccomp filter"
 license = "LGPL-2.1-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/seccomp/libseccomp"
 
+[source]
+url = "https://github.com/seccomp/libseccomp/releases/download/v2.5.5/libseccomp-2.5.5.tar.gz"
+sha256 = "248a2c8a4d9b9858aa6baf52712c34afefcf9c9e94b76dce02c1c9aa25fb3375"
+
 [dependencies]
-provides = ["libseccomp = 2.6.1"]
+provides = ["libseccomp = 2.5.5", "lib:libseccomp.so.2"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/sentinel_work/libseccomp-dest/"* "$DESTDIR/"
+./configure --prefix=/usr --disable-static
+make -j$(nproc)
+make DESTDIR="$DESTDIR" install
 """
