@@ -1,17 +1,23 @@
 [package]
 name = "xwayland-satellite"
-version = "0.7.0"
+version = "0.5.0"
 release = 1
 architecture = "x86_64"
-summary = "Outside-the-compositor XWayland manager for Smithay/Niri compositors"
+summary = "Xwayland manager outside the compositor, granting rootless Xwayland integration to Niri"
 license = "MPL-2.0"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/Supreeeme/xwayland-satellite"
 
+[source]
+url = "https://github.com/Supreeeme/xwayland-satellite/archive/refs/tags/v0.5.tar.gz"
+sha256 = "b0845b711750b9850b87d8a62fd7d9a07235fe63a3b7e5bdd727884c066f1b4c"
+
 [dependencies]
-provides = ["xwayland-satellite = 0.7.0"]
+requires = ["glibc >= 2.38"]
+provides = ["xwayland-satellite = 0.5.0", "cmd:xwayland-satellite"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m9_niri_work/xwayland-satellite-dest/"* "$DESTDIR/"
+cargo build --release --locked
+install -Dm755 target/release/xwayland-satellite "$DESTDIR/usr/bin/xwayland-satellite"
 """
