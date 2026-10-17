@@ -1,17 +1,35 @@
 [package]
 name = "libxkbcommon"
-version = "1.6.0"
+version = "1.7.0"
 release = 1
 architecture = "x86_64"
-summary = "Keymap compiler and keyboard layout library"
+summary = "Keymap compiler and support library which processes a description of a keyboard layout"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://xkbcommon.org"
 
+[source]
+url = "https://xkbcommon.org/download/libxkbcommon-1.7.0.tar.xz"
+sha256 = "65782f0a10a4b455af9c6baab7040e2f537520caa2ec2092805cdfd36863b247"
+
 [dependencies]
-provides = ["libxkbcommon = 1.6.0", "lib:libxkbcommon.so.0"]
+requires = ["wayland >= 1.23.0", "glibc >= 2.38"]
+provides = [
+    "libxkbcommon = 1.7.0",
+    "cmd:xkbcli",
+    "lib:libxkbcommon.so.0",
+    "lib:libxkbcommon-x11.so.0"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_session_work/libxkbcommon-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Denable-docs=false \
+    -Denable-wayland=false \
+    -Denable-x11=false
+ninja -C build
+DESTDIR="$DESTDIR" ninja -C build install
 """
