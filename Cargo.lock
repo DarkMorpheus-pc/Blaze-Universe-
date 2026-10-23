@@ -143,6 +143,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "blaze-continuum"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "hex",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "zstd",
+]
+
+[[package]]
 name = "blaze-sentinel"
 version = "0.2.0"
 dependencies = [

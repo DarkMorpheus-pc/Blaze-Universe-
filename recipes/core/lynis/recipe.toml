@@ -1,0 +1,21 @@
+[package]
+name = "lynis"
+version = "3.1.7"
+release = 1
+architecture = "noarch"
+summary = "Security auditing and hardening tool for Linux and UNIX systems"
+license = "GPL-3.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/CISOfy/lynis"
+
+[dependencies]
+requires = ["bash", "coreutils"]
+provides = ["lynis = 3.1.7"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/share/lynis" "$DESTDIR/usr/bin"
+cp -a /tmp/lynis-test/* "$DESTDIR/usr/share/lynis/"
+ln -sf /usr/share/lynis/lynis "$DESTDIR/usr/bin/lynis"
+chmod 0755 "$DESTDIR/usr/share/lynis/lynis"
+"""

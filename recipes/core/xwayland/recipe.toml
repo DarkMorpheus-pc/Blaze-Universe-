@@ -1,6 +1,6 @@
 [package]
 name = "xwayland"
-version = "24.1.14"
+version = "24.1.4"
 release = 1
 architecture = "x86_64"
 summary = "X11 server running as a Wayland client for backward legacy compatibility"
@@ -8,10 +8,26 @@ license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://x.org"
 
+[source]
+url = "https://www.x.org/pub/individual/xserver/xwayland-24.1.4.tar.xz"
+sha256 = "d96a78dbab819f55750173444444995b5031ebdcc15b77afebbd8dbc02af34f4"
+
 [dependencies]
-provides = ["xwayland = 24.1.14"]
+requires = ["pixman >= 0.44.0", "libxkbcommon >= 1.7.0", "glibc >= 2.38"]
+provides = ["xwayland = 24.1.4", "cmd:Xwayland"]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_integration_work/xwayland-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dxvfb=false \
+    -Dglamor=true \
+    -Ddefault_font_path=/usr/share/fonts \
+    -Dxkb_bin_dir=/usr/bin \
+    -Dxkb_dir=/usr/share/X11/xkb \
+    -Dxkb_output_dir=/var/lib/xkb
+ninja -C build hw/xwayland/Xwayland
+install -Dm755 build/hw/xwayland/Xwayland "$DESTDIR/usr/bin/Xwayland"
 """

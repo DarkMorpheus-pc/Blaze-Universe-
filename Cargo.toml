@@ -5,6 +5,7 @@ members = [
     "crates/blaze-builder",
     "crates/solar-installer",
     "crates/blaze-sentinel",
+    "crates/blaze-continuum",
 ]
 resolver = "2"
 

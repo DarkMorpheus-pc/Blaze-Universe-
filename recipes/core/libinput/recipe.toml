@@ -1,6 +1,6 @@
 [package]
 name = "libinput"
-version = "1.26.2"
+version = "1.32.0"
 release = 1
 architecture = "x86_64"
 summary = "Input device management and event handling library"
@@ -9,13 +9,13 @@ maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://gitlab.freedesktop.org/libinput/libinput"
 
 [source]
-url = "https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.26.2/libinput-1.26.2.tar.gz"
-sha256 = "5c1c4150f217fea1db2d1fd88e2607b2f1928cfde65c34da65a9f24dcfd69464"
+url = "https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.32.0/libinput-1.32.0.tar.gz"
+sha256 = "7dd6c1ca964c86eb6810ccd6639cda634e68bdca43bf3afec39e94e942fac8d4"
 
 [dependencies]
 requires = ["glibc >= 2.38"]
 provides = [
-    "libinput = 1.26.2",
+    "libinput = 1.32.0",
     "cmd:libinput",
     "lib:libinput.so.10"
 ]

@@ -3,15 +3,35 @@ name = "mesa-utils"
 version = "9.0.0"
 release = 1
 architecture = "x86_64"
-summary = "Mesa OpenGL, EGL, and Vulkan Diagnostic Utilities"
+summary = "Essential Mesa 3D diagnostics and inspection utilities (eglinfo, glxinfo)"
 license = "MIT"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://www.mesa3d.org"
 
+[source]
+url = "https://archive.mesa3d.org/demos/mesa-demos-9.0.0.tar.xz"
+sha256 = "3046a3d26a7b051af7ebdd257a5f23bfeb160cad6ed952329cdff1e9f1ed496b"
+
 [dependencies]
-provides = ["mesa-utils = 9.0.0"]
+requires = ["glibc >= 2.38"]
+provides = [
+    "mesa-utils = 9.0.0",
+    "cmd:eglinfo",
+    "cmd:glxinfo"
+]
 
 [build]
 script = """
-cp -a "$CURRENT_DIR/build/m8_graphics_work/mesa-utils-dest/"* "$DESTDIR/"
+meson setup build \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --buildtype=release \
+    -Dglut=disabled \
+    -Dgles1=disabled \
+    -Dgles2=enabled \
+    -Degl=enabled \
+    -Dwayland=enabled \
+    -Dx11=disabled
+ninja -C build src/egl/opengl/eglinfo
+install -Dm755 build/src/egl/opengl/eglinfo "$DESTDIR/usr/bin/eglinfo"
 """

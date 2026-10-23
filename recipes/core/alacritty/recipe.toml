@@ -1,0 +1,20 @@
+[package]
+name = "alacritty"
+version = "0.17.0"
+release = 1
+architecture = "x86_64"
+summary = "Fast, cross-platform, OpenGL terminal emulator"
+license = "Apache-2.0"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/alacritty/alacritty"
+
+[dependencies]
+requires = ["fontconfig >= 2.15.0", "freetype >= 2.13.0"]
+provides = ["alacritty = 0.17.0", "terminal-emulator"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+cp -a "/home/darkmorpheus/Projeler/blaze_base/build/rootfs-b11/usr/bin/alacritty" "$DESTDIR/usr/bin/"
+chmod 0755 "$DESTDIR/usr/bin/alacritty"
+"""

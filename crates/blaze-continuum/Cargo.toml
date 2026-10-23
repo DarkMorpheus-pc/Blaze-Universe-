@@ -1,0 +1,20 @@
+[package]
+name = "blaze-continuum"
+version = "0.1.0"
+edition = "2021"
+authors = ["BlazeOS Core Team <core@blazeos.org>"]
+description = "Blaze Continuum - Stateful Session Teleportation & Process Coordinator for BlazeOS"
+
+[dependencies]
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+tar = { workspace = true }
+zstd = { workspace = true }
+chrono = { workspace = true }
+libc = { workspace = true }
+tempfile = { workspace = true }

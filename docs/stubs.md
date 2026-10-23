@@ -1,11 +1,28 @@
-Auditing 171 packages for binary stubs...
+Auditing 186 packages for binary stubs...
 
-Audit complete. Found 112 stubs/fakes in binary paths:
+Audit complete. Found 135 stubs/fakes in binary paths:
   [SHELL_STUB] apparmor-3.1.7-1.x86_64.blz -> usr/bin/aa-status (#!/usr/bin/env b)
   [SHELL_STUB] apparmor-3.1.7-1.x86_64.blz -> usr/bin/apparmor_parser (#!/usr/bin/env b)
   [SHELL_STUB] apparmor-4.1.4-1.x86_64.blz -> usr/bin/aa-status (#!/usr/bin/env b)
   [SHELL_STUB] apparmor-4.1.4-1.x86_64.blz -> usr/bin/apparmor_parser (#!/usr/bin/env b)
   [SHELL_STUB] audit-4.0.1-1.x86_64.blz -> usr/bin/auditctl (#!/usr/bin/env b)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/bin/augenrules (#!/bin/sh
+
+# Scr)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/condrestart (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/reload (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/restart (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/resume (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/rotate (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/state (#!/bin/sh
+# Help)
+  [SHELL_STUB] audit-4.0.2-1.x86_64.blz -> usr/libexec/initscripts/legacy-actions/auditd/stop (#!/bin/sh
+# Help)
   [SHELL_STUB] audit-4.2.1-1.x86_64.blz -> usr/bin/auditctl (#!/usr/bin/env b)
   [SHELL_STUB] binutils-2.47-1.x86_64.blz -> usr/bin/gprofng-display-html (#!/usr/bin/env p)
   [INVALID_SO] blaze-network-config-0.1.0-2.x86_64.blz -> usr/lib/systemd/system/systemd-networkd-resolve-hook.socket (b'#  SPDX-')
@@ -32,6 +49,9 @@ Audit complete. Found 112 stubs/fakes in binary paths:
   [INVALID_SO] fontconfig-2.15.0-1.x86_64.blz -> usr/lib/libfontconfig.so.1.15.0 (b'/* Share')
   [SHELL_STUB] foot-1.16.2-1.x86_64.blz -> usr/bin/foot (#!/usr/bin/env b)
   [INVALID_SO] freetype-2.13.2-1.x86_64.blz -> usr/lib/libfreetype.so.6.20.0 (b'/* Share')
+  [SHELL_STUB] freetype-2.13.3-1.x86_64.blz -> usr/bin/freetype-config (#! /bin/sh
+#
+# C)
   [INVALID_SO] gcc-16.2.0-1.x86_64.blz -> usr/lib/libstdc++.so.6.0.36-gdb.py (b'# -*- py')
   [SHELL_STUB] gcc-16.2.0-1.x86_64.blz -> usr/libexec/gcc/x86_64-pc-linux-gnu/16.2.0/install-tools/fixinc.sh (#!/bin/sh
 #
@@ -96,6 +116,17 @@ TTY=$)
   [INVALID_SO] libdisplay-info-0.2.0-1.x86_64.blz -> usr/lib/libdisplay-info.so.0.2.0 (b'/* Share')
   [INVALID_SO] libdrm-2.4.134-1.x86_64.blz -> usr/lib/libdrm.so.2.4.134 (b'/* Share')
   [INVALID_SO] libinput-1.26.0-1.x86_64.blz -> usr/lib/libinput.so.10.26.0 (b'/* Share')
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-analyze-buttons (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-analyze-per-slot-delta (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-analyze-recording (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-analyze-touch-down-state (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-list-kernel-devices (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-measure-fuzz (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-measure-touch-size (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-measure-touchpad-pressure (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-measure-touchpad-size (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-measure-touchpad-tap (#!/usr/bin/env p)
+  [SHELL_STUB] libinput-1.26.2-1.x86_64.blz -> usr/libexec/libinput/libinput-replay (#!/usr/bin/env p)
   [SHELL_STUB] libseat-0.8.0-1.x86_64.blz -> usr/bin/seatd (#!/usr/bin/env b)
   [INVALID_SO] libseat-0.8.0-1.x86_64.blz -> usr/lib/libseat.so.0.8.0 (b'/* Share')
   [SHELL_STUB] libseat-0.8.0-2.x86_64.blz -> usr/bin/seatd (#!/usr/bin/env b)
@@ -118,7 +149,15 @@ TTY=$)
   [SHELL_STUB] mesa-utils-9.0.0-1.x86_64.blz -> usr/bin/glxinfo (#!/usr/bin/env b)
   [SHELL_STUB] mesa-utils-9.0.0-1.x86_64.blz -> usr/bin/vulkaninfo (#!/usr/bin/env b)
   [SHELL_STUB] niri-session-assets-1.0.0-1.x86_64.blz -> usr/libexec/niri-session (#!/usr/bin/env b)
-  [SHELL_STUB] pciutils-3.13.0-1.x86_64.blz -> usr/bin/lspci (#!/usr/bin/env b)
+  [SHELL_STUB] pciutils-3.13.0-1.x86_64.blz -> usr/bin/update-pciids (#!/bin/sh
+
+set -)
+  [SHELL_STUB] pipewire-1.2.7-1.x86_64.blz -> usr/bin/pw-jack (#!/bin/sh
+
+# Thi)
+  [SHELL_STUB] pipewire-1.2.7-1.x86_64.blz -> usr/bin/pw-v4l2 (#!/bin/sh
+
+# Thi)
   [SHELL_STUB] pipewire-1.6.0-1.x86_64.blz -> usr/bin/pipewire (#!/usr/bin/env b)
   [SHELL_STUB] pipewire-1.6.0-1.x86_64.blz -> usr/bin/pipewire-pulse (#!/usr/bin/env b)
   [SHELL_STUB] pipewire-1.6.0-1.x86_64.blz -> usr/bin/wireplumber (#!/usr/bin/env b)
@@ -134,7 +173,9 @@ echo ")
   [INVALID_SO] systemd-255-1.x86_64.blz -> usr/lib/systemd/system/systemd-journald.socket (b'#  SPDX-')
   [INVALID_SO] systemd-255-1.x86_64.blz -> usr/lib/systemd/system/systemd-udevd-kernel.socket (b'#  SPDX-')
   [INVALID_SO] systemd-255-1.x86_64.blz -> usr/lib/systemd/system/systemd-udevd-varlink.socket (b'#  SPDX-')
-  [SHELL_STUB] usbutils-018-1.x86_64.blz -> usr/bin/lsusb (#!/usr/bin/env b)
+  [SHELL_STUB] usbutils-018-1.x86_64.blz -> usr/bin/lsusb.py (#!/usr/bin/pytho)
+  [SHELL_STUB] usbutils-018-1.x86_64.blz -> usr/bin/usb-devices (#!/bin/sh
+# SPDX)
   [INVALID_SO] vulkan-icd-loader-1.4.300-1.x86_64.blz -> usr/lib/libvulkan.so.1.4.300 (b'/* Vulka')
   [SHELL_STUB] waybar-0.15.0-1.x86_64.blz -> usr/bin/waybar (#!/usr/bin/env b)
   [SHELL_STUB] wayland-1.26.0-1.x86_64.blz -> usr/bin/wayland-scanner (#!/usr/bin/env b)

@@ -98,13 +98,22 @@ while True:
         clean_buf = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', buffer)
 
         if stage == "BOOT":
-            if "blaze login:" in clean_buf and not sent_login:
+            if ("root@" in clean_buf or "#" in clean_buf or "-bash" in clean_buf) and not sent_login:
+                log("\n[M7.1-TEST] Shell prompt detected directly (autologin). Executing Enforcement Security Tests...")
+                sent_login = True
+                stage = "RUNNING_TESTS"
+                buffer = ""
+                cmd_text, sentinel, expected_code = enforcement_cmds[cmd_index]
+                log(f"[M7.1-TEST] Executing [{cmd_index+1}/{len(enforcement_cmds)}]: {cmd_text}...")
+                os.write(master_fd, f"{cmd_text}\necho '{sentinel}:'$?\n".encode("utf-8"))
+
+            elif ("login:" in clean_buf.lower()) and not sent_login:
                 log("\n[M7.1-TEST] Login prompt detected. Logging in as root...")
                 time.sleep(0.5)
                 os.write(master_fd, b"root\n")
                 sent_login = True
 
-            elif sent_login and ("root@blaze:~#" in clean_buf or "-bash-5.3#" in clean_buf):
+            elif sent_login and ("root@" in clean_buf or "-bash" in clean_buf or "#" in clean_buf):
                 log("\n[M7.1-TEST] Root shell obtained. Executing Enforcement Security Tests...")
                 stage = "RUNNING_TESTS"
                 buffer = ""

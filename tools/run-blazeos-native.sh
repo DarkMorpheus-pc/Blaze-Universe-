@@ -8,11 +8,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLAZE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BASE_DISK="${BLAZE_ROOT}/build/blaze-disk-b11.raw"
+BASE_DISK="${BLAZE_ROOT}/build/blaze-disk.raw"
 OVERLAY_DISK="/tmp/blaze-native-manual-overlay.qcow2"
 OVMF_CODE="/usr/share/edk2/x64/OVMF.4m.fd"
-KERNEL="${BLAZE_ROOT}/build/rootfs-b11/boot/vmlinuz-blaze-7.2.9"
-INITRD="${BLAZE_ROOT}/build/rootfs-b11/boot/initramfs-blaze-7.2.9.img"
+KERNEL="${BLAZE_ROOT}/build/rootfs/boot/vmlinuz-blaze-7.2.9"
+INITRD="${BLAZE_ROOT}/build/rootfs/boot/initramfs-blaze-7.2.9.img"
 
 echo "=================================================================="
 echo "         BlazeOS Native Interactive Virtual Machine               "
@@ -66,7 +66,7 @@ fi
 exec qemu-system-x86_64 \
     "${QEMU_ACCEL[@]}" \
     "${BOOT_ARGS[@]}" \
-    -m 2048 \
+    -m 4096 \
     -smp 4 \
     -vga virtio \
     -device virtio-tablet-pci \
