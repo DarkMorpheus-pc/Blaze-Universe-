@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -120,6 +120,8 @@ fn lockdown_mode() -> Option<String> {
 fn systemd_active(unit: &str) -> bool {
     Command::new("systemctl")
         .args(["is-active", "--quiet", unit])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .map(|s| s.success())
         .unwrap_or(false)
