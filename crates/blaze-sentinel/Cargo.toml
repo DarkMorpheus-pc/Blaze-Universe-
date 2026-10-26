@@ -1,6 +1,6 @@
 [package]
 name = "blaze-sentinel"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["BlazeOS Core Team <core@blazeos.org>"]
 description = "BlazeOS Native Sentinel Security Subsystem Daemon & CLI"
