@@ -137,6 +137,7 @@ struct DiskCandidate {
     mounted: bool,
     eligible: bool,
     rejection_reasons: Vec<String>,
+    warnings: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -204,6 +205,35 @@ fn device_or_partition_is_mounted(device: &Path, mounted: &HashSet<String>) -> b
     })
 }
 
+fn existing_partition_warnings(sys: &Path, disk_name: &str) -> Vec<String> {
+    let mut warnings = Vec::new();
+    let mut part_count = 0usize;
+    if let Ok(entries) = fs::read_dir(sys) {
+        for entry in entries.flatten() {
+            let sub = entry.file_name().to_string_lossy().into_owned();
+            if !sub.starts_with(disk_name) || !entry.path().join("partition").exists() {
+                continue;
+            }
+            part_count += 1;
+            let uevent = fs::read_to_string(entry.path().join("uevent")).unwrap_or_default();
+            for line in uevent.lines() {
+                if let Some(partname) = line.strip_prefix("PARTNAME=") {
+                    let lower = partname.to_ascii_lowercase();
+                    if lower.contains("microsoft") || lower.contains("windows") || lower.contains("bitlocker") {
+                        warnings.push(format!("partition /dev/{sub} carries Windows/Microsoft label '{partname}'"));
+                    } else if lower.contains("efi") {
+                        warnings.push(format!("partition /dev/{sub} is an existing EFI System Partition ('{partname}')"));
+                    }
+                }
+            }
+        }
+    }
+    if part_count > 0 {
+        warnings.insert(0, format!("disk already contains {part_count} existing partition(s) that will be erased"));
+    }
+    warnings
+}
+
 fn probe_disks() -> Result<Vec<DiskCandidate>> {
     let mounted = mounted_sources();
     let mut disks = Vec::new();
@@ -242,6 +272,7 @@ fn probe_disks() -> Result<Vec<DiskCandidate>> {
         if mounted_now {
             rejection_reasons.push("device or partition is mounted".into());
         }
+        let warnings = existing_partition_warnings(&sys, &name);
 
         disks.push(DiskCandidate {
             path,
@@ -252,6 +283,7 @@ fn probe_disks() -> Result<Vec<DiskCandidate>> {
             mounted: mounted_now,
             eligible: rejection_reasons.is_empty(),
             rejection_reasons,
+            warnings,
         });
     }
 
@@ -711,7 +743,7 @@ fn apply_install(options: ApplyOptions) -> Result<()> {
     fs::copy(initramfs, boot.join("initramfs-blaze-7.2.9.img"))?;
     fs::copy(efi, boot.join("EFI/BOOT/BOOTX64.EFI"))?;
     fs::copy(bios_sys, boot.join("limine-bios.sys"))?;
-    let limine_conf = "timeout: 3\ndefault_entry: 1\n\n/BlazeOS Native\n    protocol: linux\n    kernel_path: boot():/vmlinuz-blaze-7.2.9\n    module_path: boot():/initramfs-blaze-7.2.9.img\n    cmdline: root=PARTLABEL=blaze-root rw console=ttyS0 console=tty0 quiet loglevel=3\n\n/Blaze Emergency Recovery Environment\n    protocol: linux\n    kernel_path: boot():/vmlinuz-blaze-7.2.9\n    module_path: boot():/initramfs-blaze-7.2.9.img\n    cmdline: root=PARTLABEL=blaze-root rw console=ttyS0 console=tty0 berp\n";
+    let limine_conf = "timeout: 3\ndefault_entry: 1\n\n/BlazeOS Native\n    protocol: linux\n    kernel_path: boot():/vmlinuz-blaze-7.2.9\n    module_path: boot():/initramfs-blaze-7.2.9.img\n    cmdline: root=PARTLABEL=blaze-root rw console=ttyS0 console=tty0 quiet loglevel=3 lockdown=integrity\n\n/Blaze Emergency Recovery Environment\n    protocol: linux\n    kernel_path: boot():/vmlinuz-blaze-7.2.9\n    module_path: boot():/initramfs-blaze-7.2.9.img\n    cmdline: root=PARTLABEL=blaze-root rw console=ttyS0 console=tty0 berp\n";
     fs::write(boot.join("limine.conf"), limine_conf)?;
     fs::write(boot.join("EFI/BOOT/limine.conf"), limine_conf)?;
 
@@ -734,7 +766,11 @@ fn apply_install(options: ApplyOptions) -> Result<()> {
     fs::write(
         root.join("etc/fstab"),
         format!(
-            "UUID={root_uuid} / ext4 rw,relatime 0 1\nUUID={esp_uuid} /boot vfat umask=0077 0 2\n"
+            "UUID={root_uuid} / ext4 rw,relatime,acl 0 1\n\
+             UUID={esp_uuid} /boot vfat umask=0077 0 2\n\
+             proc /proc proc defaults,hidepid=2 0 0\n\
+             tmpfs /tmp tmpfs defaults,nosuid,nodev,noexec,mode=1777 0 0\n\
+             tmpfs /dev/shm tmpfs defaults,nosuid,nodev,noexec 0 0\n"
         ),
     )?;
     fs::write(root.join("etc/machine-id"), "")?;
@@ -835,6 +871,9 @@ fn main() -> Result<()> {
                     );
                     for reason in disk.rejection_reasons {
                         println!("  - {reason}");
+                    }
+                    for warning in disk.warnings {
+                        println!("  ! warning: {warning}");
                     }
                 }
             }

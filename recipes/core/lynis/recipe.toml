@@ -8,6 +8,10 @@ license = "GPL-3.0"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://github.com/CISOfy/lynis"
 
+[source]
+url = "https://downloads.cisofy.com/lynis/lynis-3.1.7.tar.gz"
+sha256 = "ed31b379f2d66c247e387d941e1af20a83467b31f4bbf3bbdbfa23a7779598a5"
+
 [dependencies]
 requires = ["bash", "coreutils"]
 provides = ["lynis = 3.1.7"]
@@ -15,7 +19,8 @@ provides = ["lynis = 3.1.7"]
 [build]
 script = """
 mkdir -p "$DESTDIR/usr/share/lynis" "$DESTDIR/usr/bin"
-cp -a /tmp/lynis-test/* "$DESTDIR/usr/share/lynis/"
+cp -a ./* "$DESTDIR/usr/share/lynis/"
 ln -sf /usr/share/lynis/lynis "$DESTDIR/usr/bin/lynis"
 chmod 0755 "$DESTDIR/usr/share/lynis/lynis"
+chmod 0640 "$DESTDIR/usr/share/lynis/include/"*
 """

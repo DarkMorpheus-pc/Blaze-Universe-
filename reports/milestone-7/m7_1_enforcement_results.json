@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "command": "systemctl is-system-running --wait >/dev/null; systemctl --failed --no-legend --plain; test -z \"$(systemctl --failed --no-legend --plain)\"",
+      "rc": 0,
+      "output": ""
+    },
+    {
+      "command": "cat /sys/kernel/security/lsm; echo; for l in landlock lockdown yama apparmor; do grep -qw $l /sys/kernel/security/lsm || { echo \"missing LSM $l\"; exit 1; }; done",
+      "rc": 0,
+      "output": "lockdown,capability,landlock,yama,apparmor"
+    },
+    {
+      "command": "systemctl is-active apparmor && cat /sys/kernel/security/apparmor/profiles && grep -q '^blaze-sentinel (enforce)' /sys/kernel/security/apparmor/profiles && grep -q '^sshd (complain)' /sys/kernel/security/apparmor/profiles",
+      "rc": 0,
+      "output": "active\nsshd (complain)\nsystemd-resolved (complain)\nblaze-sentinel (enforce)"
+    },
+    {
+      "command": "for kv in kernel.kptr_restrict=2 kernel.dmesg_restrict=1 kernel.yama.ptrace_scope=2 kernel.unprivileged_bpf_disabled=1 kernel.kexec_load_disabled=1 kernel.sysrq=0 fs.protected_regular=2 fs.protected_fifos=2 fs.protected_symlinks=1 fs.protected_hardlinks=1 fs.suid_dumpable=0 net.ipv4.tcp_syncookies=1 net.ipv4.conf.all.rp_filter=1 net.ipv4.conf.all.accept_redirects=0 net.core.bpf_jit_harden=2 dev.tty.ldisc_autoload=0; do k=${kv%=*}; v=${kv#*=}; a=$(sysctl -n $k 2>&1); [ \"$a\" = \"$v\" ] && echo \"ok $k=$a\" || { echo \"BAD $k=$a (want $v)\"; bad=1; }; done; test -z \"$bad\"",
+      "rc": 0,
+      "output": "ok kernel.kptr_restrict=2\nok kernel.dmesg_restrict=1\nok kernel.yama.ptrace_scope=2\nok kernel.unprivileged_bpf_disabled=1\nok kernel.kexec_load_disabled=1\nok kernel.sysrq=0\nok fs.protected_regular=2\nok fs.protected_fifos=2\nok fs.protected_symlinks=1\nok fs.protected_hardlinks=1\nok fs.suid_dumpable=0\nok net.ipv4.tcp_syncookies=1\nok net.ipv4.conf.all.rp_filter=1\nok net.ipv4.conf.all.accept_redirects=0\nok net.core.bpf_jit_harden=2\nok dev.tty.ldisc_autoload=0"
+    },
+    {
+      "command": "systemctl is-active auditd && auditctl -s | grep -E '^enabled 1' && auditctl -l | grep -q 'identity' && auditctl -l | grep -q 'kernel-modules' && auditctl -l | wc -l",
+      "rc": 0,
+      "output": "active\nenabled 1\n14"
+    },
+    {
+      "command": "systemctl is-active nftables && nft list chain inet filter input | grep -q 'policy drop'",
+      "rc": 0,
+      "output": "active"
+    },
+    {
+      "command": "grep -q '^root:\\$y\\$' /etc/shadow && grep -q '^ENCRYPT_METHOD[[:space:]]*YESCRYPT' /etc/login.defs && grep -q yescrypt /etc/pam.d/login && echo yescrypt-ok",
+      "rc": 0,
+      "output": "yescrypt-ok"
+    },
+    {
+      "command": "sshd -t && sshd -T 2>/dev/null | grep -iE '^(permitrootlogin|maxauthtries|x11forwarding) '",
+      "rc": 0,
+      "output": "MaxAuthTries 3\nPermitRootLogin no\nX11Forwarding no"
+    },
+    {
+      "command": "systemctl is-active systemd-modules-load && modprobe -n -v e1000e >/dev/null && echo modules-ok",
+      "rc": 0,
+      "output": "active\nmodules-ok"
+    },
+    {
+      "command": "portadora verify 2>&1 | tail -5",
+      "rc": 0,
+      "output": "Package verification completed with notices (0 unreadable privileged, 6 mutable config)."
+    },
+    {
+      "command": "blaze-sentinel status",
+      "rc": 0,
+      "output": "==================================================================\n   Blaze Sentinel ��� Security Posture (v0.3.0)\n==================================================================\n[PASS] Mandatory access control     AppArmor active (3 profiles)\n[INFO] Secure Boot                  legacy BIOS or EFI variables unavailable\n[PASS] Kernel lockdown              lockdown: integrity\n[PASS] Landlock sandboxing          enabled\n[PASS] Yama ptrace scope            enabled\n[FAIL] Firewall                     no active firewall service\n[PASS] Kernel hardening sysctls     all inspected values hardened\n[PASS] Audit daemon                 auditd running\n------------------------------------------------------------------\nScore: 6/7 controls passing"
+    }
+  ]
+}

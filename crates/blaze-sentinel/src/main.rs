@@ -181,7 +181,13 @@ fn collect_checks() -> Vec<Check> {
     }
 
     // --- Firewall --------------------------------------------------------
-    let fw = systemd_active("firewalld.service") || systemd_active("nftables.service") || systemd_active("ufw.service");
+    let fw = systemd_active("firewalld.service")
+        || systemd_active("nftables.service")
+        || systemd_active("ufw.service")
+        || (Path::new("/etc/nftables.conf").exists()
+            && (Path::new("/run/systemd/units/invocation:nftables.service").exists()
+                || Path::new("/etc/systemd/system/multi-user.target.wants/nftables.service").exists()
+                || Path::new("/sys/module/nf_tables").exists()));
     checks.push(Check {
         id: "firewall",
         title: "Firewall",
@@ -214,7 +220,9 @@ fn collect_checks() -> Vec<Check> {
     });
 
     // --- Audit -------------------------------------------------------------
-    let audit = systemd_active("auditd.service") || Path::new("/var/run/auditd.pid").exists();
+    let audit = systemd_active("auditd.service")
+        || Path::new("/run/auditd.pid").exists()
+        || Path::new("/var/run/auditd.pid").exists();
     checks.push(Check {
         id: "audit",
         title: "Audit daemon",

@@ -1,6 +1,6 @@
 [package]
 name = "noctalia"
-version = "5.1.0"
+version = "5.4.1"
 release = 1
 architecture = "x86_64"
 summary = "Native Wayland Layer-Shell Desktop UI Engine for SolarUI"
@@ -10,9 +10,13 @@ url = "https://blazeos.org"
 
 [dependencies]
 requires = ["glibc >= 2.44", "sdbus-cpp >= 2.1.0", "tomlplusplus >= 3.4.0", "librsvg >= 2.59.2", "solar-shell >= 1.0.0"]
-provides = ["noctalia = 5.1.0"]
+provides = ["noctalia = 5.4.1"]
 
 [build]
 script = """
-cp -a "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/noctalia-dest/"* "$DESTDIR/"
+mkdir -p "$DESTDIR/usr/bin" "$DESTDIR/usr/share/applications" "$DESTDIR/usr/share/noctalia/assets" "$DESTDIR/usr/share/solarui/noctalia-assets"
+install -m 0755 "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/noctalia-dest/usr/bin/noctalia" "$DESTDIR/usr/bin/noctalia"
+install -m 0644 "/home/darkmorpheus/Projeler/blaze_base/build/m9_b2_packages_work/noctalia-dest/usr/share/applications/dev.noctalia.Noctalia.desktop" "$DESTDIR/usr/share/applications/dev.noctalia.Noctalia.desktop"
+cp -a "/home/darkmorpheus/SolarUI/vendor/noctalia/assets/." "$DESTDIR/usr/share/noctalia/assets/"
+cp -a "/home/darkmorpheus/SolarUI/data/noctalia-assets/." "$DESTDIR/usr/share/solarui/noctalia-assets/"
 """

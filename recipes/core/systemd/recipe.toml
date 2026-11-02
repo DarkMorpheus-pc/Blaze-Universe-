@@ -1,6 +1,6 @@
 [package]
 name = "systemd"
-version = "255"
+version = "262"
 release = 1
 architecture = "x86_64"
 summary = "System and Service Manager for BlazeOS Native"
@@ -10,7 +10,7 @@ url = "https://systemd.io/"
 
 [dependencies]
 provides = [
-    "systemd = 255",
+    "systemd = 262",
     "init",
     "lib:libsystemd.so.0",
     "lib:libudev.so.1",
@@ -30,8 +30,7 @@ preset = [
     "systemd-journald.service",
     "systemd-udevd.service",
     "systemd-logind.service",
-    "getty@tty1.service",
-    "getty@ttyS0.service"
+    "getty@tty1.service"
 ]
 
 [build]

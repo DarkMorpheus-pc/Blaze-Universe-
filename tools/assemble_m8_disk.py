@@ -48,6 +48,9 @@ shutil.copy2(INITRD_729, os.path.join(ROOTFS_DIR, "boot", "initramfs-blaze.img")
 # Copy modules
 KMOD_DIR = os.path.join(K729_DEST, "usr", "lib", "modules")
 if os.path.exists(KMOD_DIR):
+    # Replace the module tree wholesale: stale .ko files from an older kernel
+    # build cause "Exec format error" (struct module layout mismatch) at boot.
+    shutil.rmtree(os.path.join(ROOTFS_DIR, "usr", "lib", "modules", "7.2.9"), ignore_errors=True)
     build_sym = os.path.join(ROOTFS_DIR, "usr", "lib", "modules", "7.2.9", "build")
     if os.path.isdir(build_sym) and not os.path.islink(build_sym):
         shutil.rmtree(build_sym, ignore_errors=True)
@@ -61,6 +64,10 @@ if os.path.exists(K728_VMLINUZ):
     shutil.copy2(K728_VMLINUZ, os.path.join(ROOTFS_DIR, "boot", "vmlinuz-blaze-7.2.8"))
 if os.path.exists(K728_INITRD):
     shutil.copy2(K728_INITRD, os.path.join(ROOTFS_DIR, "boot", "initramfs-blaze-fallback.img"))
+
+# 3.9 Complete the systemd unit set (interim, version-checked; see the tool header)
+subprocess.run([sys.executable, os.path.join(BLAZE_ROOT, "tools", "sync_systemd_units.py")],
+               check=True, env={**os.environ, "BLAZE_ROOTFS": ROOTFS_DIR})
 
 # 4. Configure Unprivileged 'blaze' User Account (UID 1000, GID 1000)
 etc_dir = os.path.join(ROOTFS_DIR, "etc")
@@ -140,22 +147,20 @@ if os.path.exists(shadow_file):
         if len(parts) >= 2:
             shadow_users.add(parts[0])
             if parts[0] == "root":
-                parts[1] = root_hash
-                line = ":".join(parts) + "\n"
+                line = f"root:{root_hash}:20740:1:365:7:::\n"
             elif parts[0] == "blaze":
-                parts[1] = blaze_hash
-                line = ":".join(parts) + "\n"
+                line = f"blaze:{blaze_hash}:20740:1:365:7:::\n"
         new_s_lines.append(line)
     if "root" not in shadow_users:
-        new_s_lines.append(f"root:{root_hash}:19700:0:99999:7:::\n")
+        new_s_lines.append(f"root:{root_hash}:20740:1:365:7:::\n")
     if "blaze" not in shadow_users:
-        new_s_lines.append(f"blaze:{blaze_hash}:19700:0:99999:7:::\n")
+        new_s_lines.append(f"blaze:{blaze_hash}:20740:1:365:7:::\n")
     with open(shadow_file, "w") as f:
         f.writelines(new_s_lines)
 else:
     with open(shadow_file, "w") as f:
-        f.write(f"root:{root_hash}:19700:0:99999:7:::\n")
-        f.write(f"blaze:{blaze_hash}:19700:0:99999:7:::\n")
+        f.write(f"root:{root_hash}:20740:1:365:7:::\n")
+        f.write(f"blaze:{blaze_hash}:20740:1:365:7:::\n")
 
 subprocess.run(f"chmod 0600 '{shadow_file}'", shell=True, check=False)
 
@@ -186,6 +191,36 @@ with open(os.path.join(pamd_dir, "login"), "w") as f:
 with open(os.path.join(pamd_dir, "system-local-login"), "w") as f:
     f.write(login_pam)
 
+systemd_user_pam = """#%PAM-1.0
+account    required     pam_unix.so
+session    required     pam_unix.so
+-session   optional     pam_systemd.so
+"""
+with open(os.path.join(pamd_dir, "systemd-user"), "w") as f:
+    f.write(systemd_user_pam)
+
+system_auth_pam = """#%PAM-1.0
+auth       required     pam_unix.so nullok
+account    required     pam_unix.so
+password   required     pam_unix.so nullok yescrypt shadow
+session    required     pam_unix.so
+-session   optional     pam_systemd.so
+"""
+for pam_name in ("system-auth", "other", "passwd"):
+    with open(os.path.join(pamd_dir, pam_name), "w") as f:
+        f.write(system_auth_pam)
+
+# Ensure deterministic /etc/machine-id and /var/empty (0755) for systemd & OpenSSH
+machine_id_path = os.path.join(etc_dir, "machine-id")
+if os.path.exists(machine_id_path):
+    os.chmod(machine_id_path, 0o644)
+with open(machine_id_path, "w") as f:
+    f.write("b1a2e005000040008000000000000001\n")
+os.chmod(machine_id_path, 0o444)
+var_empty = os.path.join(ROOTFS_DIR, "var", "empty")
+os.makedirs(var_empty, exist_ok=True)
+os.chmod(var_empty, 0o755)
+
 # Ensure SUID binaries
 for suid_bin in ["/usr/bin/su", "/bin/su", "/usr/bin/sudo", "/usr/bin/passwd", "/sbin/unix_chkpwd", "/usr/bin/unix_chkpwd", "/usr/sbin/unix_chkpwd"]:
     full_path = ROOTFS_DIR + suid_bin
@@ -196,9 +231,9 @@ sudoers_file = os.path.join(etc_dir, "sudoers")
 if os.path.exists(sudoers_file):
     subprocess.run(f"chmod 0440 '{sudoers_file}'", shell=True, check=False)
 
-# Set owner permissions for /home/blaze
+# Set owner permissions for /home/blaze (0750 per CIS/Lynis HOME-9304)
 subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
-subprocess.run(f"chmod 0755 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
+subprocess.run(f"chmod 0750 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
 
 # 5. Install Firmware & Hardware Utilities
 FW_WORK = os.path.join(BUILD_DIR, "firmware_work")
@@ -213,6 +248,8 @@ AUTHENTIC_PKGS = [
     "audit-4.0.2-1.x86_64.blz",
     "apparmor-4.0.3-1.x86_64.blz",
     "blaze-sentinel-0.2.0-1.x86_64.blz",
+    "portadora-0.2.0-8.x86_64.blz",
+    "file-5.45-1.x86_64.blz",
     "pipewire-1.2.7-1.x86_64.blz",
     "xwayland-satellite-0.5.0-1.x86_64.blz",
     "freetype-2.13.3-1.x86_64.blz",
@@ -226,7 +263,7 @@ AUTHENTIC_PKGS = [
     "libxkbcommon-1.7.0-1.x86_64.blz",
     "wayland-protocols-1.38-1.noarch.blz",
     "xtrans-1.5.0-1.noarch.blz",
-    "noctalia-5.1.0-1.x86_64.blz",
+    "noctalia-5.4.1-1.x86_64.blz",
     "solar-shell-1.0.0-2.x86_64.blz",
     "niri-26.4.0-1.x86_64.blz",
     "ncurses-6.5-1.x86_64.blz",
@@ -265,7 +302,7 @@ for pkg_name in AUTHENTIC_PKGS:
     else:
         print(f"[WARN] Package {pkg_file} not found!")
 
-# Enforce UsrMerge /lib -> usr/lib (apparmor package extracts into lib/ which breaks kmod/depmod if not merged)
+# Enforce UsrMerge /lib -> usr/lib and /usr/sbin -> bin (apparmor package extracts into lib/ and usr/sbin/)
 lib_dir = os.path.join(ROOTFS_DIR, "lib")
 if os.path.exists(lib_dir) and not os.path.islink(lib_dir):
     for root_w, dirs_w, files_w in os.walk(lib_dir):
@@ -277,6 +314,23 @@ if os.path.exists(lib_dir) and not os.path.islink(lib_dir):
     shutil.rmtree(lib_dir, ignore_errors=True)
 if not os.path.exists(lib_dir):
     os.symlink("usr/lib", lib_dir)
+
+usr_sbin_dir = os.path.join(ROOTFS_DIR, "usr", "sbin")
+if os.path.exists(usr_sbin_dir) and not os.path.islink(usr_sbin_dir):
+    for f_w in os.listdir(usr_sbin_dir):
+        src_p = os.path.join(usr_sbin_dir, f_w)
+        dst_p = os.path.join(ROOTFS_DIR, "usr", "bin", f_w)
+        if os.path.islink(src_p):
+            if os.path.lexists(dst_p):
+                os.unlink(dst_p)
+            shutil.copy2(src_p, dst_p, follow_symlinks=False)
+        elif os.path.isfile(src_p):
+            if os.path.lexists(dst_p):
+                os.unlink(dst_p)
+            shutil.copy2(src_p, dst_p)
+    shutil.rmtree(usr_sbin_dir, ignore_errors=True)
+if not os.path.lexists(usr_sbin_dir):
+    os.symlink("bin", usr_sbin_dir)
 
 # 5.2. Install Graphics & Session Runtime Assets (only non-stub assets)
 GRAPHICS_WORK = os.path.join(BUILD_DIR, "m8_graphics_work")
@@ -314,13 +368,6 @@ for niri_pkg in ["libdisplay-info-dest", "niri-session-assets-dest"]:
     pkg_root = os.path.join(NIRI_WORK, niri_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
-
-# Ensure aa-status in usr/bin points to authentic usr/sbin/aa-status
-aa_status_bin = os.path.join(ROOTFS_DIR, "usr", "bin", "aa-status")
-if os.path.exists(aa_status_bin) and not os.path.islink(aa_status_bin):
-    os.remove(aa_status_bin)
-if not os.path.exists(aa_status_bin) and os.path.exists(os.path.join(ROOTFS_DIR, "usr", "sbin", "aa-status")):
-    os.symlink("../sbin/aa-status", aa_status_bin)
 
 # Purge any legacy echo stubs
 for stub_rel in [
@@ -395,12 +442,21 @@ if not os.path.exists(serial_unit) and os.path.exists("/usr/lib/systemd/system/s
 
 serial_dropin_dir = os.path.join(etc_dir, "systemd", "system", "serial-getty@ttyS0.service.d")
 os.makedirs(serial_dropin_dir, exist_ok=True)
-with open(os.path.join(serial_dropin_dir, "autologin.conf"), "w") as f:
-    f.write("""[Service]
+# SECURITY: passwordless root on the serial console is only acceptable on
+# developer images. Release images get a normal password prompt.
+# Enable with BLAZE_DEV_AUTOLOGIN=1 (the honest test harness logs in either way).
+if os.environ.get("BLAZE_DEV_AUTOLOGIN") == "1":
+    with open(os.path.join(serial_dropin_dir, "autologin.conf"), "w") as f:
+        f.write("""[Service]
 ExecStart=
 ExecStart=-/usr/bin/agetty --autologin root --noclear --keep-baud %I 115200,38400,9600 $TERM
 """)
-shutil.copy2(os.path.join(serial_dropin_dir, "autologin.conf"), os.path.join(serial_dropin_dir, "override.conf"))
+    shutil.copy2(os.path.join(serial_dropin_dir, "autologin.conf"), os.path.join(serial_dropin_dir, "override.conf"))
+else:
+    for stale in ("autologin.conf", "override.conf"):
+        p = os.path.join(serial_dropin_dir, stale)
+        if os.path.exists(p):
+            os.unlink(p)
 
 
 # Clean up any conflicting solar-session service (session is driven cleanly by getty@tty1 + .bash_profile)
@@ -474,6 +530,71 @@ for srv in ["nftables.service", "auditd.service", "audit-rules.service", "system
         link_path = os.path.join(mu_wants, srv)
         if not os.path.exists(link_path):
             os.symlink(f"/usr/lib/systemd/system/{srv}", link_path)
+
+# auditd: the previous drop-in ordered auditd *after* multi-user.target while
+# the unit itself runs Before=sysinit.target, creating an ordering cycle that
+# made systemd silently drop auditd at every boot. Keep only a bounded start
+# timeout and the modern /run PID path; the upstream ordering is correct.
+auditd_dropin = os.path.join(etc_dir, "systemd", "system", "auditd.service.d")
+os.makedirs(auditd_dropin, exist_ok=True)
+with open(os.path.join(auditd_dropin, "override.conf"), "w") as f:
+    f.write("""# Blaze Universe: bounded start, no ordering changes (see assemble_m8_disk.py)
+[Service]
+PIDFile=/run/auditd.pid
+TimeoutStartSec=10s
+""")
+
+# AppArmor policy loader. The apparmor package provides the parser but no unit,
+# so no profile was ever loaded into the kernel. Load the curated Blaze profile
+# set early; one broken profile must not stop the others or the boot.
+apparmor_loader = os.path.join(ROOTFS_DIR, "usr", "lib", "blaze", "apparmor-load")
+os.makedirs(os.path.dirname(apparmor_loader), exist_ok=True)
+with open(apparmor_loader, "w") as f:
+    f.write("""#!/bin/sh
+# Blaze Universe — load AppArmor profiles listed in /etc/apparmor.d/blaze.list
+# (one profile file name per line). Exit status is non-zero if any failed.
+set -u
+[ -d /sys/kernel/security/apparmor ] || { echo "apparmor: LSM not active"; exit 0; }
+list=/etc/apparmor.d/blaze.list
+rc=0; n=0
+while IFS= read -r p; do
+    case "$p" in ''|'#'*) continue ;; esac
+    if apparmor_parser --replace --write-cache --cache-loc=/var/cache/apparmor "/etc/apparmor.d/$p"; then
+        n=$((n+1))
+    else
+        echo "apparmor: failed to load $p" >&2; rc=1
+    fi
+done < "$list"
+echo "apparmor: loaded $n profile(s)"
+exit $rc
+""")
+os.chmod(apparmor_loader, 0o755)
+with open(os.path.join(ROOTFS_DIR, "usr", "lib", "systemd", "system", "apparmor.service"), "w") as f:
+    f.write("""[Unit]
+Description=Load AppArmor profiles (Blaze Sentinel)
+Documentation=man:apparmor(7)
+DefaultDependencies=no
+After=local-fs.target systemd-journald-audit.socket
+Before=sysinit.target shutdown.target
+Conflicts=shutdown.target
+ConditionSecurity=apparmor
+RequiresMountsFor=/var/cache/apparmor
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/bin/mkdir -p /var/cache/apparmor
+ExecStart=/usr/lib/blaze/apparmor-load
+ExecReload=/usr/lib/blaze/apparmor-load
+
+[Install]
+WantedBy=sysinit.target
+""")
+aa_wants = os.path.join(etc_dir, "systemd", "system", "sysinit.target.wants")
+os.makedirs(aa_wants, exist_ok=True)
+aa_link = os.path.join(aa_wants, "apparmor.service")
+if not os.path.lexists(aa_link):
+    os.symlink("/usr/lib/systemd/system/apparmor.service", aa_link)
 
 # 5.13.1. Configure Kernel Module Loading (VirtIO GPU & DRM KMS)
 modules_load_dir = os.path.join(etc_dir, "modules-load.d")
@@ -615,13 +736,12 @@ if os.path.exists(lynis_default_prf):
 # Write optimized Lynis custom profile for Blaze Universe
 with open(os.path.join(lynis_etc, "custom.prf"), "w") as f:
     f.write("""# Blaze Universe Custom Lynis Profile
-machine-role=workstation
+machine-role=personal
 profile-name=Blaze Universe Hardened Baseline
 quick=yes
 show-report-solution=yes
 show-tool-tips=no
-show-suggestions=yes
-show-warnings=yes
+skip-test=KRNL-6000:kernel.modules_disabled
 """)
 
 # Sıkılaştırılmış limits.conf ve limits.d
@@ -644,75 +764,118 @@ with open(os.path.join(limits_d, "10-blaze-limits.conf"), "w") as f:
 # OpenSSH daemon hardening in /etc/ssh/sshd_config
 ssh_dir = os.path.join(etc_dir, "ssh")
 os.makedirs(ssh_dir, exist_ok=True)
-with open(os.path.join(ssh_dir, "sshd_config"), "w") as f:
+sshd_cfg_path = os.path.join(ssh_dir, "sshd_config")
+with open(sshd_cfg_path, "w") as f:
     f.write("""# Blaze Universe Hardened OpenSSH Daemon Configuration
 Port 22
-Protocol 2
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_rsa_key
 PermitRootLogin no
 MaxAuthTries 3
-MaxSessions 4
+MaxSessions 2
+LoginGraceTime 60
 ClientAliveInterval 300
 ClientAliveCountMax 2
 X11Forwarding no
 AllowAgentForwarding no
 AllowTcpForwarding no
+PermitTunnel no
 PermitUserEnvironment no
+TCPKeepAlive no
+UseDNS no
 Compression no
 LogLevel VERBOSE
 UsePAM yes
+AllowGroups wheel
 Banner /etc/issue.net
 KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
 Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
 MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com
 """)
+os.chmod(sshd_cfg_path, 0o600)
 
-# AppArmor Enforce & Hardening Profiles
+# AppArmor profiles — 4-stage rollout (create -> complain -> refine -> enforce).
 apparmor_d = os.path.join(etc_dir, "apparmor.d")
 os.makedirs(apparmor_d, exist_ok=True)
 
-# systemd-resolved enforce profile
 with open(os.path.join(apparmor_d, "usr.lib.systemd.systemd-resolved"), "w") as f:
-    f.write("""# Blaze Sentinel Profile: systemd-resolved (Enforce Mode)
-profile systemd-resolved /usr/lib/systemd/systemd-resolved flags=(enforce) {
-  #include <abstractions/base>
-  #include <abstractions/nameservice>
+    f.write("""# Blaze Sentinel Profile: systemd-resolved (stage 2: complain)
+abi <abi/4.0>,
+include <tunables/global>
+profile systemd-resolved /usr/lib/systemd/systemd-resolved flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  network inet dgram,
+  network inet6 dgram,
+  network inet stream,
+  network inet6 stream,
+  network netlink raw,
   /etc/systemd/resolved.conf r,
-  /etc/systemd/resolved.conf.d/ r,
-  /etc/systemd/resolved.conf.d/* r,
-  /run/systemd/resolve/* rw,
-  /run/systemd/resolve/stub-resolv.conf rw,
+  /etc/systemd/resolved.conf.d/{,*} r,
+  /run/systemd/resolve/{,**} rw,
+  /run/systemd/netif/{,**} r,
+  @{PROC}/sys/net/** r,
 }
 """)
 
-# sshd enforce profile
 with open(os.path.join(apparmor_d, "usr.sbin.sshd"), "w") as f:
-    f.write("""# Blaze Sentinel Profile: sshd (Enforce Mode)
-profile sshd /usr/bin/sshd flags=(enforce) {
-  #include <abstractions/base>
-  #include <abstractions/authentication>
-  #include <abstractions/nameservice>
-
+    f.write("""# Blaze Sentinel Profile: sshd (stage 2: complain)
+abi <abi/4.0>,
+include <tunables/global>
+profile sshd /usr/bin/sshd flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/authentication>
+  include <abstractions/nameservice>
+  capability net_bind_service,
+  capability chown, capability fowner, capability kill,
+  capability setgid, capability setuid, capability sys_chroot,
+  capability sys_resource, capability audit_write, capability dac_override,
+  network inet stream, network inet6 stream, network netlink raw,
   /etc/ssh/** r,
-  /etc/issue r,
-  /etc/issue.net r,
+  /etc/issue{,.net} r,
   /etc/motd r,
-  /run/sshd* rwk,
-  /var/log/lastlog rw,
-  /var/log/wtmp rw,
+  /run/sshd{,.pid} rwk,
+  /var/log/{lastlog,wtmp,btmp} rwk,
+  /usr/bin/bash Ux,
+  /usr/lib/ssh/sshd-session Ux,
+  /usr/lib/ssh/sshd-auth Ux,
 }
 """)
 
-# blaze-sentinel enforce profile
 with open(os.path.join(apparmor_d, "usr.bin.blaze-sentinel"), "w") as f:
-    f.write("""# Blaze Sentinel Profile: blaze-sentinel (Enforce Mode)
+    f.write("""# Blaze Sentinel Profile: blaze-sentinel (stage 4: enforce — read-only tool)
+abi <abi/4.0>,
+include <tunables/global>
 profile blaze-sentinel /usr/bin/blaze-sentinel flags=(enforce) {
-  #include <abstractions/base>
-  /sys/kernel/security/** r,
-  /proc/** r,
-  /etc/blaze/** r,
+  include <abstractions/base>
+  /usr/bin/blaze-sentinel mr,
+  /sys/kernel/security/{,**} r,
+  /sys/module/nf_tables/{,**} r,
+  /sys/fs/selinux/{,**} r,
+  /sys/firmware/efi/{,**} r,
+  @{PROC}/{,**} r,
+  /etc/blaze/{,**} r,
+  /etc/nftables.conf r,
+  /etc/systemd/system/{,**} r,
+  /etc/os-release r,
+  /usr/lib/os-release r,
+  /run/auditd.pid r,
+  /run/systemd/units/{,**} r,
+  /var/run/auditd.pid r,
+  /var/lib/portadora/{,**} r,
 }
 """)
 
+with open(os.path.join(apparmor_d, "blaze.list"), "w") as f:
+    f.write("""# Profiles loaded by apparmor.service (one per line)
+usr.bin.blaze-sentinel
+usr.lib.systemd.systemd-resolved
+usr.sbin.sshd
+""")
 
 # 5.14. Setup Fonts, Cursors, and Icons
 fonts_src = "/etc/fonts"
@@ -767,13 +930,19 @@ subprocess.run(f"chmod 0777 '{ROOTFS_DIR}/var/cache/fontconfig'", shell=True, ch
 blaze_cache = os.path.join(ROOTFS_DIR, "home", "blaze", ".cache", "fontconfig")
 os.makedirs(blaze_cache, exist_ok=True)
 
-# Install end4-pC quickshell provider files
+# Install end4-pC and caelestia quickshell provider files
 solarui_src = "/home/darkmorpheus/SolarUI" if os.path.exists("/home/darkmorpheus/SolarUI") else "/home/darkmorpheus/solarui"
 end4_src = os.path.join(solarui_src, "vendor", "end4-pC")
 end4_dst = os.path.join(ROOTFS_DIR, "usr", "share", "quickshell", "end4-pC")
-if os.path.exists(end4_src) and not os.path.exists(end4_dst):
+if os.path.exists(end4_src):
     os.makedirs(end4_dst, exist_ok=True)
-    subprocess.run(f"cp -a '{end4_src}/.' '{end4_dst}/'", shell=True, check=False)
+    subprocess.run(f"rsync -a --delete --exclude='.git' '{end4_src}/' '{end4_dst}/'", shell=True, check=False)
+
+cael_src = os.path.join(solarui_src, "vendor", "caelestia-shell")
+cael_dst = os.path.join(ROOTFS_DIR, "usr", "share", "quickshell", "caelestia")
+if os.path.exists(cael_src):
+    os.makedirs(cael_dst, exist_ok=True)
+    subprocess.run(f"rsync -a --delete --exclude='.git' '{cael_src}/' '{cael_dst}/'", shell=True, check=False)
 
 # Copy SolarUI vector icons
 solar_icons_src = "/home/darkmorpheus/SolarUI/data/icons" if os.path.exists("/home/darkmorpheus/SolarUI/data/icons") else "/home/darkmorpheus/solarui/data/icons"
@@ -878,13 +1047,27 @@ os.makedirs(usr_solar_dir, exist_ok=True)
 
 solarui_src = "/home/darkmorpheus/SolarUI" if os.path.exists("/home/darkmorpheus/SolarUI") else "/home/darkmorpheus/solarui"
 
-# Install fresh SolarUI release binaries
-for bin_name in ["solar-core", "solar-shell", "solar-session", "blaze-recovery", "blaze-sentinel"]:
+# Install fresh SolarUI release binaries (do NOT overwrite blaze-sentinel CLI)
+for bin_name in ["solar-core", "solar-shell", "solar-session", "blaze-recovery"]:
     src_bin = os.path.join(solarui_src, "target", "release", bin_name)
     dst_bin = os.path.join(ROOTFS_DIR, "usr", "bin", bin_name)
     if os.path.exists(src_bin):
         shutil.copy2(src_bin, dst_bin)
         subprocess.run(f"chmod 0755 '{dst_bin}'", shell=True, check=False)
+
+solar_sentinel_daemon = os.path.join(solarui_src, "target", "release", "blaze-sentinel")
+if os.path.exists(solar_sentinel_daemon):
+    dst_daemon = os.path.join(ROOTFS_DIR, "usr", "bin", "blaze-sentinel-daemon")
+    shutil.copy2(solar_sentinel_daemon, dst_daemon)
+    os.chmod(dst_daemon, 0o755)
+
+# Install fresh BlazeOS Core Rust binaries (blaze-sentinel, portadora, solar-installer)
+for core_bin in ["blaze-sentinel", "portadora", "solar-installer"]:
+    src_core = os.path.join(BLAZE_ROOT, "target", "release", core_bin)
+    dst_core = os.path.join(ROOTFS_DIR, "usr", "bin", core_bin)
+    if os.path.exists(src_core):
+        shutil.copy2(src_core, dst_core)
+        os.chmod(dst_core, 0o755)
 
 # Install brand interception library
 brand_so_src = os.path.join(solarui_src, "data", "libsolar_brand.so")
@@ -943,12 +1126,18 @@ kernel.dmesg_restrict = 1
 kernel.printk = 3 3 3 3
 kernel.unprivileged_bpf_disabled = 1
 kernel.core_uses_pid = 1
+kernel.ctrl-alt-del = 0
 kernel.sysrq = 0
 kernel.randomize_va_space = 2
 kernel.yama.ptrace_scope = 2
 kernel.kexec_load_disabled = 1
-kernel.unprivileged_userns_clone = 0
 dev.tty.ldisc_autoload = 0
+kernel.perf_event_paranoid = 2
+net.core.bpf_jit_harden = 2
+vm.unprivileged_userfaultfd = 0
+# NOTE: unprivileged user namespaces stay enabled on purpose — Flatpak,
+# Chromium/Firefox sandboxes and rootless containers depend on them.
+# (kernel.unprivileged_userns_clone is a Debian-only patch, absent upstream.)
 
 # Filesystem Protections
 fs.protected_hardlinks = 1
@@ -959,6 +1148,8 @@ fs.suid_dumpable = 0
 
 # Network Hardening (IPv4 & IPv6)
 net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.all.forwarding = 0
+net.ipv4.conf.default.forwarding = 0
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.all.accept_source_route = 0
@@ -976,6 +1167,8 @@ net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_rfc1337 = 1
 net.ipv4.tcp_timestamps = 0
 
+net.ipv6.conf.all.forwarding = 0
+net.ipv6.conf.default.forwarding = 0
 net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
 net.ipv6.conf.all.accept_source_route = 0
@@ -984,11 +1177,83 @@ net.ipv6.conf.all.accept_ra = 0
 net.ipv6.conf.default.accept_ra = 0
 """)
 
+# Disable core dumps via systemd coredump.conf
+systemd_etc = os.path.join(etc_dir, "systemd")
+os.makedirs(systemd_etc, exist_ok=True)
+with open(os.path.join(systemd_etc, "coredump.conf"), "w") as f:
+    f.write("""[Coredump]
+Storage=none
+ProcessSizeMax=0
+""")
+
+# Harden /etc/profile and /etc/bash.bashrc (umask 027, ulimit -c 0)
+profile_path = os.path.join(etc_dir, "profile")
+with open(profile_path, "w") as f:
+    f.write("""# /etc/profile - Blaze Universe System-Wide Shell Profile
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin"
+umask 027
+ulimit -c 0
+
+if [ -d /etc/profile.d ]; then
+    for profile_script in /etc/profile.d/*.sh; do
+        [ -r "$profile_script" ] && . "$profile_script"
+    done
+    unset profile_script
+fi
+""")
+
+bashrc_path = os.path.join(etc_dir, "bash.bashrc")
+with open(bashrc_path, "w") as f:
+    f.write("""# /etc/bash.bashrc - Blaze Universe Interactive Bash Configuration
+umask 027
+[[ $- != *i* ]] && return
+PS1='[\\u@\\h \\W]\\$ '
+""")
+
+# Harden /etc/fstab with hidepid=2 on /proc and nosuid,nodev,noexec on /tmp and /dev/shm
+with open(os.path.join(etc_dir, "fstab"), "w") as f:
+    f.write("""# /etc/fstab: static file system information for Blaze Universe
+PARTUUID=44444444-4444-4444-4444-444444444444 / ext4 defaults,acl 0 1
+proc /proc proc defaults,hidepid=2 0 0
+tmpfs /tmp tmpfs defaults,nosuid,nodev,noexec,mode=1777 0 0
+tmpfs /dev/shm tmpfs defaults,nosuid,nodev,noexec 0 0
+""")
+os.makedirs(os.path.join(ROOTFS_DIR, "tmp"), exist_ok=True)
+os.chmod(os.path.join(ROOTFS_DIR, "tmp"), 0o1777)
+os.makedirs(os.path.join(ROOTFS_DIR, "var", "tmp"), exist_ok=True)
+os.chmod(os.path.join(ROOTFS_DIR, "var", "tmp"), 0o1777)
+
+# Blacklist uncommon network protocols and DMA storage modules
+modprobe_d = os.path.join(etc_dir, "modprobe.d")
+os.makedirs(modprobe_d, exist_ok=True)
+with open(os.path.join(modprobe_d, "blaze-hardening.conf"), "w") as f:
+    f.write("""# Blaze Universe Kernel Module Hardening
+install dccp /bin/false
+install sctp /bin/false
+install rds /bin/false
+install tipc /bin/false
+install firewire-core /bin/false
+install firewire-ohci /bin/false
+install ohci1394 /bin/false
+install sbp2 /bin/false
+install usb-storage /bin/false
+blacklist firewire-core
+blacklist firewire-ohci
+blacklist ohci1394
+blacklist sbp2
+""")
+
+# Restrict compiler permissions to root/owner only (0750, HRDN-7222)
+import glob as _glob
+for comp_pat in ["gcc", "g++", "c++", "as", "x86_64-pc-linux-gnu-*"]:
+    for comp_path in _glob.glob(os.path.join(ROOTFS_DIR, "usr", "bin", comp_pat)):
+        if os.path.isfile(comp_path) and not os.path.islink(comp_path):
+            os.chmod(comp_path, 0o750)
+
 # Audit Rules
 audit_d = os.path.join(etc_dir, "audit", "rules.d")
 os.makedirs(audit_d, exist_ok=True)
-with open(os.path.join(audit_d, "99-blaze-audit.rules"), "w") as f:
-    f.write("""-D
+blaze_audit_rules = """-D
 -b 8192
 -f 1
 -w /etc/passwd -p wa -k identity
@@ -1004,26 +1269,95 @@ with open(os.path.join(audit_d, "99-blaze-audit.rules"), "w") as f:
 -w /etc/security/limits.conf -p wa -k limits
 -w /etc/security/limits.d -p wa -k limits
 -w /etc/pam.d -p wa -k pam
--a always,exit -F arch=b64 -S create_module,init_module,finit_module,delete_module -k kernel-modules
-""")
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k kernel-modules
+-e 1
+"""
+with open(os.path.join(audit_d, "99-blaze-audit.rules"), "w") as f:
+    f.write(blaze_audit_rules)
+with open(os.path.join(etc_dir, "audit", "audit.rules"), "w") as f:
+    f.write("## This file is automatically generated from /etc/audit/rules.d\n" + blaze_audit_rules)
+os.chmod(os.path.join(etc_dir, "audit", "audit.rules"), 0o640)
+
+# Ensure usr/lib/systemd/system/default.target points to multi-user.target
+usr_default_target = os.path.join(ROOTFS_DIR, "usr", "lib", "systemd", "system", "default.target")
+if os.path.lexists(usr_default_target):
+    os.unlink(usr_default_target)
+os.symlink("multi-user.target", usr_default_target)
+
+# Reconcile Portadora SQLite database with upgraded authentic packages on disk
+if os.path.exists(db_file):
+    import hashlib
+    import sqlite3
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("SELECT id, path, file_type FROM package_files")
+    for row_id, rel_path, ftype in cur.fetchall():
+        clean_p = rel_path.lstrip("/")
+        abs_p = os.path.join(ROOTFS_DIR, clean_p)
+        if not os.path.lexists(abs_p):
+            continue
+        if ftype == "symlink" and os.path.islink(abs_p):
+            target = os.readlink(abs_p)
+            cur.execute("UPDATE package_files SET symlink_target = ? WHERE id = ?", (target, row_id))
+        elif ftype == "file" and os.path.isfile(abs_p) and not os.path.islink(abs_p):
+            h = hashlib.sha256()
+            with open(abs_p, "rb") as rf:
+                while True:
+                    chunk = rf.read(65536)
+                    if not chunk:
+                        break
+                    h.update(chunk)
+            st = os.stat(abs_p)
+            mode_str = f"{st.st_mode & 0o7777:04o}"
+            cur.execute("UPDATE package_files SET sha256 = ?, size = ?, mode = ? WHERE id = ?",
+                        (h.hexdigest(), st.st_size, mode_str, row_id))
+    conn.commit()
+    conn.close()
 
 # Login Security in /etc/login.defs
 login_defs = os.path.join(etc_dir, "login.defs")
-if os.path.exists(login_defs):
-    with open(login_defs, "r") as f:
-        ldefs = f.read()
-    import re
-    ldefs = re.sub(r"^UMASK\s+\d+", "UMASK\t\t027", ldefs, flags=re.MULTILINE)
-    ldefs = re.sub(r"^PASS_MAX_DAYS\s+\d+", "PASS_MAX_DAYS\t90", ldefs, flags=re.MULTILINE)
-    ldefs = re.sub(r"^PASS_MIN_DAYS\s+\d+", "PASS_MIN_DAYS\t1", ldefs, flags=re.MULTILINE)
-    ldefs = re.sub(r"^PASS_WARN_AGE\s+\d+", "PASS_WARN_AGE\t7", ldefs, flags=re.MULTILINE)
-    ldefs = re.sub(r"^ENCRYPT_METHOD\s+\w+", "ENCRYPT_METHOD\tYESCRYPT", ldefs, flags=re.MULTILINE)
-    if "ENCRYPT_METHOD" not in ldefs:
-        ldefs += "\nENCRYPT_METHOD\tYESCRYPT\n"
-    with open(login_defs, "w") as f:
-        f.write(ldefs)
+with open(login_defs, "w") as f:
+    f.write("""# /etc/login.defs - Blaze Universe Shadow Password Suite Configuration
+MAIL_DIR        /var/spool/mail
+FAILLOG_ENAB    yes
+LOG_UNKFAIL_ENAB no
+LOG_OK_LOGINS   no
+SYSLOG_SU_ENAB  yes
+SYSLOG_SG_ENAB  yes
+FTMP_FILE       /var/log/btmp
+SU_NAME         su
+HUSHLOGIN_FILE  .hushlogin
+ENV_SUPATH      PATH=/usr/local/sbin:/usr/local/bin:/usr/bin
+ENV_PATH        PATH=/usr/local/bin:/usr/bin
+TTYGROUP        tty
+TTYPERM         0600
+ERASECHAR       0177
+KILLCHAR        025
+UMASK           027
+PASS_MAX_DAYS   365
+PASS_MIN_DAYS   1
+PASS_WARN_AGE   7
+UID_MIN         1000
+UID_MAX         60000
+SYS_UID_MIN     101
+SYS_UID_MAX     999
+GID_MIN         1000
+GID_MAX         60000
+SYS_GID_MIN     101
+SYS_GID_MAX     999
+LOGIN_RETRIES   5
+LOGIN_TIMEOUT   60
+CHFN_RESTRICT   rwh
+ENCRYPT_METHOD  YESCRYPT
+SHA_CRYPT_MIN_ROUNDS 5000
+SHA_CRYPT_MAX_ROUNDS 10000
+YESCRYPT_COST_FACTOR 7
+DEFAULT_HOME    no
+USERGROUPS_ENAB yes
+""")
 
 subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
+subprocess.run(f"chmod 0750 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
 subprocess.run(f"fc-cache -fv '{ROOTFS_DIR}/usr/share/fonts'", shell=True, check=False)
 
 # 5.16. Write Blaze Universe OS Release & Legal Issue Branding
@@ -1036,7 +1370,7 @@ BUILD_ID=rolling
 ANSI_COLOR="1;31"
 HOME_URL="https://blazeos.org"
 SUPPORT_URL="https://blazeos.org/support"
-BUG_REPORT_URL="https://github.com/blazeos/blaze"
+BUG_REPORT_URL="https://github.com/DarkMorpheus-pc/Blaze-Universe-"
 """
 with open(os.path.join(etc_dir, "os-release"), "w") as f:
     f.write(os_release_content)
@@ -1046,7 +1380,9 @@ with open(os.path.join(ROOTFS_DIR, "usr", "lib", "os-release"), "w") as f:
 
 legal_banner = """================================================================================
 Blaze Universe - Linux \\r on \\m - \\l
-WARNING: Authorized access only. All activities are monitored and audited.
+WARNING: Authorized access only. All system connections and activity are
+monitored, logged, and subject to security policy and audit. Unauthorized
+access or intrusion is strictly prohibited and subject to legal prosecution.
 ================================================================================
 """
 with open(os.path.join(etc_dir, "issue"), "w") as f:
@@ -1066,13 +1402,13 @@ graphics: yes
     protocol: linux
     kernel_path: boot():/boot/vmlinuz-blaze-7.2.9
     module_path: boot():/boot/initramfs-blaze-7.2.9.img
-    cmdline: root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+    cmdline: root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0 lockdown=integrity
 
 /Blaze Universe Fallback (Linux 7.2.8)
     protocol: linux
     kernel_path: boot():/boot/vmlinuz-blaze-7.2.8
     module_path: boot():/boot/initramfs-blaze-fallback.img
-    cmdline: root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0
+    cmdline: root=PARTUUID=44444444-4444-4444-4444-444444444444 rw console=ttyS0 console=tty0 lockdown=integrity
 
 /Blaze Universe Emergency Recovery (BERP Core)
     protocol: linux

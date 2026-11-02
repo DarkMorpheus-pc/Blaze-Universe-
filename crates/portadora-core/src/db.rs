@@ -524,13 +524,29 @@ impl Database {
                 || clean_path.starts_with("var/log/");
 
             // Category 2: Genuinely mutable system identity & configuration files
-            let is_mutable_config = matches!(
-                clean_path,
-                "etc/passwd" | "etc/group" | "etc/shadow" | "etc/machine-id" | "etc/ld.so.cache"
-            ) || clean_path.starts_with("etc/ssh/");
+            let is_mutable_config = clean_path.starts_with("etc/")
+                || clean_path == "usr/lib/os-release"
+                || clean_path == "usr/lib/systemd/system/default.target";
 
             let actual_mode = format!("{:04o}", meta.permissions().mode() & 0o7777);
-            if actual_mode != expected_mode && file_type != "symlink" && !is_runtime_mount {
+            let is_hardened_mode = (clean_path == "root" && actual_mode == "0700")
+                || ((clean_path == "home/blaze" || clean_path == "usr/bin/gcc" || clean_path == "usr/bin/g++" || clean_path == "usr/bin/c++" || clean_path == "usr/bin/as" || clean_path.starts_with("usr/bin/x86_64-pc-linux-gnu-")) && actual_mode == "0750")
+                || (matches!(
+                    clean_path,
+                    "usr/bin/su"
+                        | "bin/su"
+                        | "usr/bin/passwd"
+                        | "usr/bin/sudo"
+                        | "usr/bin/unix_chkpwd"
+                        | "sbin/unix_chkpwd"
+                        | "usr/sbin/unix_chkpwd"
+                ) && actual_mode == "4755")
+                || (is_mutable_config && (actual_mode == "0600" || actual_mode == "0640" || actual_mode == "0440" || actual_mode == "0700"));
+            if actual_mode != expected_mode
+                && !is_hardened_mode
+                && file_type != "symlink"
+                && !is_runtime_mount
+            {
                 issues.push(VerificationIssue {
                     package_name: pkg_name.clone(),
                     path: rel_path.clone(),

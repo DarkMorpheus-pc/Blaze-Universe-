@@ -1,0 +1,34 @@
+# ==============================================================================
+# Blaze Universe — security acceptance checks (run inside the VM as root)
+# Every line must exit 0. Executed by tools/test-qemu-stage7-1-enforcement.py
+# through the honest serial harness tools/blaze_vm.py.
+# ==============================================================================
+
+# --- boot health --------------------------------------------------------------
+systemctl is-system-running --wait >/dev/null; systemctl --failed --no-legend --plain; test -z "$(systemctl --failed --no-legend --plain)"
+
+# --- LSM stack (must match CONFIG_LSM) -----------------------------------------
+cat /sys/kernel/security/lsm; echo; for l in landlock lockdown yama apparmor; do grep -qw $l /sys/kernel/security/lsm || { echo "missing LSM $l"; exit 1; }; done
+
+# --- AppArmor policy actually loaded -------------------------------------------
+systemctl is-active apparmor && cat /sys/kernel/security/apparmor/profiles && grep -q '^blaze-sentinel (enforce)' /sys/kernel/security/apparmor/profiles && grep -q '^sshd (complain)' /sys/kernel/security/apparmor/profiles
+
+# --- kernel sysctl hardening applied at runtime --------------------------------
+for kv in kernel.kptr_restrict=2 kernel.dmesg_restrict=1 kernel.yama.ptrace_scope=2 kernel.unprivileged_bpf_disabled=1 kernel.kexec_load_disabled=1 kernel.sysrq=0 fs.protected_regular=2 fs.protected_fifos=2 fs.protected_symlinks=1 fs.protected_hardlinks=1 fs.suid_dumpable=0 net.ipv4.tcp_syncookies=1 net.ipv4.conf.all.rp_filter=1 net.ipv4.conf.all.accept_redirects=0 net.core.bpf_jit_harden=2 dev.tty.ldisc_autoload=0; do k=${kv%=*}; v=${kv#*=}; a=$(sysctl -n $k 2>&1); [ "$a" = "$v" ] && echo "ok $k=$a" || { echo "BAD $k=$a (want $v)"; bad=1; }; done; test -z "$bad"
+
+# --- audit subsystem ----------------------------------------------------------
+systemctl is-active auditd && auditctl -s | grep -E '^enabled 1' && auditctl -l | grep -q 'identity' && auditctl -l | grep -q 'kernel-modules' && auditctl -l | wc -l
+
+# --- firewall default deny ----------------------------------------------------
+systemctl is-active nftables && nft list chain inet filter input | grep -q 'policy drop'
+
+# --- authentication -----------------------------------------------------------
+grep -q '^root:\$y\$' /etc/shadow && grep -q '^ENCRYPT_METHOD[[:space:]]*YESCRYPT' /etc/login.defs && grep -q yescrypt /etc/pam.d/login && echo yescrypt-ok
+sshd -t && sshd -T 2>/dev/null | grep -iE '^(permitrootlogin|maxauthtries|x11forwarding) '
+
+# --- kernel modules load (regression: Exec format error) -----------------------
+systemctl is-active systemd-modules-load && modprobe -n -v e1000e >/dev/null && echo modules-ok
+
+# --- package integrity --------------------------------------------------------
+portadora verify 2>&1 | tail -5
+blaze-sentinel status

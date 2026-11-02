@@ -26,14 +26,27 @@ provides = [
 
 [build]
 script = """
+# Fix upstream automake subdir-objects collision where auparse/Makefile.am
+# compiles ../lib/gen_flagtabs_h-gen_tables.o with ../auparse/flagtab.h,
+# clobbering lib/gen_flagtabs_h-gen_tables.o and breaking audit_name_to_flag("exit").
+cp lib/gen_tables.c lib/gen_tables.h auparse/
+sed -i 's|\\../lib/gen_tables\\.c|gen_tables.c|g; s|\\../lib/gen_tables\\.h|gen_tables.h|g' auparse/Makefile.am
+
 ./autogen.sh
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --sbindir=/usr/bin \
+            --runstatedir=/run \
             --disable-static \
             --without-python \
             --without-python3 \
             --without-golang
 make -j$(nproc)
 make DESTDIR="$DESTDIR" install
+# Fix augenrules blank line when no -e directive is present and PIDFile path
+sed -i 's|printf "%s\\\\n", minus_e;|if (minus_e != "") printf "%s\\\\n", minus_e;|' "$DESTDIR/usr/bin/augenrules"
+sed -i 's|/sbin/auditctl|/usr/bin/auditctl|g' "$DESTDIR/usr/bin/augenrules"
+if [ -f "$DESTDIR/usr/lib/systemd/system/auditd.service" ]; then
+    sed -i 's|PIDFile=/usr/var/run/auditd.pid|PIDFile=/run/auditd.pid|g' "$DESTDIR/usr/lib/systemd/system/auditd.service"
+fi
 """

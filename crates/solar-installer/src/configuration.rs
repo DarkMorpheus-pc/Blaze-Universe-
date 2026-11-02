@@ -167,7 +167,7 @@ fn configure_account(root: &Path, answers: &InstallAnswers, password: &[u8]) -> 
     payload.push(b'\n');
     let result = run_checked_with_input(
         &root.join("usr/bin/chpasswd"),
-        &["--root", root_s, "--crypt-method", "SHA512"],
+        &["--root", root_s, "--crypt-method", "YESCRYPT"],
         &payload,
     );
     payload.fill(0);
@@ -177,6 +177,7 @@ fn configure_account(root: &Path, answers: &InstallAnswers, password: &[u8]) -> 
     // ownership here rather than relying on tmpfiles during the first boot, so
     // the account is usable even in recovery mode before systemd finishes.
     let home = format!("{root_s}/home/{}", answers.username);
+    fs::set_permissions(&home, fs::Permissions::from_mode(0o750))?;
     run_checked(
         &root.join("usr/bin/chown"),
         &["--recursive", "--no-dereference", "1000:1000", &home],
@@ -244,7 +245,7 @@ fn configure_runtime_rules(root: &Path, answers: &InstallAnswers) -> Result<()> 
     let home = format!("/home/{username}");
     let tmpfiles = format!(
         "d /run/user/1000 0700 {username} blaze -\n\
-         Z {home} 0755 {username} blaze -\n\
+         Z {home} 0750 {username} blaze -\n\
          d {home}/.config 0755 {username} blaze -\n\
          d {home}/.local 0755 {username} blaze -\n\
          d {home}/.local/state 0755 {username} blaze -\n\

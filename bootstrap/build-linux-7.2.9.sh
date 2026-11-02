@@ -119,6 +119,33 @@ make x86_64_defconfig
 
 make olddefconfig
 
+# 3b. Merge Blaze config fragments (config/kernel/*.config, in name order) and
+#     verify that every requested option actually survived olddefconfig.
+FRAGMENTS=("${BLAZE_ROOT}"/config/kernel/*.config)
+if [ -e "${FRAGMENTS[0]}" ]; then
+    echo "[BUILD] Merging kernel config fragments: ${FRAGMENTS[*]##*/}"
+    ./scripts/kconfig/merge_config.sh -m .config "${FRAGMENTS[@]}"
+    make olddefconfig
+    missing=0
+    for HARDENING_FRAGMENT in "${FRAGMENTS[@]}"; do
+    while IFS= read -r line; do
+        case "$line" in
+            CONFIG_*=*) grep -qxF "$line" .config || { echo "[WARN] not applied: $line"; missing=1; } ;;
+            "# CONFIG_"*" is not set") grep -qxF "$line" .config || { echo "[WARN] not applied: $line"; missing=1; } ;;
+        esac
+    done < "${HARDENING_FRAGMENT}"
+    done
+    if [ "$missing" -ne 0 ] && [ "${BLAZE_KCONFIG_STRICT:-1}" = "1" ]; then
+        echo "[ERROR] Hardening fragment not fully applied (set BLAZE_KCONFIG_STRICT=0 to override)."
+        exit 1
+    fi
+fi
+
+if [ "${BLAZE_KCONFIG_ONLY:-0}" = "1" ]; then
+    echo "[BUILD] BLAZE_KCONFIG_ONLY=1 — configuration verified, stopping before compilation."
+    exit 0
+fi
+
 # 4. Compile bzImage and modules
 echo "[BUILD] Compiling bzImage & modules for ${KERNEL_VER} (Jobs: ${JOBS})..."
 make -j"${JOBS}" bzImage modules
@@ -160,6 +187,8 @@ cat << 'EOF_BERP' > "${INITRAMFS_WORK}/init.c"
 #include <sys/reboot.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <strings.h>
 #include <linux/loop.h>
 #include <errno.h>
 
@@ -174,6 +203,91 @@ static int check_cmdline_flag(const char *flag) {
         }
     }
     fclose(f);
+    return 0;
+}
+
+static int get_cmdline_param(const char *key, char *out, size_t out_len) {
+    FILE *f = fopen("/proc/cmdline", "r");
+    if (!f) return 0;
+    char buf[1024] = {0};
+    if (!fgets(buf, sizeof(buf), f)) {
+        fclose(f);
+        return 0;
+    }
+    fclose(f);
+    size_t klen = strlen(key);
+    char *tok = strtok(buf, " \t\r\n");
+    while (tok) {
+        if (strncmp(tok, key, klen) == 0 && tok[klen] == '=') {
+            snprintf(out, out_len, "%s", tok + klen + 1);
+            return 1;
+        }
+        tok = strtok(NULL, " \t\r\n");
+    }
+    return 0;
+}
+
+static int find_block_by_uevent(const char *key, const char *val, char *dev_out, size_t dev_out_len) {
+    DIR *d = opendir("/sys/class/block");
+    if (!d) return 0;
+    struct dirent *de;
+    size_t klen = strlen(key);
+    while ((de = readdir(d)) != NULL) {
+        if (de->d_name[0] == '.') continue;
+        char uevent_path[256];
+        snprintf(uevent_path, sizeof(uevent_path), "/sys/class/block/%s/uevent", de->d_name);
+        FILE *uf = fopen(uevent_path, "r");
+        if (!uf) continue;
+        char line[256];
+        char devname[128] = {0};
+        int matched = 0;
+        while (fgets(line, sizeof(line), uf)) {
+            line[strcspn(line, "\r\n")] = 0;
+            if (strncmp(line, "DEVNAME=", 8) == 0) {
+                snprintf(devname, sizeof(devname), "%s", line + 8);
+            } else if (strncmp(line, key, klen) == 0 && line[klen] == '=') {
+                if (strcasecmp(line + klen + 1, val) == 0) {
+                    matched = 1;
+                }
+            }
+        }
+        fclose(uf);
+        if (matched) {
+            snprintf(dev_out, dev_out_len, "/dev/%s", devname[0] ? devname : de->d_name);
+            struct stat st;
+            if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) {
+                closedir(d);
+                return 1;
+            }
+        }
+    }
+    closedir(d);
+    return 0;
+}
+
+static int resolve_root_device(const char *root_spec, char *dev_out, size_t dev_out_len) {
+    struct stat st;
+    if (!root_spec || !root_spec[0]) return 0;
+    if (strncmp(root_spec, "PARTUUID=", 9) == 0) {
+        const char *uuid = root_spec + 9;
+        snprintf(dev_out, dev_out_len, "/dev/disk/by-partuuid/%s", uuid);
+        if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) return 1;
+        if (find_block_by_uevent("PARTUUID", uuid, dev_out, dev_out_len)) return 1;
+    } else if (strncmp(root_spec, "PARTLABEL=", 10) == 0 || strncmp(root_spec, "LABEL=", 6) == 0) {
+        const char *label = strchr(root_spec, '=') + 1;
+        snprintf(dev_out, dev_out_len, "/dev/disk/by-partlabel/%s", label);
+        if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) return 1;
+        snprintf(dev_out, dev_out_len, "/dev/disk/by-label/%s", label);
+        if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) return 1;
+        if (find_block_by_uevent("PARTNAME", label, dev_out, dev_out_len)) return 1;
+    } else if (strncmp(root_spec, "UUID=", 5) == 0) {
+        const char *uuid = root_spec + 5;
+        snprintf(dev_out, dev_out_len, "/dev/disk/by-uuid/%s", uuid);
+        if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) return 1;
+    } else if (strncmp(root_spec, "/dev/", 5) == 0) {
+        snprintf(dev_out, dev_out_len, "%s", root_spec);
+        if (stat(dev_out, &st) == 0 && S_ISBLK(st.st_mode)) return 1;
+    }
     return 0;
 }
 
@@ -339,9 +453,24 @@ int main(int argc, char *argv[]) {
         NULL
     };
 
+    char cmdline_root[256] = {0};
+    char resolved_root[256] = {0};
+    get_cmdline_param("root", cmdline_root, sizeof(cmdline_root));
+    if (cmdline_root[0]) {
+        printf("[INIT] Kernel cmdline root=%s\n", cmdline_root);
+    }
+
     const char *root_dev = NULL;
     printf("[INIT] Waiting for root block device...\n");
     for (int retry = 0; retry < 50; retry++) {
+        if (cmdline_root[0] && resolve_root_device(cmdline_root, resolved_root, sizeof(resolved_root))) {
+            root_dev = resolved_root;
+            break;
+        }
+        if (find_block_by_uevent("PARTNAME", "blaze-root", resolved_root, sizeof(resolved_root))) {
+            root_dev = resolved_root;
+            break;
+        }
         for (int i = 0; candidates[i]; i++) {
             struct stat st;
             if (stat(candidates[i], &st) == 0 && S_ISBLK(st.st_mode)) {
@@ -411,7 +540,7 @@ cat << 'EOF_RECIPE' > "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml"
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 4
+release = 5
 architecture = "x86_64"
 summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
 license = "GPL-2.0-only"

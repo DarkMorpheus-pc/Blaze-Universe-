@@ -23,4 +23,7 @@ run_ldconfig = true
 [build]
 script = """
 cp -a "$CURRENT_DIR/build/file_work/dest/"* "$DESTDIR/"
+mkdir -p "$DESTDIR/usr/share/file/misc" "$DESTDIR/usr/share/misc"
+cp -L /usr/share/file/misc/magic.mgc "$DESTDIR/usr/share/file/misc/magic.mgc"
+ln -sf ../file/misc/magic.mgc "$DESTDIR/usr/share/misc/magic.mgc"
 """
