@@ -1073,6 +1073,10 @@ for core_bin in ["blaze-sentinel", "blaze-continuum", "portadora", "solar-instal
         shutil.copy2(src_core, dst_core)
         os.chmod(dst_core, 0o755)
 
+if os.path.exists("/usr/bin/kill"):
+    shutil.copy2("/usr/bin/kill", os.path.join(ROOTFS_DIR, "usr", "bin", "kill"))
+    os.chmod(os.path.join(ROOTFS_DIR, "usr", "bin", "kill"), 0o755)
+
 # Install brand interception library
 brand_so_src = os.path.join(solarui_src, "data", "libsolar_brand.so")
 if os.path.exists(brand_so_src):
@@ -1288,6 +1292,16 @@ usr_default_target = os.path.join(ROOTFS_DIR, "usr", "lib", "systemd", "system",
 if os.path.lexists(usr_default_target):
     os.unlink(usr_default_target)
 os.symlink("multi-user.target", usr_default_target)
+
+# Remove any stray Qt 6.12 files so all Qt6 SONAME symlinks point consistently to 6.11.2
+for stray_qt in glob.glob(os.path.join(ROOTFS_DIR, "usr", "lib", "libQt6*.6.12*")):
+    try:
+        os.unlink(stray_qt)
+    except OSError:
+        pass
+
+# Refresh SONAME symlinks and dynamic linker cache so highest library versions win
+subprocess.run(["/sbin/ldconfig", "-r", ROOTFS_DIR], check=False)
 
 # Reconcile & Unify Portadora SQLite database with all authentic .blz packages installed on disk
 if os.path.exists(db_file):
