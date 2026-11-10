@@ -6,11 +6,14 @@
 *Not a fork. Not a respin. Engineered from scratch with Rust, Wayland, and strict cryptographic integrity.*
 
 [![License: MIT/GPL](https://img.shields.io/badge/license-MIT%2FGPL-blue.svg)](LICENSE)
-[![Kernel: Linux 7.2.9](https://img.shields.io/badge/kernel-Linux%207.2.9-orange.svg)](https://kernel.org)
+[![Kernel: Linux 7.2.9](https://img.shields.io/badge/kernel-Linux%207.2.9%20(sched__ext%20%2B%20NTSYNC)-orange.svg)](https://kernel.org)
 [![Display: Wayland Niri](https://img.shields.io/badge/compositor-Niri%2026.04-green.svg)](https://github.com/YaLTeR/niri)
-[![Shell: SolarUI / Noctalia](https://img.shields.io/badge/shell-Noctalia%205.1.0%20%2B%20SolarUI-purple.svg)](#solar-shell--desktop-environment)
+[![Shell: SolarUI / Noctalia](https://img.shields.io/badge/shell-Noctalia%205.4.1%20%2B%20Caelestia%20%2B%20end4--pC-purple.svg)](#solar-shell--desktop-environment)
+[![Store: FireHub 1.9.0](https://img.shields.io/badge/store-FireHub%201.9.0%20(.blz%20%2B%20Flathub)-ff5722.svg)](USER_GUIDE.md)
 [![Package Manager: Portadora](https://img.shields.io/badge/package%20manager-Portadora%20(Rust)-red.svg)](#portadora-package-manager)
-[![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64--v2-yellow.svg)](#target-platform)
+[![Security: Blaze Sentinel](https://img.shields.io/badge/security-Blaze%20Sentinel%207%2F7%20(Lynis%2087)-brightgreen.svg)](USER_GUIDE.md)
+
+### 📖 **[🇹🇷 Resmi Türkçe Kullanım Kılavuzu (KULLANIM_KILAVUZU.md)](KULLANIM_KILAVUZU.md)** | **[🇬🇧 Official User Guide & Manual (USER_GUIDE.md)](USER_GUIDE.md)**
 
 </div>
 
@@ -112,11 +115,17 @@ cd Blaze-Universe-
 
 ## Desktop Shortcuts
 
+> For the complete shortcut reference, OmniBar power commands, FireHub store usage, and troubleshooting, see **[USER_GUIDE.md](USER_GUIDE.md)** / **[KULLANIM_KILAVUZU.md](KULLANIM_KILAVUZU.md)**.
+
 | Shortcut | Action |
 | :--- | :--- |
 | `Super + Return` | Open Alacritty Terminal |
-| `Super + D` / `Super + Space` | Toggle Application Launcher |
-| `Super + Shift + Q` | Close Active Window |
+| `Super + Space` / `Esc` | Toggle / Close **SolarUI OmniBar** (Apps, Math, Currency, Clipboard, Processes) |
+| `Super + D` | Toggle **Noctalia** Application Launcher |
+| `Super + H` | Open **FireHub 1.9.0** Universal App Store (Portadora `.blz` & Live Flathub) |
+| `Super + I` | Open **Solar System Settings** |
+| `Super + G` | Open **Solar GameZone** (Proton-GE & NTSYNC Manager) |
+| `Super + Q` / `Super + Shift + Q` | Close Active Window |
 | `Super + Left / Right` | Scroll Workspace Columns |
 | `Super + Shift + E` | Power Menu / Exit Session |
 
