@@ -8,7 +8,7 @@ BLAZE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK_DIR="${BLAZE_ROOT}/build/kernel_7.2.9_work"
 SOURCES_DIR="${BLAZE_ROOT}/build/sources"
 PKGS_DIR="${BLAZE_ROOT}/build/packages"
-BUILDER="${BLAZE_ROOT}/target/debug/blaze-builder"
+BUILDER="${BLAZE_ROOT}/target/release/blaze-builder"
 
 KERNEL_VER="7.2.9"
 KERNEL_TAR="linux-${KERNEL_VER}.tar.xz"
@@ -112,10 +112,10 @@ make x86_64_defconfig
 ./scripts/config --module CONFIG_IWLWIFI
 ./scripts/config --module CONFIG_DUMMY
 
-# Speed up compilation
-./scripts/config --disable CONFIG_DEBUG_INFO
-./scripts/config --disable CONFIG_DEBUG_INFO_BTF
-./scripts/config --disable CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+# Enable BTF & DWARF metadata required by sched_ext (CONFIG_SCHED_CLASS_EXT) and Continuum eBPF
+./scripts/config --enable CONFIG_DEBUG_INFO
+./scripts/config --enable CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+./scripts/config --enable CONFIG_DEBUG_INFO_BTF
 
 make olddefconfig
 
@@ -159,8 +159,8 @@ cp arch/x86/boot/bzImage "${KERNEL_DEST}/boot/vmlinuz-blaze-7.2.9"
 cp arch/x86/boot/bzImage "${KERNEL_DEST}/boot/vmlinuz-blaze"
 chmod 0755 "${KERNEL_DEST}/boot/vmlinuz-blaze-7.2.9" "${KERNEL_DEST}/boot/vmlinuz-blaze"
 
-# Install modules into DESTDIR
-make modules_install INSTALL_MOD_PATH="${KERNEL_DEST}/usr"
+# Install modules into DESTDIR (strip DWARF debug info while keeping BTF)
+make modules_install INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="${KERNEL_DEST}/usr"
 if [ -d "${KERNEL_DEST}/usr/lib/modules" ]; then
     depmod -b "${KERNEL_DEST}/usr" "${KERNEL_VER}" || true
 elif [ -d "${KERNEL_DEST}/lib/modules" ]; then
@@ -540,9 +540,9 @@ cat << 'EOF_RECIPE' > "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml"
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 5
+release = 6
 architecture = "x86_64"
-summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
+summary = "BlazeOS Linux 7.2.9 Flagship Kernel (sched_ext, NTSYNC, CRIU, KSPP Hardened)"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://kernel.org"
@@ -557,7 +557,7 @@ cp -a "$KERNEL_DEST_DIR/"* "$DESTDIR/"
 """
 EOF_RECIPE
 
-(cd "${BLAZE_ROOT}" && "${BUILDER}" "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml")
+(cd "${BLAZE_ROOT}" && "${BUILDER}" --allow-prebuilt "${BLAZE_ROOT}/recipes/core/linux-blaze/recipe.toml")
 
 echo "=== linux-blaze 7.2.9 Package Created Successfully ==="
 ls -lh "${PKGS_DIR}/linux-blaze"*

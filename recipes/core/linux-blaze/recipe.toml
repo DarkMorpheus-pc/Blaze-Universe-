@@ -1,9 +1,9 @@
 [package]
 name = "linux-blaze"
 version = "7.2.9"
-release = 5
+release = 6
 architecture = "x86_64"
-summary = "BlazeOS Linux 7.2.9 with security hardening and live ISO support"
+summary = "BlazeOS Linux 7.2.9 Flagship Kernel (sched_ext, NTSYNC, CRIU, KSPP Hardened)"
 license = "GPL-2.0-only"
 maintainer = "BlazeOS Core Team <core@blazeos.org>"
 url = "https://kernel.org"

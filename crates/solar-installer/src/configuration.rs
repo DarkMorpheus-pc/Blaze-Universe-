@@ -272,7 +272,22 @@ fn configure_runtime_rules(root: &Path, answers: &InstallAnswers) -> Result<()> 
     if configured == content && username != "blaze" {
         bail!("seatd service template did not contain the blaze user");
     }
-    atomic_write(&seatd, configured.as_bytes())
+    atomic_write(&seatd, configured.as_bytes())?;
+
+    // Replace Live-ISO passwordless sudo with password-authenticated sudo on installed disk
+    let sudoers_blaze = root.join("etc/sudoers.d/blaze");
+    let sudoers_policy = format!(
+        "# BlazeOS Installed System Sudo Policy (configured by solar-installer)\n\
+         Defaults passwd_timeout=5\n\
+         Defaults timestamp_timeout=15\n\
+         %wheel ALL=(ALL:ALL) ALL\n\
+         {username} ALL=(ALL:ALL) ALL\n\
+         {username} ALL=(root) NOPASSWD: /usr/bin/blaze-gamemode\n"
+    );
+    atomic_write(&sudoers_blaze, sudoers_policy.as_bytes())?;
+    fs::set_permissions(&sudoers_blaze, fs::Permissions::from_mode(0o440))?;
+
+    Ok(())
 }
 
 fn replace_symlink(path: &Path, target: &Path) -> Result<()> {
@@ -472,5 +487,26 @@ mod tests {
         assert!(validate_password(b"short").is_err());
         assert!(validate_password(b"password\nroot:hijack").is_err());
         assert!(validate_password(b"password:field").is_err());
+    }
+
+    #[test]
+    fn runtime_rules_replace_live_nopasswd_sudo_with_password_policy() {
+        let root = tempdir().unwrap();
+        let getty = root.path().join("etc/systemd/system/getty@tty1.service.d/autologin.conf");
+        let seatd = root.path().join("usr/lib/systemd/system/seatd.service");
+        let sudoers = root.path().join("etc/sudoers.d/blaze");
+        fs::create_dir_all(getty.parent().unwrap()).unwrap();
+        fs::create_dir_all(seatd.parent().unwrap()).unwrap();
+        fs::create_dir_all(sudoers.parent().unwrap()).unwrap();
+        fs::write(&getty, "ExecStart=-/sbin/agetty --autologin blaze --noclear %I $TERM\n").unwrap();
+        fs::write(&seatd, "ExecStart=/usr/bin/seatd -u blaze -g blaze\n").unwrap();
+        fs::write(&sudoers, "blaze ALL=(ALL) NOPASSWD: ALL\n").unwrap();
+
+        configure_runtime_rules(root.path(), &valid_answers()).unwrap();
+
+        let sudoers_text = fs::read_to_string(&sudoers).unwrap();
+        assert!(!sudoers_text.contains("NOPASSWD: ALL"));
+        assert!(sudoers_text.contains("morpheus ALL=(ALL:ALL) ALL"));
+        assert_eq!(fs::metadata(&sudoers).unwrap().permissions().mode() & 0o777, 0o440);
     }
 }

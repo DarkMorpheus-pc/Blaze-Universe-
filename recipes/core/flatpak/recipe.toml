@@ -1,0 +1,53 @@
+[package]
+name = "flatpak"
+version = "1.16.0"
+release = 1
+architecture = "x86_64"
+summary = "Linux application sandboxing and distribution framework (with Flathub integration)"
+license = "LGPL-2.1-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://flatpak.org"
+
+[dependencies]
+requires = ["glibc >= 2.44", "glib2 >= 2.82.0"]
+provides = ["flatpak = 1.16.0", "cmd:flatpak", "cmd:bwrap", "cmd:ostree"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin" "$DESTDIR/usr/lib" "$DESTDIR/usr/share/flatpak" "$DESTDIR/etc/profile.d"
+install -m 0755 /usr/bin/flatpak "$DESTDIR/usr/bin/flatpak"
+install -m 0755 /usr/bin/bwrap "$DESTDIR/usr/bin/bwrap"
+install -m 0755 /usr/bin/ostree "$DESTDIR/usr/bin/ostree"
+
+for helper in flatpak-session-helper flatpak-system-helper flatpak-portal flatpak-oci-authenticator flatpak-validate-icon; do
+    if [ -f "/usr/lib/$helper" ]; then
+        install -m 0755 "/usr/lib/$helper" "$DESTDIR/usr/lib/$helper"
+    fi
+done
+
+cp -a /usr/lib/libflatpak.so* "$DESTDIR/usr/lib/" 2>/dev/null || true
+for soname in \
+    libaccountsservice.so.1 \
+    libappstream.so.5 \
+    libarchive.so.13 \
+    libassuan.so.9 \
+    libavahi-glib.so.1 \
+    libcomposefs.so.1 \
+    libdconf.so.1 \
+    libfyaml.so.0 \
+    libgpgme.so.45 \
+    libmalcontent-0.so.0 \
+    libostree-1.so.1 \
+    libstemmer.so.0 \
+    libxmlb.so.2; do
+    if [ -e "/usr/lib/$soname" ]; then
+        cp -L "/usr/lib/$soname" "$DESTDIR/usr/lib/$soname"
+        chmod 0755 "$DESTDIR/usr/lib/$soname"
+    fi
+done
+
+cat > "$DESTDIR/etc/profile.d/flatpak.sh" << 'EOF'
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share"
+EOF
+chmod 0644 "$DESTDIR/etc/profile.d/flatpak.sh"
+"""

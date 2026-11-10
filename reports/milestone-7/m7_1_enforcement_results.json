@@ -47,14 +47,39 @@
       "output": "active\nmodules-ok"
     },
     {
+      "command": "test \"$(portadora list | wc -l)\" -ge 120 && portadora list | grep -q '^firehub 1.9.0-1$' && portadora list | grep -q '^flatpak 1.16.0-1$' && portadora list | grep -q '^linux-blaze 7.2.9-6$'",
+      "rc": 0,
+      "output": ""
+    },
+    {
       "command": "portadora verify 2>&1 | tail -5",
       "rc": 0,
-      "output": "Package verification completed with notices (0 unreadable privileged, 6 mutable config)."
+      "output": "Package verification completed with notices (0 unreadable privileged, 4 mutable config)."
     },
     {
       "command": "blaze-sentinel status",
       "rc": 0,
-      "output": "==================================================================\n   Blaze Sentinel ��� Security Posture (v0.3.0)\n==================================================================\n[PASS] Mandatory access control     AppArmor active (3 profiles)\n[INFO] Secure Boot                  legacy BIOS or EFI variables unavailable\n[PASS] Kernel lockdown              lockdown: integrity\n[PASS] Landlock sandboxing          enabled\n[PASS] Yama ptrace scope            enabled\n[FAIL] Firewall                     no active firewall service\n[PASS] Kernel hardening sysctls     all inspected values hardened\n[PASS] Audit daemon                 auditd running\n------------------------------------------------------------------\nScore: 6/7 controls passing"
+      "output": "==================================================================\n   Blaze Sentinel ��� Security Posture (v0.3.0)\n==================================================================\n[PASS] Mandatory access control     AppArmor active (3 profiles)\n[INFO] Secure Boot                  legacy BIOS or EFI variables unavailable\n[PASS] Kernel lockdown              lockdown: integrity\n[PASS] Landlock sandboxing          enabled\n[PASS] Yama ptrace scope            enabled\n[PASS] Firewall                     firewalld/nftables/ufw active\n[PASS] Kernel hardening sysctls     all inspected values hardened\n[PASS] Audit daemon                 auditd running\n------------------------------------------------------------------\nScore: 7/7 controls passing"
+    },
+    {
+      "command": "test -d /sys/kernel/sched_ext && test -e /dev/ntsync && test -e /proc/sys/kernel/ns_last_pid && echo flagship-kernel-ok",
+      "rc": 0,
+      "output": "flagship-kernel-ok"
+    },
+    {
+      "command": "blaze-continuum check | grep -q 'Linux sched_ext (eBPF Scheduler): ÇEKİRDEKTE AKTİF'",
+      "rc": 0,
+      "output": "thread 'main' (533) panicked at library/std/src/io/stdio.rs:1168:9:\nfailed printing to stdout: Broken pipe (os error 32)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "command": "blaze-gamemode status | grep -q 'ntsync=ready'",
+      "rc": 0,
+      "output": ""
+    },
+    {
+      "command": "flatpak --version && wl-copy --version && test -x /opt/FireHub/firehub && test -x /usr/bin/solar-installer-gui && echo flagship-apps-ok",
+      "rc": 0,
+      "output": "Flatpak 1.18.4\nwl-clipboard 2.3.0\nCopyright (C) 2018-2026 Sergey Bugaev\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nflagship-apps-ok"
     }
   ]
 }

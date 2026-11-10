@@ -292,6 +292,9 @@ AUTHENTIC_PKGS = [
     "jemalloc-5.3.0-1.x86_64.blz",
     "libimage-codecs-1.0.0-1.x86_64.blz",
     "libaudio-codecs-1.0.0-1.x86_64.blz",
+    "wl-clipboard-2.2.1-1.x86_64.blz",
+    "flatpak-1.16.0-1.x86_64.blz",
+    "firehub-1.9.0-1.x86_64.blz",
 ]
 
 for pkg_name in AUTHENTIC_PKGS:
@@ -340,7 +343,7 @@ for gfx_pkg in ["libdrm-dest", "vulkan-loader-dest"]:
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
 
 SESSION_WORK = os.path.join(BUILD_DIR, "m8_session_work")
-for sess_pkg in ["fcft-dest", "wlroots-dest"]:
+for sess_pkg in ["fcft-dest"]:
     pkg_root = os.path.join(SESSION_WORK, sess_pkg)
     if os.path.exists(pkg_root):
         subprocess.run(f"cp -rf '{pkg_root}'/* '{ROOTFS_DIR}/'", shell=True, check=False)
@@ -402,22 +405,14 @@ tmpfiles_dir = os.path.join(ROOTFS_DIR, "usr", "lib", "tmpfiles.d")
 os.makedirs(tmpfiles_dir, exist_ok=True)
 with open(os.path.join(tmpfiles_dir, "blaze-user.conf"), "w") as f:
     f.write("""d /run/user/1000 0700 blaze blaze -
-Z /home/blaze 0755 blaze blaze -
+Z /home/blaze 0750 blaze blaze -
 d /home/blaze/.config 0755 blaze blaze -
 d /home/blaze/.local 0755 blaze blaze -
 d /home/blaze/.local/state 0755 blaze blaze -
 d /home/blaze/.local/state/noctalia 0755 blaze blaze -
+d /home/blaze/.local/state/solar 0700 blaze blaze -
 d /home/blaze/.local/share 0755 blaze blaze -
 d /home/blaze/.cache 0755 blaze blaze -
-""")
-
-# Ensure clean fstab with hardened tmpfs partitions
-with open(os.path.join(etc_dir, "fstab"), "w") as f:
-    f.write("""# <file system> <mount point>   <type>  <options>       <dump>  <pass>
-LABEL=blaze-root   /               ext4    rw,relatime     0       1
-LABEL=BLAZE-EFI    /boot/efi       vfat    defaults,nofail,x-systemd.device-timeout=1s 0       2
-tmpfs              /tmp            tmpfs   defaults,nosuid,nodev,noexec,mode=1777 0       0
-tmpfs              /dev/shm        tmpfs   defaults,nosuid,nodev,noexec           0       0
 """)
 
 # Configure robust autologin on tty1 for blaze user
@@ -640,19 +635,21 @@ if os.path.exists("/usr/lib/locale/locale-archive"):
     os.makedirs(os.path.join(ROOTFS_DIR, "usr", "lib", "locale"), exist_ok=True)
     shutil.copy2("/usr/lib/locale/locale-archive", os.path.join(ROOTFS_DIR, "usr", "lib", "locale", "locale-archive"))
 
-# Populate /home/blaze .bash_profile for Wayland auto-launch
+# Populate /home/blaze .bash_profile for Wayland auto-launch with crash-loop protection
 bash_profile_path = os.path.join(ROOTFS_DIR, "home", "blaze", ".bash_profile")
 with open(bash_profile_path, "w") as f:
-    f.write("""# Blaze Universe SolarUI auto-launch with a safe text-console fallback.
+    f.write("""# Blaze Universe SolarUI auto-launch with crash-loop backoff & recovery fallback.
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export XCURSOR_THEME=Adwaita
 export XCURSOR_SIZE=24
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share"
 
 if [[ -z "$WAYLAND_DISPLAY" ]] && [[ "$(tty 2>/dev/null)" == "/dev/tty1" || "$(tty 2>/dev/null)" == "/dev/tty0" ]]; then
     export XDG_RUNTIME_DIR=/run/user/1000
-    mkdir -p /run/user/1000
-    chmod 0700 /run/user/1000
+    mkdir -p /run/user/1000 "$HOME/.local/state/solar"
+    chmod 0700 /run/user/1000 "$HOME/.local/state/solar"
+    ln -sf "$HOME/.local/state/solar/session.log" "$HOME/solar-session.log" 2>/dev/null || true
     if [[ ! -S /run/user/1000/bus ]]; then
         dbus-daemon --session --fork --address=unix:path=/run/user/1000/bus 2>/dev/null || true
     fi
@@ -671,27 +668,34 @@ if [[ -z "$WAYLAND_DISPLAY" ]] && [[ "$(tty 2>/dev/null)" == "/dev/tty1" || "$(t
     else
         export LIBSEAT_BACKEND=builtin
     fi
-    if compgen -G '/dev/dri/card[0-9]*' >/dev/null; then
-        export RUST_LOG=info
-        export RUST_BACKTRACE=1
-        if ! /usr/bin/solar-session 2>&1 | tee -a /dev/ttyS0 /home/blaze/solar-session.log; then
-            printf '\\nBlaze Universe graphical session could not start; continuing in the tty1 recovery shell.\\n'
-        fi
-    else
-        printf '\\nNo DRM device is available; continuing in the tty1 recovery shell.\\n'
-    fi
-    stty sane 2>/dev/null || true
-    while true; do
+
+    _blaze_crash_count=0
+    while [[ $_blaze_crash_count -lt 4 ]]; do
         if compgen -G '/dev/dri/card[0-9]*' >/dev/null; then
             export RUST_LOG=info
             export RUST_BACKTRACE=1
-            /usr/bin/solar-session 2>&1 | tee -a /dev/ttyS0 /home/blaze/solar-session.log
+            _start_ts=$(date +%s)
+            if /usr/bin/solar-session 2>&1 | tee -a /dev/ttyS0 "$HOME/.local/state/solar/session.log"; then
+                break
+            fi
+            _elapsed=$(( $(date +%s) - _start_ts ))
+            if [[ $_elapsed -gt 30 ]]; then
+                _blaze_crash_count=0
+            else
+                _blaze_crash_count=$(( _blaze_crash_count + 1 ))
+            fi
+            printf '\\n[Blaze Universe] SolarUI session exited unexpectedly (%d/4). Retrying in 2s...\\n' "$_blaze_crash_count"
+            sleep 2
         else
-            printf '\n[Blaze Universe] Waiting for DRM display device...\n'
-            sleep 1
+            printf '\\n[Blaze Universe] Waiting for DRM display device...\\n'
+            sleep 2
+            _blaze_crash_count=$(( _blaze_crash_count + 1 ))
         fi
-        sleep 1
     done
+    stty sane 2>/dev/null || true
+    if [[ $_blaze_crash_count -ge 4 ]]; then
+        printf '\\n[BERP] SolarUI session failed 4 times consecutively. Dropping to recovery shell (run blaze-recovery for diagnostics).\\n'
+    fi
 fi
 """)
 
@@ -1061,8 +1065,8 @@ if os.path.exists(solar_sentinel_daemon):
     shutil.copy2(solar_sentinel_daemon, dst_daemon)
     os.chmod(dst_daemon, 0o755)
 
-# Install fresh BlazeOS Core Rust binaries (blaze-sentinel, portadora, solar-installer)
-for core_bin in ["blaze-sentinel", "portadora", "solar-installer"]:
+# Install fresh BlazeOS Core Rust binaries (blaze-sentinel, blaze-continuum, portadora, solar-installer)
+for core_bin in ["blaze-sentinel", "blaze-continuum", "portadora", "solar-installer"]:
     src_core = os.path.join(BLAZE_ROOT, "target", "release", core_bin)
     dst_core = os.path.join(ROOTFS_DIR, "usr", "bin", core_bin)
     if os.path.exists(src_core):
@@ -1210,10 +1214,11 @@ umask 027
 PS1='[\\u@\\h \\W]\\$ '
 """)
 
-# Harden /etc/fstab with hidepid=2 on /proc and nosuid,nodev,noexec on /tmp and /dev/shm
+# Harden /etc/fstab with /boot/efi, hidepid=2 on /proc, and nosuid,nodev,noexec on /tmp and /dev/shm
 with open(os.path.join(etc_dir, "fstab"), "w") as f:
     f.write("""# /etc/fstab: static file system information for Blaze Universe
 PARTUUID=44444444-4444-4444-4444-444444444444 / ext4 defaults,acl 0 1
+LABEL=BLAZE-EFI /boot/efi vfat defaults,nofail,x-systemd.device-timeout=1s 0 2
 proc /proc proc defaults,hidepid=2 0 0
 tmpfs /tmp tmpfs defaults,nosuid,nodev,noexec,mode=1777 0 0
 tmpfs /dev/shm tmpfs defaults,nosuid,nodev,noexec 0 0
@@ -1284,22 +1289,161 @@ if os.path.lexists(usr_default_target):
     os.unlink(usr_default_target)
 os.symlink("multi-user.target", usr_default_target)
 
-# Reconcile Portadora SQLite database with upgraded authentic packages on disk
+# Reconcile & Unify Portadora SQLite database with all authentic .blz packages installed on disk
 if os.path.exists(db_file):
     import hashlib
+    import json
     import sqlite3
+    import tarfile
+    import time
+    import tomllib
+
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
+    now_ts = int(time.time())
+
+    # 1. Discover newest .blz archive for every package in build/packages/
+    pkgs_dir = os.path.join(BUILD_DIR, "packages")
+    newest_blz = {}
+    if os.path.isdir(pkgs_dir):
+        for fname in sorted(os.listdir(pkgs_dir)):
+            if not fname.endswith(".blz"):
+                continue
+            fpath = os.path.join(pkgs_dir, fname)
+            try:
+                with tarfile.open(fpath, "r:*") as tf:
+                    m_member = tf.extractfile("manifest.toml")
+                    f_member = tf.extractfile("files.json")
+                    if not m_member or not f_member:
+                        continue
+                    manifest = tomllib.loads(m_member.read().decode("utf-8"))
+                    files_list = json.loads(f_member.read().decode("utf-8"))
+                    pkg_info = manifest.get("package", {})
+                    pname = pkg_info.get("name")
+                    pver = str(pkg_info.get("version", "0"))
+                    prel = int(pkg_info.get("release", 1))
+                    if not pname:
+                        continue
+                    prev = newest_blz.get(pname)
+                    if prev is None or (pver, prel) >= (prev[0], prev[1]):
+                        newest_blz[pname] = (pver, prel, manifest, files_list)
+            except Exception:
+                continue
+
+    # 2. Register every package whose payload is present in ROOTFS_DIR
+    for pname, (pver, prel, manifest, files_list) in sorted(newest_blz.items()):
+        non_dir_files = [fe for fe in files_list if fe.get("type") != "dir"]
+        present_files = []
+        for fe in files_list:
+            rel_p = fe.get("path", "").lstrip("/")
+            if not rel_p:
+                continue
+            # Account for UsrMerge (/lib -> usr/lib, /usr/sbin -> usr/bin)
+            if rel_p.startswith("lib/"):
+                rel_p = "usr/" + rel_p
+            elif rel_p.startswith("usr/sbin/"):
+                rel_p = "usr/bin/" + rel_p[len("usr/sbin/"):]
+            abs_p = os.path.join(ROOTFS_DIR, rel_p)
+            if os.path.lexists(abs_p):
+                fe_copy = dict(fe)
+                fe_copy["path"] = rel_p
+                present_files.append(fe_copy)
+
+        if non_dir_files and not any(fe.get("type") != "dir" for fe in present_files):
+            continue
+
+        pkg_meta = manifest.get("package", {})
+        deps_meta = manifest.get("dependencies", {})
+
+        cur.execute("SELECT id FROM packages WHERE name = ?", (pname,))
+        row = cur.fetchone()
+        if row:
+            pkg_id = row[0]
+            cur.execute(
+                """UPDATE packages SET version=?, release=?, architecture=?, summary=?,
+                   description=?, license=?, installed_size=?, install_time=? WHERE id=?""",
+                (
+                    pver,
+                    prel,
+                    pkg_meta.get("architecture", "x86_64"),
+                    pkg_meta.get("summary", ""),
+                    pkg_meta.get("description", ""),
+                    pkg_meta.get("license", ""),
+                    int(pkg_meta.get("installed_size", 0)),
+                    now_ts,
+                    pkg_id,
+                ),
+            )
+            cur.execute("DELETE FROM package_provides WHERE package_id = ?", (pkg_id,))
+            cur.execute("DELETE FROM package_dependencies WHERE package_id = ?", (pkg_id,))
+        else:
+            cur.execute(
+                """INSERT INTO packages (name, version, release, architecture, summary, description, license, installed_size, install_time)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    pname,
+                    pver,
+                    prel,
+                    pkg_meta.get("architecture", "x86_64"),
+                    pkg_meta.get("summary", ""),
+                    pkg_meta.get("description", ""),
+                    pkg_meta.get("license", ""),
+                    int(pkg_meta.get("installed_size", 0)),
+                    now_ts,
+                ),
+            )
+            pkg_id = cur.lastrowid
+            cur.execute(
+                """INSERT INTO transaction_history (tx_id, action, package_name, version, release, timestamp, status)
+                   VALUES (?, 'INSTALL', ?, ?, ?, ?, 'SUCCESS')""",
+                (f"tx-bootstrap-{pname}", pname, pver, prel, now_ts),
+            )
+
+        for prov in deps_meta.get("provides", []):
+            cur.execute("INSERT INTO package_provides (package_id, capability) VALUES (?, ?)", (pkg_id, prov))
+        for req in deps_meta.get("requires", []):
+            cur.execute("INSERT INTO package_dependencies (package_id, requirement) VALUES (?, ?)", (pkg_id, req))
+
+        for fe in present_files:
+            rel_p = fe["path"]
+            ftype = fe.get("type", "file")
+            cur.execute(
+                """INSERT INTO package_files (package_id, path, file_type, mode, size, sha256, symlink_target)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(path) DO UPDATE SET
+                       package_id=excluded.package_id,
+                       file_type=excluded.file_type,
+                       mode=excluded.mode,
+                       size=excluded.size,
+                       sha256=excluded.sha256,
+                       symlink_target=excluded.symlink_target""",
+                (
+                    pkg_id,
+                    rel_p,
+                    ftype,
+                    str(fe.get("mode", "0755")),
+                    int(fe.get("size", 0)),
+                    fe.get("sha256"),
+                    fe.get("symlink_target"),
+                ),
+            )
+
+    # 3. Reconcile all tracked package_files with actual live disk state (SHA-256, size, mode, symlink_target)
     cur.execute("SELECT id, path, file_type FROM package_files")
     for row_id, rel_path, ftype in cur.fetchall():
         clean_p = rel_path.lstrip("/")
         abs_p = os.path.join(ROOTFS_DIR, clean_p)
         if not os.path.lexists(abs_p):
+            cur.execute("DELETE FROM package_files WHERE id = ?", (row_id,))
             continue
-        if ftype == "symlink" and os.path.islink(abs_p):
+        if os.path.islink(abs_p):
             target = os.readlink(abs_p)
-            cur.execute("UPDATE package_files SET symlink_target = ? WHERE id = ?", (target, row_id))
-        elif ftype == "file" and os.path.isfile(abs_p) and not os.path.islink(abs_p):
+            cur.execute("UPDATE package_files SET file_type = 'symlink', symlink_target = ?, sha256 = NULL WHERE id = ?", (target, row_id))
+        elif os.path.isdir(abs_p):
+            st = os.stat(abs_p)
+            mode_str = f"{st.st_mode & 0o7777:04o}"
+            cur.execute("UPDATE package_files SET file_type = 'dir', mode = ?, sha256 = NULL, symlink_target = NULL WHERE id = ?", (mode_str, row_id))
+        elif os.path.isfile(abs_p):
             h = hashlib.sha256()
             with open(abs_p, "rb") as rf:
                 while True:
@@ -1309,7 +1453,7 @@ if os.path.exists(db_file):
                     h.update(chunk)
             st = os.stat(abs_p)
             mode_str = f"{st.st_mode & 0o7777:04o}"
-            cur.execute("UPDATE package_files SET sha256 = ?, size = ?, mode = ? WHERE id = ?",
+            cur.execute("UPDATE package_files SET file_type = 'file', sha256 = ?, size = ?, mode = ?, symlink_target = NULL WHERE id = ?",
                         (h.hexdigest(), st.st_size, mode_str, row_id))
     conn.commit()
     conn.close()

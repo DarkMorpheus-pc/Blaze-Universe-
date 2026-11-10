@@ -60,6 +60,10 @@ enum Commands {
         /// Optional repository URL override
         #[arg(long)]
         repo_url: Option<String>,
+
+        /// Allow overwriting conflicting files owned by other packages
+        #[arg(short, long)]
+        force: bool,
     },
 
     /// Upgrade installed packages to latest repository versions
@@ -402,7 +406,7 @@ fn main() -> Result<()> {
             bail!("Package '{}' not found in database or repository.", target);
         }
 
-        Commands::Install { packages, repo_url } => {
+        Commands::Install { packages, repo_url, force } => {
             let mut db = Database::open_or_create(&db_path)?;
             let url = get_repo_url(&root, repo_url.as_deref());
 
@@ -443,7 +447,7 @@ fn main() -> Result<()> {
 
             if !local_pkgs.is_empty() {
                 for pkg_path in local_pkgs {
-                    install_local_package(&root, &mut db, &pkg_path, cli.verbose)?;
+                    install_local_package(&root, &mut db, &pkg_path, force, cli.verbose)?;
                 }
             }
 
@@ -632,7 +636,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn install_local_package(root: &Path, db: &mut Database, pkg_path: &Path, verbose: bool) -> Result<()> {
+fn install_local_package(root: &Path, db: &mut Database, pkg_path: &Path, force: bool, verbose: bool) -> Result<()> {
     let reader = BlzReader::open(pkg_path)
         .with_context(|| format!("Failed to open package: {}", pkg_path.display()))?;
 
@@ -644,13 +648,15 @@ fn install_local_package(root: &Path, db: &mut Database, pkg_path: &Path, verbos
         manifest.package.name, manifest.package.version, manifest.package.release, manifest.package.architecture
     );
 
-    db.check_conflicts(&manifest.package.name, &files)?;
+    if !force {
+        db.check_conflicts(&manifest.package.name, &files)?;
+    }
 
     // Extract payload safely into rootfs
     reader.extract_payload(root)?;
 
     // Atomically commit to database
-    db.record_installed(&manifest, &files, root)?;
+    db.record_installed_opts(&manifest, &files, root, force)?;
 
     let tx_id = format!("tx-local-{}", chrono::Utc::now().timestamp_millis());
     let _ = db.record_history(

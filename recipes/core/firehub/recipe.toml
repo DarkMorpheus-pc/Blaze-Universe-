@@ -1,0 +1,77 @@
+[package]
+name = "firehub"
+version = "1.9.0"
+release = 1
+architecture = "x86_64"
+summary = "FireHub Material 3 Expressive Universal App Store for BlazeOS (Portadora .blz & Flathub)"
+license = "GPL-3.0-only"
+maintainer = "DarkMorpheus (Bulut Ars. E.) <Bfiremorpheus@protonmail.com>"
+url = "https://github.com/DarkMorpheus-pc/Blaze-Fire-Hub"
+
+[dependencies]
+requires = ["glibc >= 2.44", "gtk3 >= 3.24.0", "flatpak >= 1.16.0"]
+provides = ["firehub = 1.9.0", "cmd:firehub"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/opt/FireHub" "$DESTDIR/usr/bin" "$DESTDIR/usr/share/applications" "$DESTDIR/usr/share/pixmaps"
+cp -a /home/darkmorpheus/BlazeFedora/blazeos_custom_apps/opt/FireHub/. "$DESTDIR/opt/FireHub/"
+cp -f /tmp/firehub-new-app.asar "$DESTDIR/opt/FireHub/resources/app.asar"
+cp -f /home/darkmorpheus/BlazeFedora/blazeos_custom_apps/opt/FireHub/resources/icon.png "$DESTDIR/usr/share/pixmaps/firehub.png"
+
+cat > "$DESTDIR/usr/bin/firehub" << 'EOF'
+#!/bin/bash
+# ==============================================================================
+# FireHub Wayland-Native Launcher Wrapper for BlazeOS Native
+# Ensures proper Wayland Ozone backend, sandbox flags, and GPU stability.
+# ==============================================================================
+
+FIREHUB_BIN="/opt/FireHub/firehub"
+
+if [ ! -x "$FIREHUB_BIN" ]; then
+    echo "Hata: FireHub ikilisi bulunamadı: $FIREHUB_BIN" >&2
+    exit 1
+fi
+
+FLAGS=()
+
+# 1. Wayland detection: enable Ozone native Wayland backend
+if [ -n "${WAYLAND_DISPLAY:-}" ] || [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    FLAGS+=(
+        "--ozone-platform-hint=auto"
+        "--enable-features=WaylandWindowDecorations"
+    )
+fi
+
+# 2. Virtual machine / software rendering / QEMU / KVM GPU safety
+if [ ! -e /dev/dri/renderD128 ] || grep -qiE "qemu|kvm|virtualbox|vmware" /sys/class/dmi/id/product_name 2>/dev/null; then
+    FLAGS+=(
+        "--disable-gpu-sandbox"
+    )
+fi
+
+# 3. Sandbox handling for unprivileged environments, root, or Blaze Sentinel hardened userns
+if [ "$(id -u)" -eq 0 ] || [ "$(cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null)" = "0" ] || [ ! -u "/opt/FireHub/chrome-sandbox" ]; then
+    FLAGS+=(
+        "--no-sandbox"
+    )
+fi
+
+exec "$FIREHUB_BIN" "${FLAGS[@]}" "$@"
+EOF
+chmod 0755 "$DESTDIR/usr/bin/firehub"
+
+cat > "$DESTDIR/usr/share/applications/firehub.desktop" << 'EOF'
+[Desktop Entry]
+Name=FireHub Mağaza
+Comment=BlazeOS Uygulama Mağazası (Portadora .blz & Flathub)
+Exec=/usr/bin/firehub %U
+Terminal=false
+Type=Application
+Icon=firehub
+StartupWMClass=FireHub
+Categories=System;PackageManager; Settings;
+Keywords=store;app;flatpak;portadora;blz;firehub;mağaza;
+EOF
+chmod 0644 "$DESTDIR/usr/share/applications/firehub.desktop"
+"""

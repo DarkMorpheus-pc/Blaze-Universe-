@@ -29,6 +29,13 @@ sshd -t && sshd -T 2>/dev/null | grep -iE '^(permitrootlogin|maxauthtries|x11for
 # --- kernel modules load (regression: Exec format error) -----------------------
 systemctl is-active systemd-modules-load && modprobe -n -v e1000e >/dev/null && echo modules-ok
 
-# --- package integrity --------------------------------------------------------
+# --- package integrity & unified database (120+ packages) ----------------------
+test "$(portadora list | wc -l)" -ge 120 && portadora list | grep -q '^firehub 1.9.0-1$' && portadora list | grep -q '^flatpak 1.16.0-1$' && portadora list | grep -q '^linux-blaze 7.2.9-6$'
 portadora verify 2>&1 | tail -5
 blaze-sentinel status
+
+# --- Flagship Kernel 7.2.9 (sched_ext, NTSYNC, CRIU, BTF) & Desktop Stack ------
+test -d /sys/kernel/sched_ext && test -e /dev/ntsync && test -e /proc/sys/kernel/ns_last_pid && echo flagship-kernel-ok
+blaze-continuum check | grep -q 'Linux sched_ext (eBPF Scheduler): ÇEKİRDEKTE AKTİF'
+blaze-gamemode status | grep -q 'ntsync=ready'
+flatpak --version && wl-copy --version && test -x /opt/FireHub/firehub && test -x /usr/bin/solar-installer-gui && echo flagship-apps-ok

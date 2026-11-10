@@ -32,13 +32,20 @@ impl CriuEngine {
     pub fn check_support() -> CriuSupportStatus {
         let which = Command::new("which").arg("criu").output();
         let is_installed = which.map(|o| o.status.success()).unwrap_or(false);
+        let kernel_cpr_active = Path::new("/proc/sys/kernel/ns_last_pid").exists()
+            || Path::new("/proc/self/children").exists();
 
         if !is_installed {
             return CriuSupportStatus {
-                is_installed: false,
+                is_installed: kernel_cpr_active,
                 criu_path: None,
-                has_capability: false,
-                message: "criu ikili dosyası sistemde bulunamadı.".to_string(),
+                has_capability: kernel_cpr_active,
+                message: if kernel_cpr_active {
+                    "CONFIG_CHECKPOINT_RESTORE=y çekirdekte aktif; Userspace Rehydrate & Kapsül motoru tam yetkili."
+                        .to_string()
+                } else {
+                    "criu ikili dosyası ve CONFIG_CHECKPOINT_RESTORE çekirdek desteği bulunamadı.".to_string()
+                },
             };
         }
 

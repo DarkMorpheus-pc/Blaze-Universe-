@@ -198,10 +198,22 @@ impl Database {
         &mut self,
         manifest: &Manifest,
         files: &[FileEntry],
-        _root_path: &Path,
+        root_path: &Path,
     ) -> Result<()> {
-        // Enforce ownership conflict checking before writing
-        self.check_conflicts(&manifest.package.name, files)?;
+        self.record_installed_opts(manifest, files, root_path, false)
+    }
+
+    pub fn record_installed_opts(
+        &mut self,
+        manifest: &Manifest,
+        files: &[FileEntry],
+        _root_path: &Path,
+        force_overwrite: bool,
+    ) -> Result<()> {
+        // Enforce ownership conflict checking before writing unless force_overwrite is enabled
+        if !force_overwrite {
+            self.check_conflicts(&manifest.package.name, files)?;
+        }
 
         let tx = self.conn.transaction()?;
 

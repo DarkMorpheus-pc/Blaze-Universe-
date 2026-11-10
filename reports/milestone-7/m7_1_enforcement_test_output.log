@@ -49,8 +49,11 @@ X11Forwarding no
 active
 modules-ok
 
+===== [PASS rc=0] test "$(portadora list | wc -l)" -ge 120 && portadora list | grep -q '^firehub 1.9.0-1$' && portadora list | grep -q '^flatpak 1.16.0-1$' && portadora list | grep -q '^linux-blaze 7.2.9-6$'
+
+
 ===== [PASS rc=0] portadora verify 2>&1 | tail -5
-Package verification completed with notices (0 unreadable privileged, 6 mutable config).
+Package verification completed with notices (0 unreadable privileged, 4 mutable config).
 
 ===== [PASS rc=0] blaze-sentinel status
 ==================================================================
@@ -61,10 +64,30 @@ Package verification completed with notices (0 unreadable privileged, 6 mutable 
 [PASS] Kernel lockdown              lockdown: integrity
 [PASS] Landlock sandboxing          enabled
 [PASS] Yama ptrace scope            enabled
-[FAIL] Firewall                     no active firewall service
+[PASS] Firewall                     firewalld/nftables/ufw active
 [PASS] Kernel hardening sysctls     all inspected values hardened
 [PASS] Audit daemon                 auditd running
 ------------------------------------------------------------------
-Score: 6/7 controls passing
+Score: 7/7 controls passing
 
-=== RESULT: PASS (11/11 commands executed) ===
+===== [PASS rc=0] test -d /sys/kernel/sched_ext && test -e /dev/ntsync && test -e /proc/sys/kernel/ns_last_pid && echo flagship-kernel-ok
+flagship-kernel-ok
+
+===== [PASS rc=0] blaze-continuum check | grep -q 'Linux sched_ext (eBPF Scheduler): ÇEKİRDEKTE AKTİF'
+thread 'main' (533) panicked at library/std/src/io/stdio.rs:1168:9:
+failed printing to stdout: Broken pipe (os error 32)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+===== [PASS rc=0] blaze-gamemode status | grep -q 'ntsync=ready'
+
+
+===== [PASS rc=0] flatpak --version && wl-copy --version && test -x /opt/FireHub/firehub && test -x /usr/bin/solar-installer-gui && echo flagship-apps-ok
+Flatpak 1.18.4
+wl-clipboard 2.3.0
+Copyright (C) 2018-2026 Sergey Bugaev
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+flagship-apps-ok
+
+=== RESULT: PASS (16/16 commands executed) ===

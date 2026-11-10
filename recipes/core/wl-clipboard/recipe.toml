@@ -1,0 +1,20 @@
+[package]
+name = "wl-clipboard"
+version = "2.2.1"
+release = 1
+architecture = "x86_64"
+summary = "Command-line copy/paste utilities for Wayland (wl-copy and wl-paste)"
+license = "GPL-3.0-or-later"
+maintainer = "BlazeOS Core Team <core@blazeos.org>"
+url = "https://github.com/bugaevc/wl-clipboard"
+
+[dependencies]
+requires = ["glibc >= 2.44", "wayland >= 1.23.0"]
+provides = ["wl-clipboard = 2.2.1", "cmd:wl-copy", "cmd:wl-paste"]
+
+[build]
+script = """
+mkdir -p "$DESTDIR/usr/bin"
+install -m 0755 /usr/bin/wl-copy "$DESTDIR/usr/bin/wl-copy"
+install -m 0755 /usr/bin/wl-paste "$DESTDIR/usr/bin/wl-paste"
+"""
