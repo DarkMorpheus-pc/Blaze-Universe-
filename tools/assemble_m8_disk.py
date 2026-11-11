@@ -2,6 +2,7 @@
 # ==============================================================================
 # Blaze Universe — Milestone 8 Phase B.1 Disk Image Assembler
 # ==============================================================================
+import glob
 import os
 import shutil
 import subprocess
@@ -986,14 +987,15 @@ host_noctalia_cfg = "/home/darkmorpheus/.config/noctalia"
 if os.path.exists(host_noctalia_cfg):
     shutil.copytree(host_noctalia_cfg, os.path.join(blaze_cfg, "noctalia"), dirs_exist_ok=True)
 
-# Install Alacritty config for blaze
+# Install Alacritty config for blaze (ColorOS 17 Living Flow frameless dark terminal)
 blaze_alacritty = os.path.join(blaze_cfg, "alacritty")
 os.makedirs(blaze_alacritty, exist_ok=True)
 with open(os.path.join(blaze_alacritty, "alacritty.toml"), "w") as f:
     f.write("""[window]
-padding = { x = 14, y = 14 }
-decorations = "full"
-opacity = 0.95
+padding = { x = 16, y = 16 }
+decorations = "none"
+decorations_theme_variant = "Dark"
+opacity = 0.94
 
 [font]
 size = 11.5
@@ -1011,33 +1013,55 @@ family = "CaskaydiaCove Nerd Font"
 style = "Italic"
 
 [colors.primary]
-background = "#181825"
-foreground = "#cdd6f4"
+background = "#0b0f1a"
+foreground = "#e2e8f0"
 
 [colors.cursor]
-text = "#11111b"
-cursor = "#f5e0dc"
+text = "#0b0f1a"
+cursor = "#38bdf8"
 
 [colors.normal]
-black   = "#45475a"
-red     = "#f38ba8"
-green   = "#a6e3a1"
-yellow  = "#f9e2af"
-blue    = "#89b4fa"
-magenta = "#f5c2e7"
-cyan    = "#94e2d5"
-white   = "#bac2de"
+black   = "#1e293b"
+red     = "#f87171"
+green   = "#34d399"
+yellow  = "#fbbf24"
+blue    = "#38bdf8"
+magenta = "#c084fc"
+cyan    = "#2dd4bf"
+white   = "#cbd5e1"
 
 [colors.bright]
-black   = "#585b70"
-red     = "#f38ba8"
-green   = "#a6e3a1"
-yellow  = "#f9e2af"
-blue    = "#89b4fa"
-magenta = "#f5c2e7"
-cyan    = "#94e2d5"
-white   = "#a6adc8"
+black   = "#475569"
+red     = "#fca5a5"
+green   = "#6ee7b7"
+yellow  = "#fde68a"
+blue    = "#7dd3fc"
+magenta = "#d8b4fe"
+cyan    = "#5eead4"
+white   = "#f8fafc"
 """)
+
+# Enforce global dark mode & hicolor Living Flow icon resolution for GTK3, GTK4 & XDG
+gtk_settings_ini = """[Settings]
+gtk-application-prefer-dark-theme=1
+gtk-theme-name=Adwaita-dark
+gtk-icon-theme-name=hicolor
+gtk-font-name=Sans 10.5
+"""
+for gtk_dir in [
+    os.path.join(ROOTFS_DIR, "etc", "gtk-4.0"),
+    os.path.join(ROOTFS_DIR, "etc", "gtk-3.0"),
+    os.path.join(blaze_cfg, "gtk-4.0"),
+    os.path.join(blaze_cfg, "gtk-3.0"),
+]:
+    os.makedirs(gtk_dir, exist_ok=True)
+    with open(os.path.join(gtk_dir, "settings.ini"), "w") as gf:
+        gf.write(gtk_settings_ini)
+
+default_icon_dir = os.path.join(ROOTFS_DIR, "usr", "share", "icons", "default")
+os.makedirs(default_icon_dir, exist_ok=True)
+with open(os.path.join(default_icon_dir, "index.theme"), "w") as itf:
+    itf.write("[Icon Theme]\nName=Default\nComment=Blaze Universe Living Flow Icons\nInherits=hicolor\n")
 
 # Install Niri & SolarUI configs in all standard locations
 blaze_niri_dir = os.path.join(ROOTFS_DIR, "home", "blaze", ".config", "niri")
@@ -1093,7 +1117,33 @@ if os.path.exists(niri_kdl):
     shutil.copy2(niri_kdl, os.path.join(etc_solar_dir, "niri.kdl"))
     shutil.copy2(niri_kdl, os.path.join(usr_solar_dir, "niri.kdl"))
 
-# Install Desktop Applications (.desktop files) for Noctalia and launcher search index
+# Install Fastfetch Blaze Universe Logo & Configuration (Zero Arch fallback)
+ff_src_dir = os.path.join(solarui_src, "data", "fastfetch")
+ff_logo_src = os.path.join(ff_src_dir, "blaze-logo.txt")
+ff_cfg_src = os.path.join(ff_src_dir, "config.jsonc")
+if os.path.exists(ff_logo_src):
+    blaze_share_dir = os.path.join(ROOTFS_DIR, "usr", "share", "blazeos")
+    os.makedirs(blaze_share_dir, exist_ok=True)
+    shutil.copy2(ff_logo_src, os.path.join(blaze_share_dir, "ascii-logo.txt"))
+if os.path.exists(ff_cfg_src):
+    for ff_dst_dir in [
+        os.path.join(ROOTFS_DIR, "etc", "fastfetch"),
+        os.path.join(ROOTFS_DIR, "etc", "xdg", "fastfetch"),
+        os.path.join(blaze_cfg, "fastfetch"),
+        os.path.join(ROOTFS_DIR, "root", ".config", "fastfetch"),
+    ]:
+        os.makedirs(ff_dst_dir, exist_ok=True)
+        shutil.copy2(ff_cfg_src, os.path.join(ff_dst_dir, "config.jsonc"))
+    ff_preset_dir = os.path.join(ROOTFS_DIR, "usr", "share", "fastfetch", "presets")
+    os.makedirs(ff_preset_dir, exist_ok=True)
+    shutil.copy2(ff_cfg_src, os.path.join(ff_preset_dir, "default.jsonc"))
+
+# Generate & install ColorOS 17 Living Flow Squircle Icons across hicolor + pixmaps
+icon_gen_script = os.path.join(BLAZE_ROOT, "tools", "generate_living_flow_icons.py")
+if os.path.exists(icon_gen_script):
+    subprocess.run(["python3", icon_gen_script], check=True)
+
+# Install Desktop Applications (.desktop files) for Noctalia, Caelestia and OmniBar
 apps_dir = os.path.join(ROOTFS_DIR, "usr", "share", "applications")
 os.makedirs(apps_dir, exist_ok=True)
 
@@ -1107,6 +1157,34 @@ welcome_desktop = os.path.join(solarui_src, "data", "solar-welcome.desktop")
 if os.path.exists(welcome_desktop):
     shutil.copy2(welcome_desktop, os.path.join(apps_dir, "solar-welcome.desktop"))
 
+# BlazeOS Sistem Kurucusu (Solar Installer)
+with open(os.path.join(apps_dir, "solar-installer.desktop"), "w") as f:
+    f.write("""[Desktop Entry]
+Type=Application
+Name=BlazeOS Sistem Kurucusu (Solar Installer)
+Comment=BlazeOS Native işletim sistemini diske kurun
+Exec=/usr/bin/solar-shell installer
+Icon=solar-installer
+Terminal=false
+Categories=System;
+StartupNotify=true
+StartupWMClass=solar-installer-gui
+""")
+
+# Solar GameZone
+with open(os.path.join(apps_dir, "solar-gamezone.desktop"), "w") as f:
+    f.write("""[Desktop Entry]
+Type=Application
+Name=Solar GameZone
+Comment=BlazeOS Oyun Performans Merkezi, Proton-GE ve NTSYNC Yöneticisi
+Exec=/usr/bin/solar-shell gamezone
+Icon=solar-gamezone
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
+StartupWMClass=solar-gamezone
+""")
+
 # Alacritty Terminal
 with open(os.path.join(apps_dir, "alacritty.desktop"), "w") as f:
     f.write("""[Desktop Entry]
@@ -1115,7 +1193,7 @@ Name=Alacritty
 GenericName=Terminal Emulator
 Comment=A fast, cross-platform, OpenGL terminal emulator
 Exec=alacritty
-Icon=utilities-terminal
+Icon=alacritty
 Terminal=false
 Categories=System;TerminalEmulator;
 Keywords=terminal;shell;prompt;command;
@@ -1518,17 +1596,17 @@ subprocess.run(f"chown -R 1000:1000 '{ROOTFS_DIR}/home/blaze'", shell=True, chec
 subprocess.run(f"chmod 0750 '{ROOTFS_DIR}/home/blaze'", shell=True, check=False)
 subprocess.run(f"fc-cache -fv '{ROOTFS_DIR}/usr/share/fonts'", shell=True, check=False)
 
-# 5.16. Write Blaze Universe OS Release & Legal Issue Branding
+# 5.16. Write Blaze Universe OS Release & Legal Issue Branding (Independent Native Base — Zero Arch ID_LIKE)
 os_release_content = """NAME="Blaze Universe"
-PRETTY_NAME="Blaze Universe"
-ID=blaze
-ID_LIKE=arch
+PRETTY_NAME="Blaze Universe 1.0 (Living Flow)"
+ID=blazeos
 VERSION_ID="1.0"
-BUILD_ID=rolling
-ANSI_COLOR="1;31"
-HOME_URL="https://blazeos.org"
-SUPPORT_URL="https://blazeos.org/support"
-BUG_REPORT_URL="https://github.com/DarkMorpheus-pc/Blaze-Universe-"
+BUILD_ID=living-flow
+ANSI_COLOR="38;2;249;115;22"
+LOGO=blazeos
+HOME_URL="https://github.com/DarkMorpheus-pc/Blaze-Universe-"
+SUPPORT_URL="https://github.com/DarkMorpheus-pc/Blaze-Universe-/issues"
+BUG_REPORT_URL="https://github.com/DarkMorpheus-pc/Blaze-Universe-/issues"
 """
 with open(os.path.join(etc_dir, "os-release"), "w") as f:
     f.write(os_release_content)
