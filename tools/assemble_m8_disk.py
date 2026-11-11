@@ -1152,7 +1152,7 @@ for gtk_dir in [
 default_icon_dir = os.path.join(ROOTFS_DIR, "usr", "share", "icons", "default")
 os.makedirs(default_icon_dir, exist_ok=True)
 with open(os.path.join(default_icon_dir, "index.theme"), "w") as itf:
-    itf.write("[Icon Theme]\nName=Default\nComment=Blaze Universe Living Flow Icons\nInherits=hicolor\n")
+    itf.write("[Icon Theme]\nName=Default\nComment=Blaze Universe Icons\nInherits=hicolor\n")
 
 # Install Niri & SolarUI configs in all standard locations
 blaze_niri_dir = os.path.join(ROOTFS_DIR, "home", "blaze", ".config", "niri")
@@ -1212,6 +1212,12 @@ if os.path.exists("/usr/bin/ffmpeg"):
                     shutil.copy2(real_src, real_dst)
                     if os.path.basename(real_src) != os.path.basename(lib_src) and not os.path.lexists(lib_dst):
                         os.symlink(os.path.basename(real_src), lib_dst)
+
+# Install NSS runtime modules required by Electron/Chromium apps (FireHub aborts on startup without libsoftokn3.so)
+for nss_lib in ["libsoftokn3.so", "libfreebl3.so", "libfreeblpriv3.so", "libnssckbi.so", "libnssdbm3.so"]:
+    nss_src = os.path.join("/usr/lib", nss_lib)
+    if os.path.exists(nss_src):
+        shutil.copy2(os.path.realpath(nss_src), os.path.join(ROOTFS_DIR, "usr", "lib", nss_lib))
 
 # Install brand interception library
 brand_so_src = os.path.join(solarui_src, "data", "libsolar_brand.so")
@@ -1744,7 +1750,7 @@ subprocess.run(f"fc-cache -fv '{ROOTFS_DIR}/usr/share/fonts'", shell=True, check
 
 # 5.16. Write Blaze Universe OS Release & Legal Issue Branding (Independent Native Base — Zero Arch ID_LIKE)
 os_release_content = """NAME="Blaze Universe"
-PRETTY_NAME="Blaze Universe 1.0 (Living Flow)"
+PRETTY_NAME="Blaze Universe 1.0"
 ID=blazeos
 VERSION_ID="1.0"
 BUILD_ID=living-flow
