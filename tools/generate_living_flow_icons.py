@@ -68,14 +68,15 @@ BLAZE_4PETAL_SVG = """
       <stop offset="100%" stop-color="#961307"/>
     </radialGradient>
   </defs>
-  <!-- Upper-Left Petal -->
-  <path d="M 35,38 L 48,38 C 56,38 61.8,44 61.8,56 L 50,56 C 41,56 35,49 35,38 Z" fill="url(#petalGlowTL)"/>
-  <!-- Upper-Right Petal -->
-  <path d="M 93,38 L 80,38 C 72,38 66.2,44 66.2,56 L 78,56 C 87,56 93,49 93,38 Z" fill="url(#petalGlowTR)"/>
-  <!-- Lower-Left Petal -->
-  <path d="M 22,60 L 42,60 C 54,60 61.8,69 61.8,88 L 44,88 C 30,88 22,77 22,60 Z" fill="url(#petalGlowBL)"/>
-  <!-- Lower-Right Petal -->
-  <path d="M 106,60 L 86,60 C 74,60 66.2,69 66.2,88 L 84,88 C 98,88 106,77 106,60 Z" fill="url(#petalGlowBR)"/>
+  <!-- Authentic 1.88:1 Blaze Universe 4-Petal Geometry (x=16..112 w=96, y=38.5..89.5 h=51 -> 1.882:1) -->
+  <!-- Upper-Left Petal (w=28, h=18.5) -->
+  <path d="M 34.5,38.5 L 48.0,38.5 C 56.2,38.5 62.4,44.8 62.4,57.0 L 49.8,57.0 C 40.8,57.0 34.5,50.2 34.5,38.5 Z" fill="url(#petalGlowTL)"/>
+  <!-- Upper-Right Petal (w=28, h=18.5) -->
+  <path d="M 93.5,38.5 L 80.0,38.5 C 71.8,38.5 65.6,44.8 65.6,57.0 L 78.2,57.0 C 87.2,57.0 93.5,50.2 93.5,38.5 Z" fill="url(#petalGlowTR)"/>
+  <!-- Lower-Left Petal (w=46.4, h=31.2) -->
+  <path d="M 16.0,58.3 L 38.8,58.3 C 52.8,58.3 62.4,69.2 62.4,89.5 L 41.2,89.5 C 26.2,89.5 16.0,77.6 16.0,58.3 Z" fill="url(#petalGlowBL)"/>
+  <!-- Lower-Right Petal (w=46.4, h=31.2) -->
+  <path d="M 112.0,58.3 L 89.2,58.3 C 75.2,58.3 65.6,69.2 65.6,89.5 L 86.8,89.5 C 101.8,89.5 112.0,77.6 112.0,58.3 Z" fill="url(#petalGlowBR)"/>
 """
 
 
@@ -381,13 +382,13 @@ def render_svg_to_png(svg_path: str, png_path: str, width: int, height: int | No
     )
 
 
-def build_official_logo_and_fastfetch() -> None:
+def extract_official_blaze_petals() -> Image.Image | None:
     src_jpg = os.path.join(ICONS_BASE, "blaze-source-logo.jpg")
     if not os.path.exists(src_jpg):
-        return
+        return None
     src = Image.open(src_jpg).convert("RGB")
     arr = np.array(src, dtype=np.float32)
-    mask_rough = arr[:, :, 0] > 28
+    mask_rough = (arr[:, :, 0] - arr[:, :, 2]) > 38.0
     ys, xs = np.where(mask_rough)
     crop = arr[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
 
@@ -398,13 +399,37 @@ def build_official_logo_and_fastfetch() -> None:
     b_clean = np.where(alpha > 0.01, np.clip(b / np.maximum(alpha, 0.65), 0, 255), 0)
 
     rgba_crop = np.stack([r_clean, g_clean, b_clean, alpha * 255.0], axis=-1).astype(np.uint8)
-    petal_img = Image.fromarray(rgba_crop, mode="RGBA")
+    return Image.fromarray(rgba_crop, mode="RGBA")
 
-    canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
-    scale = 448.0 / max(petal_img.width, petal_img.height)
-    nw, nh = int(round(petal_img.width * scale)), int(round(petal_img.height * scale))
+
+def paste_official_petals(
+    canvas: Image.Image,
+    petal_img: Image.Image,
+    cx: int,
+    cy: int,
+    target_w: int,
+    opacity: float = 1.0,
+) -> Image.Image:
+    aspect = petal_img.width / float(petal_img.height)  # ~1.879:1 locked
+    nw = max(4, int(round(target_w)))
+    nh = max(2, int(round(nw / aspect)))
     resized = petal_img.resize((nw, nh), Image.Resampling.LANCZOS)
-    canvas.paste(resized, ((512 - nw) // 2, (512 - nh) // 2), resized)
+    if opacity < 0.999:
+        r_arr = np.array(resized, dtype=np.float32)
+        r_arr[:, :, 3] *= opacity
+        resized = Image.fromarray(r_arr.astype(np.uint8), mode="RGBA")
+    out = canvas.convert("RGBA")
+    out.alpha_composite(resized, (cx - nw // 2, cy - nh // 2))
+    return out
+
+
+def build_official_logo_and_fastfetch(petal_img: Image.Image | None) -> None:
+    if petal_img is None:
+        return
+
+    # 1. Square icon canvases (1:1 container with exact 1.879:1 centered emblem)
+    canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    canvas = paste_official_petals(canvas, petal_img, 256, 256, 456)
 
     for sz, out_name in [
         (256, "blaze-logo-256.png"),
@@ -413,14 +438,37 @@ def build_official_logo_and_fastfetch() -> None:
     ]:
         canvas.resize((sz, sz), Image.Resampling.LANCZOS).save(os.path.join(ICONS_BASE, out_name))
 
-    # Symmetrical 40x15 numeric ASCII art ("rakamlarla") with TrueColor crimson-vermilion shading
+    # 2. Tight 1.88:1 wide banner emblem (zero wasted vertical whitespace for hero cards)
+    wide_w = 320
+    wide_h = int(round(wide_w / (petal_img.width / float(petal_img.height))))
+    wide_canvas = Image.new("RGBA", (wide_w, wide_h), (0, 0, 0, 0))
+    wide_resized = petal_img.resize((wide_w, wide_h), Image.Resampling.LANCZOS)
+    wide_canvas.alpha_composite(wide_resized, (0, 0))
+    wide_canvas.save(os.path.join(ICONS_BASE, "blaze-logo-wide.png"))
+
+    # 3. Aspect-Calibrated Numeric ('0'-'9') Fastfetch Logo
+    # Measured Alacritty CaskaydiaCove 11.2pt cell ratio: cell_w=8.96px, cell_h=17.36px (cell_h/cell_w = 1.938).
+    # 47 cols x 13 rows -> 421px x 226px = 1.866:1 (exact match to official 1.879:1 source!).
     os.makedirs(FASTFETCH_DIR, exist_ok=True)
-    cols, rows = 40, 15
-    grid = petal_img.resize((cols, rows), Image.Resampling.LANCZOS)
-    g_arr = np.array(grid, dtype=np.float32)
+    cols = 47
+    p_arr = np.array(petal_img, dtype=np.float32)
+    ph, pw, _ = p_arr.shape
+    # Split upper petals (top 36.5%) and lower petals (bottom 61.4%) around natural horizontal seam
+    upper_crop = Image.fromarray(p_arr[: int(ph * 0.365), :, :].astype(np.uint8), mode="RGBA")
+    lower_crop = Image.fromarray(p_arr[int(ph * 0.386) :, :, :].astype(np.uint8), mode="RGBA")
+
+    up_grid = np.array(upper_crop.resize((cols, 5), Image.Resampling.LANCZOS), dtype=np.float32)
+    gap_grid = np.zeros((1, cols, 4), dtype=np.float32)
+    lo_grid = np.array(lower_crop.resize((cols, 7), Image.Resampling.LANCZOS), dtype=np.float32)
+    g_arr = np.concatenate([up_grid, gap_grid, lo_grid], axis=0)  # (13, 47, 4)
+
     digits = "1234567890"
+    mid_col = cols // 2  # 23 -> crisp 1-column center seam matching 3.2% source split
     raw_lines = []
-    for y in range(rows):
+    for y in range(g_arr.shape[0]):
+        if y == 5:
+            raw_lines.append("")
+            continue
         r_line = ""
         for x in range(cols):
             mx = cols - 1 - x
@@ -428,7 +476,7 @@ def build_official_logo_and_fastfetch() -> None:
             pg = 0.5 * (g_arr[y, x, 1] + g_arr[y, mx, 1])
             pb = 0.5 * (g_arr[y, x, 2] + g_arr[y, mx, 2])
             pa = 0.5 * (g_arr[y, x, 3] + g_arr[y, mx, 3])
-            if y == 5 or x in (19, 20) or pa < 105:
+            if x == mid_col or pa < 96:
                 r_line += " "
             else:
                 lum = np.clip((pr - 115.0) / 140.0, 0.0, 0.999)
@@ -443,20 +491,24 @@ def build_official_logo_and_fastfetch() -> None:
         f.write("\n".join(raw_lines) + "\n")
 
 
-def generate_gamezone_assets() -> None:
+def generate_gamezone_assets(petal_img: Image.Image | None) -> None:
     os.makedirs(COVERS_DIR, exist_ok=True)
     os.makedirs(GZ_ICONS_DIR, exist_ok=True)
 
-    # 1. User Avatar (128x128 Obsidian Circle + Official 4-Petal Blaze Emblem)
-    avatar_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-      <circle cx="64" cy="64" r="62" fill="#18191e" stroke="#ffffff" stroke-opacity="0.22" stroke-width="3"/>
-      <g transform="translate(6, 4) scale(0.90)">{BLAZE_4PETAL_SVG}</g>
+    # 1. User Avatar (80x80 clean Obsidian disc without duplicate inner ring + exact 1.88:1 Blaze Emblem)
+    avatar_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <circle cx="40" cy="40" r="40" fill="#18191e"/>
     </svg>"""
     av_svg_p = os.path.join(COVERS_DIR, "_avatar.svg")
+    av_png_p = os.path.join(COVERS_DIR, "user_avatar.png")
     with open(av_svg_p, "w", encoding="utf-8") as f:
         f.write(avatar_svg)
-    render_svg_to_png(av_svg_p, os.path.join(COVERS_DIR, "user_avatar.png"), 128)
+    render_svg_to_png(av_svg_p, av_png_p, 80)
     os.remove(av_svg_p)
+    if petal_img is not None:
+        av_im = Image.open(av_png_p).convert("RGBA")
+        av_im = paste_official_petals(av_im, petal_img, 40, 40, 56)
+        av_im.save(av_png_p)
 
     # 2. 5 Top Capsule Bar Nav Icons (36x36 crisp platinum)
     nav_svgs = {
@@ -474,8 +526,8 @@ def generate_gamezone_assets() -> None:
             f.write(svg_full)
         render_svg_to_png(svg_p, png_p, 36)
 
-    # 3. Ambient Architectural Hero Backdrop (1280x800 Obsidian + Subdued Warm Blaze Light Sweep)
-    hero_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800">
+    # 3. Ambient Architectural Hero Backdrop (1280x800 Obsidian + Exact 1.88:1 Official Watermark)
+    hero_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800">
       <defs>
         <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#111216"/>
@@ -483,8 +535,8 @@ def generate_gamezone_assets() -> None:
           <stop offset="100%" stop-color="#0d0e11"/>
         </linearGradient>
         <radialGradient id="emberAmbient" cx="76%" cy="32%" r="54%">
-          <stop offset="0%" stop-color="#c9381e" stop-opacity="0.30"/>
-          <stop offset="55%" stop-color="#7c1f10" stop-opacity="0.11"/>
+          <stop offset="0%" stop-color="#c9381e" stop-opacity="0.28"/>
+          <stop offset="55%" stop-color="#7c1f10" stop-opacity="0.10"/>
           <stop offset="100%" stop-color="#0d0e11" stop-opacity="0.0"/>
         </radialGradient>
         <radialGradient id="platinumSweep" cx="22%" cy="18%" r="48%">
@@ -496,19 +548,26 @@ def generate_gamezone_assets() -> None:
       <rect width="1280" height="800" fill="url(#emberAmbient)"/>
       <rect width="1280" height="800" fill="url(#platinumSweep)"/>
       <path d="M 620,-40 C 860,120 1060,260 1340,210 L 1340,800 L 520,800 Z" fill="#ffffff" fill-opacity="0.018"/>
-      <g transform="translate(835, 75) scale(2.45)" opacity="0.24">{BLAZE_4PETAL_SVG}</g>
     </svg>"""
     h_svg_p = os.path.join(COVERS_DIR, "_hero.svg")
+    hero_out_p = os.path.join(COVERS_DIR, "xbox_dynamic.png")
     with open(h_svg_p, "w", encoding="utf-8") as f:
         f.write(hero_svg)
-    render_svg_to_png(h_svg_p, os.path.join(COVERS_DIR, "xbox_dynamic.png"), 1280, 800)
+    render_svg_to_png(h_svg_p, hero_out_p, 1280, 800)
+    # Also save pure un-watermarked architectural wallpaper for Noctalia desktop
+    noct_wp = os.path.join(SOLAR_ROOT, "data", "noctalia-assets", "living-flow-wallpaper.png")
+    render_svg_to_png(h_svg_p, noct_wp, 1920, 1200)
     os.remove(h_svg_p)
+    if petal_img is not None:
+        h_im = Image.open(hero_out_p).convert("RGBA")
+        h_im = paste_official_petals(h_im, petal_img, 1005, 232, 336, opacity=0.22)
+        h_im.save(hero_out_p)
 
-    # 4. 7 Distinct Bespoke Game Cover Artworks (420x420 each, non-neon satin luxury)
+    # 4. 7 Distinct Bespoke Fallback Cover Artworks (420x420 each, non-neon satin luxury)
     covers_spec = {
         "steam-deck": (
             "#1b1c22", "#101115", "#d94226", "BLAZE CONSOLE",
-            f'<g transform="translate(82, 58) scale(2.0)">{BLAZE_4PETAL_SVG}</g>',
+            "",
         ),
         "beamng": (
             "#2a211b", "#141210", "#ea580c", "PHYSICS SIM",
@@ -572,6 +631,10 @@ def generate_gamezone_assets() -> None:
         with open(s_tmp, "w", encoding="utf-8") as f:
             f.write(svg_c)
         render_svg_to_png(s_tmp, p_tmp, 420)
+        if slug == "steam-deck" and petal_img is not None:
+            sd_im = Image.open(p_tmp).convert("RGBA")
+            sd_im = paste_official_petals(sd_im, petal_img, 210, 182, 232)
+            sd_im.save(p_tmp)
         Image.open(p_tmp).convert("RGB").save(j_out, quality=93)
         os.remove(s_tmp)
         if slug != "steam-deck":
@@ -691,19 +754,25 @@ def install_into_rootfs(rootfs_dir: str) -> None:
             os.path.join(solar_icons_dst, f"{nav_key}.png"),
         )
 
-    # Copy GameZone dynamic hero wallpaper into /usr/share/blazeos/wallpapers
+    # Copy GameZone dynamic hero wallpaper & Noctalia desktop wallpaper into rootfs
     wp_dst = os.path.join(rootfs_dir, "usr", "share", "blazeos", "wallpapers")
     os.makedirs(wp_dst, exist_ok=True)
     hero_p = os.path.join(COVERS_DIR, "xbox_dynamic.png")
     if os.path.exists(hero_p):
         shutil.copy2(hero_p, os.path.join(wp_dst, "xbox_dynamic.png"))
+    noct_wp_src = os.path.join(SOLAR_ROOT, "data", "noctalia-assets", "living-flow-wallpaper.png")
+    noct_wp_dst = os.path.join(rootfs_dir, "usr", "share", "solarui", "noctalia-assets", "living-flow-wallpaper.png")
+    if os.path.exists(noct_wp_src):
+        os.makedirs(os.path.dirname(noct_wp_dst), exist_ok=True)
+        shutil.copy2(noct_wp_src, noct_wp_dst)
 
     subprocess.run(["gtk-update-icon-cache", "-f", "-t", hicolor], check=False)
 
 
 def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
-    build_official_logo_and_fastfetch()
+    petal_img = extract_official_blaze_petals()
+    build_official_logo_and_fastfetch(petal_img)
     sizes = [24, 32, 48, 64, 128, 256]
 
     preview_tiles = []
@@ -712,9 +781,23 @@ def main() -> None:
         svg_path = os.path.join(OUT_DIR, f"{name}.svg")
         with open(svg_path, "w", encoding="utf-8") as f:
             f.write(svg_content)
-        for sz in sizes:
-            png_path = os.path.join(OUT_DIR, f"{name}-{sz}.png")
-            render_svg_to_png(svg_path, png_path, sz)
+        # For solar-welcome, composite the exact 1.879:1 official RGBA cutout onto an empty squircle
+        if name == "solar-welcome" and petal_img is not None:
+            empty_svg = wrap_squircle_svg(g1, g2, glow, "")
+            empty_p = os.path.join(OUT_DIR, "_empty_welcome.svg")
+            with open(empty_p, "w", encoding="utf-8") as f:
+                f.write(empty_svg)
+            for sz in sizes:
+                png_path = os.path.join(OUT_DIR, f"{name}-{sz}.png")
+                render_svg_to_png(empty_p, png_path, sz)
+                base_im = Image.open(png_path).convert("RGBA")
+                base_im = paste_official_petals(base_im, petal_img, sz // 2, sz // 2 + max(1, sz // 64), int(round(sz * 0.74)))
+                base_im.save(png_path)
+            os.remove(empty_p)
+        else:
+            for sz in sizes:
+                png_path = os.path.join(OUT_DIR, f"{name}-{sz}.png")
+                render_svg_to_png(svg_path, png_path, sz)
         preview_tiles.append((name, os.path.join(OUT_DIR, f"{name}-128.png")))
 
     for nav_name, (g1, g2, glow, inner) in SETTINGS_NAV_ICONS.items():
@@ -723,9 +806,20 @@ def main() -> None:
         png_path = os.path.join(OUT_DIR, f"{nav_name}.png")
         with open(svg_path, "w", encoding="utf-8") as f:
             f.write(svg_content)
-        render_svg_to_png(svg_path, png_path, 56)
+        if nav_name == "nav-about" and petal_img is not None:
+            empty_svg = wrap_squircle_svg(g1, g2, glow, "")
+            empty_p = os.path.join(OUT_DIR, "_empty_about.svg")
+            with open(empty_p, "w", encoding="utf-8") as f:
+                f.write(empty_svg)
+            render_svg_to_png(empty_p, png_path, 56)
+            base_im = Image.open(png_path).convert("RGBA")
+            base_im = paste_official_petals(base_im, petal_img, 28, 28, 41)
+            base_im.save(png_path)
+            os.remove(empty_p)
+        else:
+            render_svg_to_png(svg_path, png_path, 56)
 
-    generate_gamezone_assets()
+    generate_gamezone_assets(petal_img)
 
     cols = 7
     rows = (len(preview_tiles) + cols - 1) // cols

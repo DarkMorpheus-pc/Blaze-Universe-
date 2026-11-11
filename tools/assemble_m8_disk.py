@@ -987,6 +987,97 @@ host_noctalia_cfg = "/home/darkmorpheus/.config/noctalia"
 if os.path.exists(host_noctalia_cfg):
     shutil.copytree(host_noctalia_cfg, os.path.join(blaze_cfg, "noctalia"), dirs_exist_ok=True)
 
+# Install Living Flow Noctalia wallpaper & clean calibrated settings.toml (1.0 UI scale, crisp taskbar icons)
+lf_wall_src = os.path.join(solarui_src, "data", "noctalia-assets", "living-flow-wallpaper.png")
+lf_wall_dst_dir = os.path.join(ROOTFS_DIR, "usr", "share", "solarui", "noctalia-assets")
+os.makedirs(lf_wall_dst_dir, exist_ok=True)
+if os.path.exists(lf_wall_src):
+    shutil.copy2(lf_wall_src, os.path.join(lf_wall_dst_dir, "living-flow-wallpaper.png"))
+
+with open(os.path.join(blaze_state, "settings.toml"), "w") as nf:
+    nf.write("""config_version = 15
+
+[accessibility]
+ui_scale = 1.0
+
+[bar]
+order = [ "default", "taskbar" ]
+
+    [bar.default]
+    background_opacity = 0.42
+    margin_edge = 5
+    radius = 80
+
+    [bar.taskbar]
+    background_opacity = 0.56
+    border = "outline"
+    border_width = 1.0
+    capsule = false
+    center = [ "taskbar" ]
+    concave_edge_corners = false
+    contact_shadow = false
+    end = [ "media", "clock", "tray", "battery" ]
+    hover_highlight = true
+    margin_edge = 6
+    margin_ends = 110
+    margin_opposite_edge = 0
+    padding = 10
+    panel_overlap = 1
+    position = "bottom"
+    radius = 22
+    reserve_space = true
+    scale = 1.1
+    shadow = true
+    start = [ "launcher" ]
+    thickness = 46
+    widget_spacing = 8
+
+[widget.taskbar]
+icon_scale = 1.55
+item_spacing = 8.0
+active_indicator_color = "#e04828"
+pinned = [ "solar-welcome", "firehub", "alacritty", "solar-settings", "solar-gamezone" ]
+pinned_opacity = 0.92
+
+[lockscreen_widgets]
+enabled = false
+schema_version = 2
+widget_order = []
+
+[shell]
+corner_radius_scale = 1.15
+screen_time_enabled = true
+
+    [shell.animation]
+    speed = 1.0
+
+    [shell.panel]
+    transparency_mode = "glass"
+
+[solarui]
+clock_color_mode = "dynamic"
+clock_enabled = true
+clock_style = "analog_tachymeter"
+dashboard_provider = "caelestia"
+launcher_provider = "caelestia"
+shell_engine = "noctalia"
+
+[theme]
+builtin = "Ayu"
+community_palette = "Oxocarbon"
+mode = "dark"
+source = "builtin"
+
+[wallpaper]
+directory = "/usr/share/solarui/noctalia-assets"
+
+    [wallpaper.default]
+    path = "/usr/share/solarui/noctalia-assets/living-flow-wallpaper.png"
+
+    [wallpaper.last]
+    path = "/usr/share/solarui/noctalia-assets/living-flow-wallpaper.png"
+""")
+
 # Install Alacritty config for blaze (ColorOS 17 Living Flow frameless Obsidian terminal)
 blaze_alacritty = os.path.join(blaze_cfg, "alacritty")
 os.makedirs(blaze_alacritty, exist_ok=True)
@@ -1100,6 +1191,27 @@ for core_bin in ["blaze-sentinel", "blaze-continuum", "portadora", "solar-instal
 if os.path.exists("/usr/bin/kill"):
     shutil.copy2("/usr/bin/kill", os.path.join(ROOTFS_DIR, "usr", "bin", "kill"))
     os.chmod(os.path.join(ROOTFS_DIR, "usr", "bin", "kill"), 0o755)
+
+# Install ffmpeg + required shared libraries for live GameZone Steam HLS/MP4 trailer streaming
+if os.path.exists("/usr/bin/ffmpeg"):
+    shutil.copy2("/usr/bin/ffmpeg", os.path.join(ROOTFS_DIR, "usr", "bin", "ffmpeg"))
+    os.chmod(os.path.join(ROOTFS_DIR, "usr", "bin", "ffmpeg"), 0o755)
+    for spv_lib in glob.glob("/usr/lib/libSPIRV-Tools*.so*"):
+        if os.path.isfile(spv_lib):
+            shutil.copy2(spv_lib, os.path.join(ROOTFS_DIR, "usr", "lib", os.path.basename(spv_lib)))
+    ldd_out = subprocess.run(["ldd", "/usr/bin/ffmpeg"], capture_output=True, text=True, check=False).stdout
+    for ldd_line in ldd_out.splitlines():
+        if "=>" in ldd_line:
+            parts = ldd_line.split("=>")[1].strip().split()
+            if parts and parts[0].startswith("/"):
+                lib_src = parts[0]
+                lib_dst = os.path.join(ROOTFS_DIR, "usr", "lib", os.path.basename(lib_src))
+                if not os.path.exists(lib_dst) and os.path.exists(lib_src):
+                    real_src = os.path.realpath(lib_src)
+                    real_dst = os.path.join(ROOTFS_DIR, "usr", "lib", os.path.basename(real_src))
+                    shutil.copy2(real_src, real_dst)
+                    if os.path.basename(real_src) != os.path.basename(lib_src) and not os.path.lexists(lib_dst):
+                        os.symlink(os.path.basename(real_src), lib_dst)
 
 # Install brand interception library
 brand_so_src = os.path.join(solarui_src, "data", "libsolar_brand.so")
