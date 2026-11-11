@@ -987,18 +987,18 @@ host_noctalia_cfg = "/home/darkmorpheus/.config/noctalia"
 if os.path.exists(host_noctalia_cfg):
     shutil.copytree(host_noctalia_cfg, os.path.join(blaze_cfg, "noctalia"), dirs_exist_ok=True)
 
-# Install Alacritty config for blaze (ColorOS 17 Living Flow frameless dark terminal)
+# Install Alacritty config for blaze (ColorOS 17 Living Flow frameless Obsidian terminal)
 blaze_alacritty = os.path.join(blaze_cfg, "alacritty")
 os.makedirs(blaze_alacritty, exist_ok=True)
 with open(os.path.join(blaze_alacritty, "alacritty.toml"), "w") as f:
     f.write("""[window]
-padding = { x = 16, y = 16 }
+padding = { x = 18, y = 16 }
 decorations = "none"
 decorations_theme_variant = "Dark"
-opacity = 0.94
+opacity = 0.96
 
 [font]
-size = 11.5
+size = 11.2
 
 [font.normal]
 family = "CaskaydiaCove Nerd Font"
@@ -1013,32 +1013,32 @@ family = "CaskaydiaCove Nerd Font"
 style = "Italic"
 
 [colors.primary]
-background = "#0b0f1a"
-foreground = "#e2e8f0"
+background = "#121316"
+foreground = "#e4e4e7"
 
 [colors.cursor]
-text = "#0b0f1a"
-cursor = "#38bdf8"
+text = "#121316"
+cursor = "#e54d2e"
 
 [colors.normal]
-black   = "#1e293b"
-red     = "#f87171"
+black   = "#1c1e24"
+red     = "#e54d2e"
 green   = "#34d399"
-yellow  = "#fbbf24"
-blue    = "#38bdf8"
-magenta = "#c084fc"
-cyan    = "#2dd4bf"
-white   = "#cbd5e1"
+yellow  = "#f59e0b"
+blue    = "#93c5fd"
+magenta = "#c4b5fd"
+cyan    = "#99f6e4"
+white   = "#d4d4d8"
 
 [colors.bright]
-black   = "#475569"
-red     = "#fca5a5"
+black   = "#52525b"
+red     = "#f87171"
 green   = "#6ee7b7"
-yellow  = "#fde68a"
-blue    = "#7dd3fc"
-magenta = "#d8b4fe"
-cyan    = "#5eead4"
-white   = "#f8fafc"
+yellow  = "#fcd34d"
+blue    = "#bfdbfe"
+magenta = "#ddd6fe"
+cyan    = "#ccfbf1"
+white   = "#fafafa"
 """)
 
 # Enforce global dark mode & hicolor Living Flow icon resolution for GTK3, GTK4 & XDG
@@ -1138,10 +1138,43 @@ if os.path.exists(ff_cfg_src):
     os.makedirs(ff_preset_dir, exist_ok=True)
     shutil.copy2(ff_cfg_src, os.path.join(ff_preset_dir, "default.jsonc"))
 
-# Generate & install ColorOS 17 Living Flow Squircle Icons across hicolor + pixmaps
+# Generate & install ColorOS 17 Living Flow Squircle Icons, Covers & Numeric Blaze Logo
 icon_gen_script = os.path.join(BLAZE_ROOT, "tools", "generate_living_flow_icons.py")
 if os.path.exists(icon_gen_script):
     subprocess.run(["python3", icon_gen_script], check=True)
+
+solar_covers_src = os.path.join(solarui_src, "data", "covers")
+if os.path.exists(solar_covers_src):
+    solar_covers_dst = os.path.join(ROOTFS_DIR, "usr", "share", "solarui", "covers")
+    os.makedirs(solar_covers_dst, exist_ok=True)
+    shutil.copytree(solar_covers_src, solar_covers_dst, dirs_exist_ok=True)
+    dyn_wall = os.path.join(solar_covers_src, "xbox_dynamic.png")
+    if os.path.exists(dyn_wall):
+        wall_dst = os.path.join(ROOTFS_DIR, "usr", "share", "blazeos", "wallpapers")
+        os.makedirs(wall_dst, exist_ok=True)
+        shutil.copy2(dyn_wall, os.path.join(wall_dst, "xbox_dynamic.png"))
+
+solar_gz_icons_src = os.path.join(solarui_src, "data", "icons", "gamezone")
+if os.path.exists(solar_gz_icons_src):
+    solar_icons_dst = os.path.join(ROOTFS_DIR, "usr", "share", "solarui", "icons")
+    os.makedirs(solar_icons_dst, exist_ok=True)
+    shutil.copytree(solar_gz_icons_src, solar_icons_dst, dirs_exist_ok=True)
+
+# Populate gdk-pixbuf loaders.cache inside rootfs if loaders directory exists
+pixbuf_loaders_dir = os.path.join(ROOTFS_DIR, "usr", "lib", "gdk-pixbuf-2.0", "2.10.0", "loaders")
+if os.path.isdir(pixbuf_loaders_dir):
+    q_res = subprocess.run(
+        ["gdk-pixbuf-query-loaders"],
+        env={**os.environ, "GDK_PIXBUF_MODULEDIR": pixbuf_loaders_dir},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if q_res.returncode == 0 and q_res.stdout:
+        fixed_cache = q_res.stdout.replace(ROOTFS_DIR, "")
+        cache_out = os.path.join(ROOTFS_DIR, "usr", "lib", "gdk-pixbuf-2.0", "2.10.0", "loaders.cache")
+        with open(cache_out, "w") as cf:
+            cf.write(fixed_cache)
 
 # Install Desktop Applications (.desktop files) for Noctalia, Caelestia and OmniBar
 apps_dir = os.path.join(ROOTFS_DIR, "usr", "share", "applications")
@@ -1198,6 +1231,7 @@ Terminal=false
 Categories=System;TerminalEmulator;
 Keywords=terminal;shell;prompt;command;
 StartupNotify=true
+StartupWMClass=Alacritty
 """)
 
 subprocess.run(f"update-desktop-database '{apps_dir}'", shell=True, check=False)

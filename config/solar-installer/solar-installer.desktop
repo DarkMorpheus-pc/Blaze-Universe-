@@ -9,3 +9,4 @@ Icon=solar-installer
 Terminal=false
 Categories=System;
 StartupNotify=true
+StartupWMClass=solar-installer-gui
